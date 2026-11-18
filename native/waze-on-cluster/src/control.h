@@ -12,10 +12,22 @@
  *                  {"cmd":"hud","hud_hide_sport":"0"|"1"}  hidden while the car is in a Sport mode, or not
  *                  {"cmd":"drive","sport":"0"|"1"}  the car is in a Sport mode, or not; a Sport mode
  *                                   counts for 90 s (MapFeeds::kSportHoldMs) unless said again
+ *                  {"cmd":"hud","hud_card":"0"|"1","hud_card_pct":"50".."150",
+ *                   "hud_card_x":"-800".."800","hud_card_y":...}  the HUD's turn card on or off,
+ *                                   its size and where it is, from its place by the map (turn_card.h)
+ *                  {"cmd":"hud","hud_card_crop":"0".."40"}  the HUD map that much shorter while
+ *                                   the card is on, cut at its top and bottom (turn_card.h)
+ *                  {"cmd":"turn","arrow":"right","exit":"","angle":"","side":"","dist":"450 m",
+ *                   "road":"Example Street","lanes":"s*,s+r*,r"}  the next turn for the card
+ *                                   (turn_card.h); an empty arrow: none; a turn counts for
+ *                                   5 s (MapFeeds::kTurnHoldMs) unless told again
  *                  {"cmd":"guide","hide":0|1}  BMW's turn box hidden or not (guide_setting.h)
+ *                  {"cmd":"note","text":...}  a line for this tool's log, "app: <text>": one line,
+ *                                   at most 400 bytes, 30 a minute (app_note.h)
  *   tool -> owner  {"ev":"status",...,"hide_bmw_guidance":0|1,"guide_disabled":0|1,
  *                   "cluster":0|1,"hud":0|1,"hud_state":"off"|"disabled"|"sport"|"idle"|"starting"|"showing"|...,
- *                   "hud_width_pct":...,"hud_x":...,"hud_y":...,"hud_keep_shown":0|1,"hud_hide_sport":0|1}
+ *                   "hud_width_pct":...,"hud_x":...,"hud_y":...,"hud_keep_shown":0|1,"hud_hide_sport":0|1,
+ *                   "hud_card":0|1,"hud_card_pct":...,"hud_card_x":...,"hud_card_y":...,"hud_card_crop":...}
  *                  {"ev":"log","line":...}
  *
  * One connection is the owner; a second one is told "busy" and closed. */

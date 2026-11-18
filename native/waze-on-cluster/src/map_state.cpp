@@ -13,8 +13,9 @@
 
 namespace woc {
 
-const char *const kMapStateKeys[7] = {"cluster",      "hud",          "hud_width_pct",  "hud_offset_x",
-                                      "hud_offset_y", "hud_keep_shown", "hud_hide_sport"};
+const char *const kMapStateKeys[12] = {"cluster",      "hud",            "hud_width_pct",  "hud_offset_x",
+                                       "hud_offset_y", "hud_keep_shown", "hud_hide_sport", "hud_card",
+                                       "hud_card_pct", "hud_card_x",     "hud_card_y",     "hud_card_crop"};
 
 namespace {
 
@@ -26,7 +27,9 @@ std::string trim(const std::string &s)
 
 /* A whole number in the key's range: the map on (1) or off (0), 0 or 20-100 %
  * wide, -800..800 px from the centre, kept shown (1) or not (0), hidden in a
- * Sport mode (1) or not (0). */
+ * Sport mode (1) or not (0), the turn card on (1) or off (0), 50-150 % of its
+ * size, -800..800 px from its place, 0-40 % of the map's height cut while
+ * it is on. */
 bool valid(const std::string &key, const std::string &value)
 {
     char *end = nullptr;
@@ -35,8 +38,12 @@ bool valid(const std::string &key, const std::string &value)
         return false;
     if (key == "hud_width_pct")
         return v == 0 || (v >= 20 && v <= 100);
-    if (key == "hud_offset_x" || key == "hud_offset_y")
+    if (key == "hud_offset_x" || key == "hud_offset_y" || key == "hud_card_x" || key == "hud_card_y")
         return v >= -800 && v <= 800;
+    if (key == "hud_card_pct")
+        return v >= 50 && v <= 150;
+    if (key == "hud_card_crop")
+        return v >= 0 && v <= 40;
     return v == 0 || v == 1;
 }
 

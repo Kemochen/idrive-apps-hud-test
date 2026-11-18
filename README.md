@@ -79,5 +79,6 @@ otherwise. What apps compile in or copy from cluster-render, its `include/`,
 `client/`, `kit/`, `js/cluster_render_client.js` and `PROTOCOL.md`, is
 MPL-2.0 ([`LICENSES/MPL-2.0.txt`](LICENSES/MPL-2.0.txt)). Third-party files
 keep their own licenses: the RAMSES and vsomeip interfaces in cluster-render
-(MPL-2.0), the Intel Media SDK headers in waze-on-cluster (MIT), Project
-Nayuki's QR code generator in robertn_waze_cluster (MIT).
+(MPL-2.0), the Intel Media SDK headers in waze-on-cluster (MIT), the Noto
+Sans glyphs (OFL-1.1) and Material Symbols icons (Apache-2.0) of its turn
+card, Project Nayuki's QR code generator in robertn_waze_cluster (MIT).

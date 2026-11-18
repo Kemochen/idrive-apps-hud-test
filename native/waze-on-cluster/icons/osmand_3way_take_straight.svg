@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Transcribed from OsmAnd TurnPathHelper.calcTurnPath (GPL-3.0-or-later), https://github.com/osmandapp/OsmAnd/blob/4ea06e7074be5b6bc4c620d7ca0f7a935319152d/OsmAnd/src/net/osmand/plus/views/TurnPathHelper.java ; LanesDrawable lane with primary C, secondary TSLL, tertiary TSLR. 72x72 Android Path coordinates, y down. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" width="72" height="72">
+  <path fill="#8a8a8a" d="M40.000 66.000 L40.000 66.000 A32.000 28.536 0 0 1 56.179 41.196 L56.179 41.196 L56.889 43.686 Q58.122 48.013 60.813 44.406 L69.310 33.012 Q72.000 29.405 67.507 29.147 L53.317 28.332 Q48.825 28.074 51.347 31.801 L52.798 33.945 L52.798 33.945 A40.000 36.540 0 0 0 32.000 66.000 L32.000 66.000 Z"/>
+  <path fill="#8a8a8a" d="M32.000 66.000 L32.000 66.000 A32.000 28.536 0 0 0 15.821 41.196 L15.821 41.196 L15.111 43.686 Q13.878 48.013 11.187 44.406 L2.690 33.012 Q0.000 29.405 4.493 29.147 L18.683 28.332 Q23.175 28.074 20.653 31.801 L19.202 33.945 L19.202 33.945 A40.000 36.540 0 0 1 40.000 66.000 L40.000 66.000 Z"/>
+  <path fill="#ffffff" d="M40.000 66.000 L40.000 19.322 L42.556 19.731 Q47.000 20.442 44.868 16.479 L38.132 3.963 Q36.000 0.000 33.868 3.963 L27.132 16.479 Q25.000 20.442 29.444 19.731 L32.000 19.322 L32.000 66.000 Z"/>
+</svg>

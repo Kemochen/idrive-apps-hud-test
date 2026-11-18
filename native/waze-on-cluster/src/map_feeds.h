@@ -33,7 +33,11 @@
  * Hide HUD map in Sport mode (set_hud_hide_sport) takes the HUD's map away
  * as Off does, the setting still on, while the car is in a Sport mode
  * (set_sport, from the app, which reads the driving mode). The cluster's
- * map is not touched. */
+ * map is not touched.
+ *
+ * The turn card (set_card, turn_card.h) is drawn by the HUD's feed beside
+ * its map, from the turn the app tells (set_turn); both are kept for a HUD
+ * feed made later. */
 #ifndef WOC_MAP_FEEDS_H
 #define WOC_MAP_FEEDS_H
 
@@ -77,6 +81,14 @@ public:
      * lasts, so a mode the app no longer reports never keeps the map away. */
     void set_sport(bool sport, int64_t now_ms);
     static constexpr int64_t kSportHoldMs = 90000;
+    /* The turn card's settings, kept for a HUD feed made later. */
+    void set_card(const CardConfig &c);
+    const CardConfig &card() const { return base_.card; }
+    /* The next turn as the app read it; an empty one: none. A turn counts
+     * for kTurnHoldMs; the app tells it again while it lasts, so the card
+     * never shows a turn the app no longer reports. */
+    void set_turn(const Turn &t, int64_t now_ms);
+    static constexpr int64_t kTurnHoldMs = 5000;
     int hud_offset_x() const { return base_.hud_offset_x; }
     int hud_offset_y() const { return base_.hud_offset_y; }
     /* The cluster map layer's guide_hold. */
@@ -121,6 +133,8 @@ private:
     bool hud_hide_sport_ = false;   /* the setting */
     bool sport_ = false;            /* the car is in a Sport mode, as last told */
     int64_t sport_at_ms_ = 0;       /* when it was told */
+    Turn turn_;                     /* the next turn, as last told */
+    int64_t turn_at_ms_ = 0;        /* when it was told */
     std::unique_ptr<MapFeed> cluster_, hud_;
     std::vector<uint8_t> copy_;   /* a picture on its way from one feed to the other */
     uint64_t id_ = 0;   /* the newest frame's */

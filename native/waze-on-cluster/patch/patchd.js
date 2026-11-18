@@ -49,20 +49,32 @@
  *                  {"cmd":"hud-pos","hud_x":-800..800,"hud_y":-800..800}
  *                  {"cmd":"hud-keep-shown","on":0|1}
  *                  {"cmd":"hud-hide-sport","on":0|1}
+ *                  {"cmd":"hud-card","on":0|1}
+ *                  {"cmd":"hud-card-size","hud_card_pct":50..150}
+ *                  {"cmd":"hud-card-pos","hud_card_x":-800..800,"hud_card_y":-800..800}
+ *                  {"cmd":"hud-card-crop","hud_card_crop":0..40}
  *                                   the map on the cluster on or off, on the HUD on
  *                                   or off, the HUD's size
  *                                   (0: the default box), where it is moved from
  *                                   the centre (HUD pixels), whether it stays
- *                                   shown over BMW's pop-ups and whether it is
- *                                   hidden in a Sport mode, saved for the render's
- *                                   next start as "cluster", "hud", "hud_width_pct",
- *                                   "hud_offset_x", "hud_offset_y",
- *                                   "hud_keep_shown" and "hud_hide_sport" in MAP_STATE
+ *                                   shown over BMW's pop-ups, whether it is
+ *                                   hidden in a Sport mode, and the HUD's turn
+ *                                   card on or off, its size, where it is
+ *                                   moved from its place by the map and how much
+ *                                   of the HUD map's height is cut while it is on
+ *                                   (%, half at the top, half at the bottom), saved for the
+ *                                   render's next start as "cluster", "hud",
+ *                                   "hud_width_pct", "hud_offset_x", "hud_offset_y",
+ *                                   "hud_keep_shown", "hud_hide_sport", "hud_card",
+ *                                   "hud_card_pct", "hud_card_x", "hud_card_y" and
+ *                                   "hud_card_crop" in MAP_STATE
  *                                   (the app changes the running render itself).
  *                                   Changes are written together MAP_SAVE_MS
  *                                   after the last one; the reply (cluster-reply,
  *                                   hud-reply, hud-size-reply, hud-pos-reply,
- *                                   hud-keep-shown-reply, hud-hide-sport-reply)
+ *                                   hud-keep-shown-reply, hud-hide-sport-reply,
+ *                                   hud-card-reply, hud-card-size-reply,
+ *                                   hud-card-pos-reply, hud-card-crop-reply)
  *                                   follows the write and carries ok, the values
  *                                   saved and reason.
  *                  {"cmd":"profile","id":"<id>"|null}
@@ -239,14 +251,18 @@ var REBOOT_WAIT_MS = parseInt(process.env.WOC_REBOOT_WAIT_MS, 10) || 180000;
 /* The unit's own render settings, which updates keep. */
 var LOCAL_CONF = process.env.WOC_LOCAL_CONF || '/var/opt/waze-on-cluster/waze-on-cluster.local.conf';
 /* Where the map shows and the HUD map's size, place, whether it stays
- * shown over BMW's pop-ups and whether it is hidden in a Sport mode, as the
+ * shown over BMW's pop-ups and whether it is hidden in a Sport mode, and the
+ * HUD's turn card (on or off, its size, its place), as the
  * app chose them: the render reads this file (its map_state_file) over its
  * configuration. Not in LOCAL_CONF, which waze-on-cluster 0.8 refuses to
  * start with any of MAP_KEYS in. */
 var MAP_STATE = path.join(STATE_DIR, 'map.state.conf');
-var MAP_KEYS = ['cluster', 'hud', 'hud_width_pct', 'hud_offset_x', 'hud_offset_y', 'hud_keep_shown', 'hud_hide_sport'];
+var MAP_KEYS = ['cluster', 'hud', 'hud_width_pct', 'hud_offset_x', 'hud_offset_y', 'hud_keep_shown', 'hud_hide_sport',
+    'hud_card', 'hud_card_pct', 'hud_card_x', 'hud_card_y', 'hud_card_crop'];
 /* Keys added after the first sets were saved: one missing from a saved set is its default. */
-var MAP_KEYS_ADDED = ['hud_keep_shown', 'hud_hide_sport'];
+var MAP_KEYS_ADDED = ['hud_keep_shown', 'hud_hide_sport', 'hud_card', 'hud_card_pct', 'hud_card_x', 'hud_card_y', 'hud_card_crop'];
+var CARD_MIN_PCT = 50, CARD_MAX_PCT = 150;   /* the turn card's size, % of the drawn one */
+var CARD_CROP_MAX = 40;   /* the HUD map's height cut while the turn card is on, % */
 /* The opt-in settings: the render reads this file (its features_file) over
  * its configuration. Not in LOCAL_CONF, which every release up to 0.10.7
  * refuses to start with any of FEATURE_KEYS in; no release before this one
@@ -285,7 +301,9 @@ function rewriteConf(file, set, drop) {
 function mapValueOk(k, v) {
     var n = Number(v);
     return /^-?\d+$/.test(v) && (k === 'hud_width_pct' ? n === 0 || (n >= 20 && n <= 100)
-        : /^hud_offset_/.test(k) ? n >= -800 && n <= 800 : n === 0 || n === 1);
+        : k === 'hud_card_pct' ? n >= CARD_MIN_PCT && n <= CARD_MAX_PCT
+        : k === 'hud_card_crop' ? n >= 0 && n <= CARD_CROP_MAX
+        : /^hud_offset_|^hud_card_[xy]$/.test(k) ? n >= -800 && n <= 800 : n === 0 || n === 1);
 }
 
 /* Moves any of MAP_KEYS found in LOCAL_CONF into MAP_STATE, a value already
@@ -418,7 +436,8 @@ function saveLater(settings, withProfiles) {
 var PROFILES_FILE = path.join(STATE_DIR, 'profiles.json');
 var PROFILE_ID = /^[A-Za-z0-9][A-Za-z0-9._:@+={}-]{0,127}$/;
 var MAX_OWN = 16;
-var MAP_DEFAULTS = { cluster: 1, hud: 0, hud_width_pct: 0, hud_offset_x: 0, hud_offset_y: 0, hud_keep_shown: 0, hud_hide_sport: 0 };
+var MAP_DEFAULTS = { cluster: 1, hud: 0, hud_width_pct: 0, hud_offset_x: 0, hud_offset_y: 0, hud_keep_shown: 0, hud_hide_sport: 0,
+    hud_card: 0, hud_card_pct: 100, hud_card_x: 0, hud_card_y: 0, hud_card_crop: 20 };
 var profiles = null;          /* PROFILES_FILE as read at the start, and changed since */
 var currentProfile;           /* the profile the app last told (null: none; undefined: not told since the start) */
 var restored = false;         /* MAP_STATE written from PROFILES_FILE at the start, not yet told to the app */
@@ -433,8 +452,8 @@ function profilesKept(p) { return profilesInUse(p) || !!p.shared; }
 /* The settings in effect as PROFILES_FILE keeps them. */
 function profileEntry(p) { return p.active ? p.own[p.active] : p.shared; }
 /* Settings as PROFILES_FILE holds them, or null when any key is missing or
- * out of range; hud_keep_shown or hud_hide_sport missing (a set saved before
- * it) is its default. */
+ * out of range; a key of MAP_KEYS_ADDED missing (a set saved before it) is
+ * its default. */
 function profileSettings(o) {
     if (!o || typeof o !== 'object') return null;
     var s = {};
@@ -1825,6 +1844,38 @@ function handle(line, sock) {
     if (msg.cmd === 'hud-hide-sport') {
         if (msg.on !== 0 && msg.on !== 1) { reply(sock, { ev: 'hud-hide-sport-reply', ok: false, reason: 'on must be 0 or 1' }); return; }
         saveMapSettings(sock, 'hud-hide-sport-reply', { hud_hide_sport: msg.on }, 'the HUD map in a Sport mode');
+        return;
+    }
+    /* The HUD's turn card: on or off, its size, where it is. */
+    if (msg.cmd === 'hud-card') {
+        if (msg.on !== 0 && msg.on !== 1) { reply(sock, { ev: 'hud-card-reply', ok: false, reason: 'on must be 0 or 1' }); return; }
+        saveMapSettings(sock, 'hud-card-reply', { hud_card: msg.on }, 'the HUD turn card');
+        return;
+    }
+    if (msg.cmd === 'hud-card-size') {
+        var cardPct = msg.hud_card_pct;
+        if (!(typeof cardPct === 'number' && cardPct === Math.floor(cardPct) && cardPct >= CARD_MIN_PCT && cardPct <= CARD_MAX_PCT)) {
+            reply(sock, { ev: 'hud-card-size-reply', ok: false, reason: 'the turn card\'s size must be ' + CARD_MIN_PCT + '-' + CARD_MAX_PCT + ' %' });
+            return;
+        }
+        saveMapSettings(sock, 'hud-card-size-reply', { hud_card_pct: cardPct }, 'the HUD turn card size');
+        return;
+    }
+    if (msg.cmd === 'hud-card-pos') {
+        if (!isOffset(msg.hud_card_x) || !isOffset(msg.hud_card_y)) {
+            reply(sock, { ev: 'hud-card-pos-reply', ok: false, reason: 'the turn card\'s offsets must be whole numbers from -800 to 800' });
+            return;
+        }
+        saveMapSettings(sock, 'hud-card-pos-reply', { hud_card_x: msg.hud_card_x, hud_card_y: msg.hud_card_y }, 'the HUD turn card position');
+        return;
+    }
+    if (msg.cmd === 'hud-card-crop') {
+        var crop = msg.hud_card_crop;
+        if (!(typeof crop === 'number' && crop === Math.floor(crop) && crop >= 0 && crop <= CARD_CROP_MAX)) {
+            reply(sock, { ev: 'hud-card-crop-reply', ok: false, reason: 'the HUD map\'s cut with the turn card must be 0-' + CARD_CROP_MAX + ' %' });
+            return;
+        }
+        saveMapSettings(sock, 'hud-card-crop-reply', { hud_card_crop: crop }, 'the HUD map height with the turn card');
         return;
     }
     /* The driver profile and its own settings: not operations on carplay either. */

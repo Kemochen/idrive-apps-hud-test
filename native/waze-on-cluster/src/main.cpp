@@ -37,6 +37,7 @@
 #include <vector>
 
 #include "alt_screen.h"
+#include "app_note.h"
 #include "config.h"
 #include "control.h"
 #include "guide_setting.h"
@@ -94,6 +95,9 @@ std::string status_line(const FeedStatus &s)
            ",\"hud_x\":" + std::to_string(s.hud_offset_x) + ",\"hud_y\":" + std::to_string(s.hud_offset_y) +
            ",\"hud_keep_shown\":" + (s.hud_keep_shown ? "1" : "0") +
            ",\"hud_hide_sport\":" + (s.hud_hide_sport ? "1" : "0") +
+           ",\"hud_card\":" + (s.hud_card ? "1" : "0") + ",\"hud_card_pct\":" + std::to_string(s.hud_card_pct) +
+           ",\"hud_card_x\":" + std::to_string(s.hud_card_x) + ",\"hud_card_y\":" + std::to_string(s.hud_card_y) +
+           ",\"hud_card_crop\":" + std::to_string(s.hud_card_crop) +
            /* only while hosted: otherwise the line is as it always was */
            (s.hosted ? ",\"hosted\":1" : "") + "}";
 }
@@ -109,7 +113,9 @@ public:
      * comes and goes with the stream. guide is the app's switch for BMW's
      * turn box (guide_setting.h). drive is the car's driving mode as the
      * app reads it: the HUD's map is hidden in a Sport mode while
-     * hud_hide_sport is on (map_feeds.h). */
+     * hud_hide_sport is on (map_feeds.h). turn is the next turn as the app
+     * reads it, for the HUD's turn card, which hud turns on, sizes and
+     * places (turn_card.h). */
     void on_command(const std::map<std::string, std::string> &msg) override
     {
         const std::string &cmd = msg.at("cmd");
@@ -119,6 +125,8 @@ public:
         auto hx = msg.find("hud_x"), hy = msg.find("hud_y"), on = msg.find("on");
         auto keep = msg.find("hud_keep_shown");
         auto hide_sport = msg.find("hud_hide_sport"), sport = msg.find("sport");
+        const bool card = msg.count("hud_card") || msg.count("hud_card_pct") || msg.count("hud_card_x") || msg.count("hud_card_y") ||
+                          msg.count("hud_card_crop");
         if (cmd == "start" && it != msg.end()) {
             log_info("start %s", it->second.c_str());
             if (!feeds_->set_target(it->second))
@@ -134,8 +142,12 @@ public:
                 log_info("drive: the car is %s a Sport mode", is_sport ? "in" : "not in");
             sport_ = is_sport;
             feeds_->set_sport(is_sport, now_ms());
+        } else if (cmd == "turn" && msg.count("arrow")) {
+            on_turn(msg);
+        } else if (cmd == "note" && msg.count("text")) {
+            on_note(msg.at("text"));
         } else if (cmd == "hud" && (on != msg.end() || pct != msg.end() || hx != msg.end() || hy != msg.end() ||
-                                    keep != msg.end() || hide_sport != msg.end())) {
+                                    keep != msg.end() || hide_sport != msg.end() || card)) {
             if (on != msg.end()) {
                 if (on->second == "0" || on->second == "1")
                     feeds_->set_hud(on->second == "1");
@@ -178,6 +190,8 @@ public:
                     log_warn("hud: hud_hide_sport must be 0 or 1, not %s", hide_sport->second.c_str());
                 }
             }
+            if (card)
+                on_card(msg);
         } else {
             log_warn("control: unknown or malformed command %s", cmd.c_str());
         }
@@ -206,8 +220,79 @@ public:
     }
 
 private:
+    /* The next turn for the HUD's card; an empty arrow: none. Its fields are
+     * cut to what the card can show. The street's name never goes to the
+     * log, which the app can save and share. */
+    void on_turn(const std::map<std::string, std::string> &msg)
+    {
+        const auto field = [&](const char *key, size_t max) {
+            auto f = msg.find(key);
+            return f == msg.end() ? std::string() : f->second.substr(0, max);
+        };
+        Turn t;
+        t.arrow = field("arrow", 24);
+        if (!t.empty()) {
+            t.exit = field("exit", 2);
+            t.angle = field("angle", 3);
+            t.side = field("side", 5);
+            t.dist = field("dist", 16);
+            t.road = field("road", 320);
+            t.lanes = field("lanes", 160);
+        }
+        if (t.arrow != turn_)
+            log_info("turn: %s", t.empty() ? "none" : t.arrow.c_str());
+        turn_ = t.arrow;
+        feeds_->set_turn(t, now_ms());
+    }
+    /* A line the app wants in this log (app_note.h): one line, cut, at most
+     * kNotesPerMinute a minute. */
+    void on_note(const std::string &text)
+    {
+        unsigned dropped = 0;
+        const bool take = notes_.take(now_ms(), &dropped);
+        if (dropped)
+            log_info("app: %u notes over %u a minute not logged", dropped, kNotesPerMinute);
+        if (take)
+            log_info("app: %s", note_text(text).c_str());
+    }
+    /* The turn card's settings: on or off, its size (50-150 %), where it is
+     * moved to from its place by the map (-800..800 each; held inside the
+     * HUD). One out of range changes nothing. */
+    void on_card(const std::map<std::string, std::string> &msg)
+    {
+        CardConfig c = feeds_->card();
+        const auto number = [&](const char *key, long lo, long hi, long *out) {
+            auto f = msg.find(key);
+            if (f == msg.end())
+                return true;
+            char *end = nullptr;
+            const long v = std::strtol(f->second.c_str(), &end, 10);
+            if (f->second.empty() || *end || v < lo || v > hi) {
+                log_warn("hud: %s %s out of range (%ld..%ld)", key, f->second.c_str(), lo, hi);
+                return false;
+            }
+            *out = v;
+            return true;
+        };
+        long on = c.on, pct = c.pct, x = c.dx, y = c.dy, crop = c.crop;
+        if (!number("hud_card", 0, 1, &on) || !number("hud_card_pct", kCardMinPct, kCardMaxPct, &pct) ||
+            !number("hud_card_x", -kCardMoveMax, kCardMoveMax, &x) || !number("hud_card_y", -kCardMoveMax, kCardMoveMax, &y) ||
+            !number("hud_card_crop", 0, kCardCropMax, &crop))
+            return;
+        c.on = on == 1;
+        c.pct = (unsigned)pct;
+        c.dx = (int)x;
+        c.dy = (int)y;
+        c.crop = (unsigned)crop;
+        log_info("hud: turn card %s, %u%%, moved %+d,%+d, the map %u%% shorter while it is on", c.on ? "on" : "off", c.pct,
+                 c.dx, c.dy, c.crop);
+        feeds_->set_card(c);
+    }
+
     MapFeeds *feeds_;
     bool sport_ = false;   /* the driving mode as last told, for the log */
+    std::string turn_;     /* the turn's arrow as last told, for the log */
+    NoteLimit notes_;      /* the app's notes, at most so many a minute */
     GuideSetting *guide_;
     Control *control_ = nullptr;
     uint64_t log_seq_ = 0;
@@ -250,6 +335,8 @@ int serve(Config cfg)
         {"hud_width_pct", 0, 100},  {"hud_offset_x", -800, 800},     {"hud_offset_y", -800, 800},
         {"hud_scale_down", 0, 1},   {"hud_round_corners", 0, 1},     {"hud_black_background", 0, 1},
         {"hud_keep_shown", 0, 1},   {"hud_hide_sport", 0, 1},
+        {"hud_card", 0, 1},         {"hud_card_pct", 50, 150},
+        {"hud_card_x", -800, 800},  {"hud_card_y", -800, 800},  {"hud_card_crop", 0, 40},
         {"freeze_ms", 0, 600000},   {"freeze_min_fps", 1, 60},       {"alt_screen_port", 0, 65535},
         {"idle_ms", 1000, 600000},  {"blank_ms", 1000, 600000},
         {"alt_screen_uid", 0, 4294967294L}, {"gpu_copy", 0, 1},   {"hosted_vpp_scale", 0, 1},
@@ -294,6 +381,11 @@ int serve(Config cfg)
     fc.hud_offset_x = (int)cfg.num("hud_offset_x");
     fc.hud_offset_y = (int)cfg.num("hud_offset_y");
     fc.hud_keep_shown = cfg.num("hud_keep_shown") != 0;
+    fc.card.on = cfg.num("hud_card") == 1;
+    fc.card.pct = (unsigned)cfg.num("hud_card_pct");
+    fc.card.dx = (int)cfg.num("hud_card_x");
+    fc.card.dy = (int)cfg.num("hud_card_y");
+    fc.card.crop = (unsigned)cfg.num("hud_card_crop");
     fc.scale_down = cfg.num("hud_scale_down") != 0;
     fc.hud_round_corners = cfg.num("hud_round_corners") != 0;
     fc.hud_black_background = cfg.num("hud_black_background") != 0;
@@ -578,6 +670,11 @@ void define_keys(Config *cfg)
     cfg->define("hud_offset_y", "0");
     cfg->define("hud_keep_shown", "0");
     cfg->define("hud_hide_sport", "0");
+    cfg->define("hud_card", "0");
+    cfg->define("hud_card_pct", "100");
+    cfg->define("hud_card_x", "0");
+    cfg->define("hud_card_y", "0");
+    cfg->define("hud_card_crop", "20");
     cfg->define("hud_scale_down", "1");
     cfg->define("hud_round_corners", "1");
     cfg->define("hud_black_background", "1");

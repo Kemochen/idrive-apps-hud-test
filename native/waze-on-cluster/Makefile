@@ -6,7 +6,8 @@
 #                             against a fake MSDK, receive queue and catch-up, stream health,
 #                             keyframe wait, the turn-box setting, the map's saved settings,
 #                             the local conf and opt-in settings, the map feed
-#                             against the shared renderer, the kit's tests, patcher,
+#                             against the shared renderer, the HUD turn card's layout, pictures and icons,
+#                             the kit's tests, patcher,
 #                             the aapd locator on every build in AAPD_BIN and
 #                             AAPD_BINS, patchd patch/install activation/DLT/restart/driver profiles, the CarPlay
 #                             Wi-Fi band, capture, boot-recovery, journal keeper, logs
@@ -52,7 +53,8 @@ VERSION := $(shell sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' component.json)
 # The capture, decode and map feed (own files), the kit's atlas, packing and
 # geometry, and the shared renderer's client.
 WOC_SRC = src/main.cpp src/refused.cpp src/video_producer.cpp src/freeze_watch.cpp src/alt_screen.cpp src/map_feed.cpp src/map_feeds.cpp src/atlas_scale.cpp src/control.cpp src/h264_source.cpp \
-          src/guide_setting.cpp src/map_state.cpp src/local_conf.cpp \
+          src/guide_setting.cpp src/map_state.cpp src/local_conf.cpp src/card_layers.cpp src/card_draw.cpp src/card_font.cpp \
+          src/card_icons.cpp src/card_raster.cpp src/card_pick.cpp \
           src/udp_source.cpp src/avb_source.cpp src/framing_probe.cpp src/rtp_h264.cpp src/sps_info.cpp \
           src/decoder_msdk.cpp src/nal_reader.cpp src/stream_health.cpp $(KIT)/map_geometry.cpp $(KIT)/yuv_atlas.cpp \
           $(KIT)/block_pack.cpp
@@ -67,7 +69,8 @@ CPP_TESTS = $(BUILD)/host/nal_reader_test $(BUILD)/host/rtp_h264_test $(BUILD)/h
 		$(BUILD)/host/stream_health_test $(BUILD)/host/source_crop_test \
 		$(BUILD)/host/map_rect_test $(BUILD)/host/guide_setting_test $(BUILD)/host/decoder_test \
 		$(BUILD)/host/map_state_test $(BUILD)/host/local_conf_test $(BUILD)/host/atlas_scale_test $(BUILD)/host/sps_info_test \
-		$(BUILD)/host/picture_pace_test
+		$(BUILD)/host/picture_pace_test $(BUILD)/host/turn_card_test $(BUILD)/host/card_draw_test $(BUILD)/host/card_pick_test \
+		$(BUILD)/host/app_note_test
 # The control socket (accept4) and the producer (pipe2) are Linux's: built and run on Linux only
 # (make test-x86).
 LINUX_TESTS = $(if $(filter Linux,$(shell uname -s)),$(BUILD)/host/refused_test $(BUILD)/host/video_producer_test)
@@ -134,6 +137,10 @@ test-cpp: $(CPP_TESTS)
 	$(BUILD)/host/local_conf_test
 	$(BUILD)/host/atlas_scale_test
 	$(BUILD)/host/sps_info_test
+	$(BUILD)/host/turn_card_test
+	$(BUILD)/host/card_draw_test
+	$(BUILD)/host/card_pick_test
+	$(BUILD)/host/app_note_test
 	$(if $(LINUX_TESTS),$(foreach t,$(LINUX_TESTS),$(t) &&) true,@echo 'refused_test, video_producer_test: Linux only (make test-x86)')
 	$(MAKE) -C $(CR) test-kit BUILD=$(abspath $(BUILD))/kit
 
@@ -173,6 +180,26 @@ $(BUILD)/host/map_rect_test: test/map_rect_test.cpp src/map_rect.h
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) -Isrc -o $@ test/map_rect_test.cpp
 
+$(BUILD)/host/turn_card_test: test/turn_card_test.cpp src/turn_card.h
+	mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -Isrc -o $@ test/turn_card_test.cpp
+
+# The app's notes for the log: one line each, cut, at most so many a minute.
+$(BUILD)/host/app_note_test: test/app_note_test.cpp src/app_note.h
+	mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -Isrc -o $@ test/app_note_test.cpp
+
+# The turn card's pictures, with its baked lettering.
+CARD_SRC = src/card_draw.cpp src/card_font.cpp src/card_icons.cpp src/card_raster.cpp src/card_pick.cpp
+CARD_H   = src/card_draw.h src/card_font.h src/card_shapes.h src/card_icons.h src/card_raster.h src/card_pick.h src/turn_card.h
+$(BUILD)/host/card_draw_test: test/card_draw_test.cpp $(CARD_SRC) $(CARD_H)
+	mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -Isrc -o $@ test/card_draw_test.cpp $(CARD_SRC)
+
+$(BUILD)/host/card_pick_test: test/card_pick_test.cpp src/card_pick.cpp src/card_icons.cpp src/card_pick.h src/card_icons.h src/turn_card.h
+	mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -Isrc -o $@ test/card_pick_test.cpp src/card_pick.cpp src/card_icons.cpp
+
 $(BUILD)/host/nal_reader_test: test/nal_reader_test.cpp src/nal_reader.cpp src/nal_reader.h src/bit_reader.h
 	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) -Isrc -o $@ test/nal_reader_test.cpp src/nal_reader.cpp
@@ -195,7 +222,8 @@ CR_CORE = $(filter-out $(addprefix $(CR)/src/,main.cpp settings.cpp graph_ramses
 # Each of its sources compiles once, with its header dependencies.
 MF       = $(BUILD)/host/map_feed
 MF_FLAGS = $(CXXFLAGS) -Isrc -I$(KIT) -I$(CR)/include -I$(CR) -I$(CR)/src -isystem $(CR)/dcsm/third_party/vsomeip/interface
-MF_SRC   = test/map_feed_test.cpp src/map_feed.cpp src/map_feeds.cpp src/atlas_scale.cpp src/freeze_watch.cpp $(filter-out $(CR)/client/protocol.cpp,$(CR_CORE)) $(CR_SRC) \
+MF_SRC   = test/map_feed_test.cpp src/map_feed.cpp src/map_feeds.cpp src/atlas_scale.cpp src/freeze_watch.cpp \
+           src/card_layers.cpp $(CARD_SRC) $(filter-out $(CR)/client/protocol.cpp,$(CR_CORE)) $(CR_SRC) \
            $(CR)/src/log.cpp
 
 # objects of sources in this tree under <dir>/, of the shared renderer's under <dir>/cr/

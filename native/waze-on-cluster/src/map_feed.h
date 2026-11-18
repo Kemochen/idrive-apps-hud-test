@@ -56,7 +56,11 @@
  * part the layer no longer shows (the host moved or went) is dropped. Only
  * a whole frame (before VPP has the part, or when it cannot make it) goes
  * through the worker. A layer made for another part, or for none, starts
- * from the next frame, not a part of the old one. */
+ * from the next frame, not a part of the old one.
+ *
+ * The HUD's feed also draws the turn card (card_layers.h) beside its map:
+ * the card's settings (set_card) and the turn the app tells (set_turn); not
+ * while hosted, where the map is on the host's scene. */
 #ifndef WOC_MAP_FEED_H
 #define WOC_MAP_FEED_H
 
@@ -65,6 +69,7 @@
 #include <vector>
 
 #include "atlas_scale.h"
+#include "card_layers.h"
 #include "cluster_render/client.h"
 #include "freeze_watch.h"
 #include "map_rect.h"
@@ -111,6 +116,8 @@ struct FeedConfig {
      * and height are multiples of 4; else as pan_blocks decides, with one
      * log line */
     bool always_packed = false;
+    /* On the HUD: the turn card beside the map (turn_card.h). */
+    CardConfig card;
 };
 
 /* The status the app shows (its render socket's "status" event), with
@@ -134,6 +141,10 @@ struct FeedStatus {
     int hud_offset_x = 0, hud_offset_y = 0;   /* and where it is moved to from the centre */
     bool hud_keep_shown = false;   /* the HUD map kept shown over the stock HMI's pop-ups */
     bool hud_hide_sport = false;   /* the HUD map hidden while the car is in a Sport mode (MapFeeds) */
+    bool hud_card = false;         /* the turn card on the HUD (MapFeeds) */
+    unsigned hud_card_pct = kCardDefaultPct;   /* its size */
+    int hud_card_x = 0, hud_card_y = 0;        /* and where it is moved to from its place by the map */
+    unsigned hud_card_crop = 0;                /* % of the HUD map's height cut while it is on */
 };
 
 /* Whether a status is worth a log line: its state, reason or target differs
@@ -185,6 +196,12 @@ public:
     /* The HUD map kept shown over the stock HMI's pop-ups or not
      * (FeedConfig::hud_keep_shown), at once. */
     void set_hud_keep_shown(bool keep);
+    /* The turn card's settings (FeedConfig::card), at once, on the HUD. */
+    void set_card(const CardConfig &c);
+    /* The turn the card draws; an empty one: none. */
+    void set_turn(const Turn &t) { card_.set_turn(t); }
+    int card_offset_x() const { return card_.dx(); }
+    int card_offset_y() const { return card_.dy(); }
     /* A layer to take frames: made, and not reported disabled by
      * cluster-render. */
     bool takes_frames() const { return layer_ && !disabled(); }
@@ -264,9 +281,15 @@ private:
     void send_newest();
     /* Makes the layer visible once the newest frame has gone. */
     void show_when_sent();
+    /* The turn card told where the HUD's map layer is, or that there is none. */
+    void sync_card();
+    /* The frame's rows cut at the top and the bottom for the turn card, or 0. */
+    uint32_t crop_rows() const;
 
     FeedConfig cfg_;
     cr::Client client_;
+    CardLayers card_{&client_};
+    uint32_t tw_ = 0, th_ = 0;   /* the layer's target's size */
     cr::Host host_;   /* the feed's target's host, from the renderer's events */
     uint32_t layer_ = 0;
     cr::LayerOptions lo_;   /* the layer's options as last sent */

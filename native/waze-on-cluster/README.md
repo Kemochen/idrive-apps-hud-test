@@ -122,6 +122,20 @@ names, scaled on the head unit to that part of the picture. With
 `hosted_vpp_scale = 1` the GPU does that scaling instead ("Experimental:
 hosted_vpp_scale and always_packed" below).
 
+**The turn card (experimental).** With the app's **Turn card on HUD**
+ticked, the HUD shows the next turn beside its map: the street, the arrow
+and the distance in a row over the map, and the lanes under its right
+end. The app reads the turn from BMW's guidance, read-only, and tells it
+(`{"cmd":"turn",...}`) again every 2 s; a turn not told for 5 s goes. The
+card shows only while the HUD map does, and not while the map is hosted.
+While it is on, the map is shorter by **Map height with turn card**, cut
+at its top and bottom, its width kept. The icons are Mapbox's (CC0),
+OsmAnd's (GPL-3.0), Material Symbols' (Apache-2.0) and Maki's (CC0)
+(`icons/README.md`); the lettering is Noto Sans (OFL-1.1) with Latin
+letters only, so a street's name with other letters is left out and the
+arrow and the distance still show. The app's notes
+(`{"cmd":"note","text"}`) go to this tool's log, which Save logs collects.
+
 ### Settings
 
 Settings are in `waze-on-cluster.conf` (documented inline). Overrides go in
@@ -300,4 +314,8 @@ extracted root file system of the unit.
 
 GPL-3.0-or-later (`LICENSE`). `abi/include/mfx/` is a subset of the Intel
 Media SDK headers under the MIT license (`abi/include/mfx/LICENSE`).
-Third-party files keep their own licenses.
+`src/card_font.cpp` holds glyphs of Noto Sans under the SIL Open Font
+License 1.1 (`LICENSES/OFL-1.1.txt`), and `src/card_icons.cpp` icons of
+Material Symbols under the Apache License 2.0 (`LICENSES/Apache-2.0.txt`;
+`icons/README.md` has every icon's source). Third-party files keep their
+own licenses.

@@ -40,6 +40,7 @@ const char *const kNotTaken = "the cluster renderer does not take it";
 MapFeed::MapFeed(const FeedConfig &cfg)
     : cfg_(cfg), client_("waze-on-cluster", cfg.socket), placed_x_(cfg.hud_offset_x), placed_y_(cfg.hud_offset_y)
 {
+    card_.set_config(cfg.card);
     client_.on_ready = [this] {
         connected_ = true;
         /* The layer is made again on this connection, so only a refusal on it
@@ -83,7 +84,11 @@ MapFeed::MapFeed(const FeedConfig &cfg)
         max_kb_ = max;
         budget_reason_ = reason;
     };
-    client_.on_error = [this](const std::string &op, uint32_t, const std::string &reason) {
+    client_.on_error = [this](const std::string &op, uint32_t ref, const std::string &reason) {
+        if (card_.owns(ref)) {   /* the card's, not the map's */
+            card_.refused(op + " refused: " + reason);
+            return;
+        }
         log_error("render: %s refused: %s", op.c_str(), reason.c_str());
         if (op == "layer") {
             refused_ = reason;
@@ -102,8 +107,12 @@ void MapFeed::make_layer()
     if (!target_size(client_.targets, cfg_.target, &tw, &th)) {
         refused_ = "the cluster renderer has no target " + cfg_.target;
         log_error("render: %s", refused_.c_str());
+        tw_ = th_ = 0;
+        sync_card();
         return;
     }
+    tw_ = tw;
+    th_ = th;
     show_due_ = false;
     refused_.clear();
     layer_state_ = "stalled";
@@ -111,8 +120,10 @@ void MapFeed::make_layer()
     target_state_.clear();
     holder_.clear();
     /* Hidden by its host: no layer anywhere, nothing sent. */
-    if (hosted() && !host_.shown)
+    if (hosted() && !host_.shown) {
+        sync_card();
         return;
+    }
     /* The map area: all of the map slot's scene, the centred 1088x480 of a
      * whole-panel one, a fitted centre on the HUD. */
     crk::QuadRect q = quad(tw, th);
@@ -138,12 +149,14 @@ void MapFeed::make_layer()
                        MapRect{(uint32_t)host_.x, (uint32_t)host_.y, host_.w, host_.h}, &crop, &place)) {
             refused_ = "the host's part of " + cfg_.target + " misses the map";
             log_error("render: %s", refused_.c_str());
+            sync_card();
             return;
         }
         const uint32_t dw = (crop.w < place.w ? crop.w : place.w) & ~3u, dh = (crop.h < place.h ? crop.h : place.h) & ~1u;
         if (dw < 64 || dh < 32) {
             refused_ = "the map's part in the host's rect is smaller than 64x32";
             log_error("render: %s", refused_.c_str());
+            sync_card();
             return;
         }
         q = crk::QuadRect{place.x, place.y, place.w, place.h};
@@ -178,6 +191,13 @@ void MapFeed::make_layer()
         shape_.h = cfg_.video.h;
         shape_.dw = sw;
         shape_.dh = sh;
+        /* the turn card's cut (crop_rows): the frame's rows between */
+        const uint32_t cut = crop_rows();
+        if (cut) {
+            shape_.crop_y = cut;
+            shape_.crop_w = cfg_.video.w;
+            shape_.crop_h = cfg_.video.h - 2 * cut;
+        }
         shape_.level_bits = cfg_.scaled_level_bits;
         shape_.radius = cfg_.hud_round_corners ? (sh / 12 > 6 ? sh / 12 : 6) : 0;
         shape_.black = cfg_.hud_black_background;
@@ -219,6 +239,48 @@ void MapFeed::make_layer()
              : scaling_  ? ", the frame scaled to it on the head unit"
                          : "",
              vo.always_packed ? ", every update packed (always_packed)" : "");
+    sync_card();
+}
+
+void MapFeed::sync_card()
+{
+    if (cfg_.target != "hud" || !layer_ || !tw_ || hosted()) {
+        card_.follow(0, 0, CardRect(), false, true);
+        return;
+    }
+    CardRect map;
+    map.x = lo_.x;
+    map.y = lo_.y;
+    map.w = lo_.w;
+    map.h = lo_.h;
+    card_.follow(tw_, th_, map, lo_.visible, lo_.yield);
+}
+
+void MapFeed::set_card(const CardConfig &c)
+{
+    const uint32_t was = crop_rows();
+    cfg_.card = c;
+    card_.set_config(c);
+    uint32_t tw, th;
+    if (crop_rows() == was || cfg_.target != "hud" || !layer_ || !target_size(client_.targets, "hud", &tw, &th))
+        return;
+    /* the map's height changes with it: a new layer at the new size */
+    log_info("render: HUD map %u%% shorter for the turn card", c.on ? c.crop : 0);
+    keep_newest();
+    client_.drop(layer_);
+    layer_ = 0;
+    make_layer();
+}
+
+/* The frame's rows cut at the top, and as many at the bottom, while the
+ * HUD's turn card is on: only on the HUD and when the frame is scaled
+ * here, which takes them out (the KOMBI would squash a whole frame into a
+ * shorter rect instead). */
+uint32_t MapFeed::crop_rows() const
+{
+    if (cfg_.target != "hud" || hosted() || !cfg_.card.on || !cfg_.scale_down || !cfg_.video.h)
+        return 0;
+    return card_crop_rows(cfg_.video.h, cfg_.card.crop);
 }
 
 void MapFeed::set_host(const cr::Host &h)
@@ -239,6 +301,8 @@ void MapFeed::set_host(const cr::Host &h)
     }
     if (client_.connected())
         make_layer();
+    else
+        sync_card();
 }
 
 /* Where the map goes on a target of tw x th: the kit's fitted rect, or on
@@ -261,6 +325,13 @@ crk::QuadRect MapFeed::quad(uint32_t tw, uint32_t th) const
             w = (h * cfg_.video.w + cfg_.video.h / 2) / cfg_.video.h;
         }
         q = crk::QuadRect{(uint32_t)((tw - w) / 2), (uint32_t)((th - h) / 2), (uint32_t)w, (uint32_t)h};
+    }
+    /* shorter while the turn card is on: as many of its rows as the frame's cut, around the same centre */
+    const uint32_t cut = crop_rows();
+    if (cut) {
+        const uint32_t h = (uint32_t)(((uint64_t)q.h * (cfg_.video.h - 2 * cut) + cfg_.video.h / 2) / cfg_.video.h);
+        q.y += (q.h - h) / 2;
+        q.h = h;
     }
     const long x = (long)q.x + cfg_.hud_offset_x, y = (long)q.y + cfg_.hud_offset_y;
     const long xmax = (long)tw - (long)q.w, ymax = (long)th - (long)q.h;
@@ -287,6 +358,7 @@ void MapFeed::set_hud_offset(int dx, int dy)
     lo_.y = (int)q.y;
     client_.set(layer_, lo_);
     log_info("render: HUD map moved to %u,%u (offset %+d,%+d)", q.x, q.y, placed_x_, placed_y_);
+    sync_card();
 }
 
 void MapFeed::set_hud_keep_shown(bool keep)
@@ -297,6 +369,7 @@ void MapFeed::set_hud_keep_shown(bool keep)
         lo_.yield = yield;
         client_.set(layer_, lo_);
         log_info("render: HUD map %s", keep ? "kept shown over BMW's pop-ups" : "gives way to BMW's pop-ups");
+        sync_card();
     }
 }
 
@@ -336,6 +409,8 @@ bool MapFeed::set_target(const std::string &name)
     part_ = OutputPart();   /* the next layer's, if any */
     if (client_.connected())
         make_layer();
+    else
+        sync_card();
     return true;
 }
 
@@ -522,6 +597,7 @@ void MapFeed::show_when_sent()
     show_due_ = false;
     lo_.visible = true;
     client_.set(layer_, lo_);
+    sync_card();
 }
 
 void MapFeed::set_stream(bool live, bool frozen, Picture picture)
@@ -550,6 +626,7 @@ void MapFeed::set_stream(bool live, bool frozen, Picture picture)
     } else if (lo_.visible) {
         lo_.visible = false;
         client_.set(layer_, lo_);
+        sync_card();
     }
 }
 

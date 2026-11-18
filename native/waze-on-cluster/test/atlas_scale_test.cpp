@@ -45,6 +45,31 @@ int main()
            !s.configure(1088, 480, 452, 482, 0) && !s.configure(0, 480, 452, 200, 0));
     ok("1088x480 -> 452x200", s.configure(1088, 480, 452, 200, 0) && s.dst_bytes() == 452u * 300);
 
+    /* a crop of whole rows: only rows crop_y..crop_y+crop_h scaled (the HUD map shorter beside the turn card) */
+    {
+        std::vector<uint8_t> bands = atlas(1088, 480, 200, 60, 180);
+        for (uint32_t r = 0; r < 480; r++)
+            if (r < 48 || r >= 432)
+                for (uint32_t c = 0; c < 1088; c++) bands[(size_t)r * 1088 + c] = 30;
+        for (uint32_t r = 0; r < 240; r++)
+            if (r < 24 || r >= 216)
+                for (uint32_t c = 0; c < 1088; c++) bands[(size_t)(480 + r) * 1088 + c] = 10;
+        AtlasScaler cs;
+        ok("crop: refuses odd, outside or upscaled source rows",
+           !cs.configure(1088, 480, 452, 160, 0, 0, 47, 1088, 384) && !cs.configure(1088, 480, 452, 160, 0, 0, 48, 1088, 383) &&
+               !cs.configure(1088, 480, 452, 160, 0, 0, 200, 1088, 384) && !cs.configure(1088, 480, 452, 390, 0, 0, 48, 1088, 384));
+        ok("crop: 1088x384 from row 48 -> 452x160", cs.configure(1088, 480, 452, 160, 0, 0, 48, 1088, 384) && cs.dst_bytes() == 452u * 240);
+        cs.scale(bands.data(), &out);
+        bool mid = out.size() == 452u * 240;
+        for (uint32_t r = 0; r < 160 && mid; r++)
+            for (uint32_t c = 0; c < 452; c++) mid = mid && out[(size_t)r * 452 + c] == 200;
+        for (uint32_t r = 0; r < 80 && mid; r++)
+            for (uint32_t c = 0; c < 226; c++)
+                mid = mid && out[(size_t)(160 + r) * 452 + c] == 60 && out[(size_t)(160 + r) * 452 + 226 + c] == 180;
+        ok("crop: only the middle rows reach the output, Y, U and V alike", mid);
+        ok("crop: none is the whole frame", cs.configure(1088, 480, 452, 200, 0) && cs.dst_bytes() == 452u * 300);
+    }
+
     const std::vector<uint8_t> flat = atlas(1088, 480, 200, 60, 180);
     s.scale(flat.data(), &out);
     bool flat_ok = out.size() == 452u * 300;

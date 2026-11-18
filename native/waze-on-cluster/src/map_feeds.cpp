@@ -7,6 +7,7 @@
 namespace woc {
 
 constexpr int64_t MapFeeds::kSportHoldMs;
+constexpr int64_t MapFeeds::kTurnHoldMs;
 
 namespace {
 
@@ -49,6 +50,7 @@ void MapFeeds::follow()
         hud_.reset(new MapFeed(fc));
         hud_->set_stream(live_, frozen_, picture_);
         hud_->changed(id_);
+        hud_->set_turn(turn_);
         log_info("hud: on, at most %u frames a second", hud_fps_);
     }
     if (cluster_on_ != !!cluster_) {
@@ -140,6 +142,21 @@ void MapFeeds::set_sport(bool sport, int64_t now_ms)
     follow();
 }
 
+void MapFeeds::set_card(const CardConfig &c)
+{
+    base_.card = c;
+    if (hud_)
+        hud_->set_card(c);
+}
+
+void MapFeeds::set_turn(const Turn &t, int64_t now_ms)
+{
+    turn_ = t;
+    turn_at_ms_ = now_ms;
+    if (hud_)
+        hud_->set_turn(t);
+}
+
 void MapFeeds::set_guide_hold(bool hold)
 {
     base_.guide_hold = hold;
@@ -162,6 +179,10 @@ void MapFeeds::poll(int64_t now_ms)
         log_info("hud: the Sport mode was not reported again for %lld s; it counts no longer", (long long)(kSportHoldMs / 1000));
         sport_ = false;
         follow();
+    }
+    if (!turn_.empty() && now_ms - turn_at_ms_ >= kTurnHoldMs) {
+        log_info("hud: the turn was not told again for %lld s; the card is clear", (long long)(kTurnHoldMs / 1000));
+        set_turn(Turn(), now_ms);
     }
     if (cluster_)
         cluster_->poll(now_ms);
@@ -255,6 +276,11 @@ FeedStatus MapFeeds::status(const std::string &decode, const std::string &stream
     s.hud_hide_sport = hud_hide_sport_;
     s.hud_offset_x = hud_ ? hud_->hud_offset_x() : base_.hud_offset_x;
     s.hud_offset_y = hud_ ? hud_->hud_offset_y() : base_.hud_offset_y;
+    s.hud_card = base_.card.on;
+    s.hud_card_pct = base_.card.pct;
+    s.hud_card_crop = base_.card.crop;
+    s.hud_card_x = hud_ ? hud_->card_offset_x() : base_.card.dx;
+    s.hud_card_y = hud_ ? hud_->card_offset_y() : base_.card.dy;
     return s;
 }
 

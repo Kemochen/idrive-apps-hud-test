@@ -3,7 +3,9 @@
 /* Where the map shows and the HUD map's size, place, whether it stays
  * shown over BMW's pop-ups and whether it is hidden in a Sport mode, as the
  * app chose them: cluster, hud, hud_width_pct, hud_offset_x, hud_offset_y,
- * hud_keep_shown and hud_hide_sport, which
+ * hud_keep_shown and hud_hide_sport, and the HUD's turn card, on or off,
+ * its size, its place and how much shorter the map is while it is on:
+ * hud_card, hud_card_pct, hud_card_x, hud_card_y and hud_card_crop, which
  * patchd saves in map_state_file (key = value lines), a file of its own so
  * that waze-on-cluster.local.conf stays one an earlier version of this tool
  * starts with. Each valid value replaces the configuration's; one out of
@@ -19,7 +21,7 @@
 namespace woc {
 
 /* The keys map_state_file holds. */
-extern const char *const kMapStateKeys[7];
+extern const char *const kMapStateKeys[12];
 
 void load_map_state(cld::Config *cfg, const std::string &path);
 

@@ -162,6 +162,16 @@
       "path": "LICENSE",
       "from": "LICENSE",
       "mode": "0644"
+    },
+    {
+      "path": "LICENSE-NotoSans-OFL.txt",
+      "from": "LICENSES/OFL-1.1.txt",
+      "mode": "0644"
+    },
+    {
+      "path": "LICENSE-MaterialSymbols-Apache.txt",
+      "from": "LICENSES/Apache-2.0.txt",
+      "mode": "0644"
     }
   ],
   "units": [

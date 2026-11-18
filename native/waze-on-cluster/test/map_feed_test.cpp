@@ -57,6 +57,12 @@
  * - Hide HUD map in Sport mode: the HUD's map gone while the car is in a
  *   Sport mode and the setting is on, back with the mode gone or not said
  *   again for the hold, the cluster's map kept throughout;
+ * - the HUD's turn card: off, nothing drawn; on, the row over the HUD's map
+ *   and the lanes under it, drawn from the turn told, drawn again as it
+ *   changes, clear with no turn and once a turn is not told again for the
+ *   hold; its size and its offset, held inside the HUD; it follows the
+ *   map's place, size, visibility and giving way; gone with the setting or
+ *   the HUD, back with them;
  * - Off (neither), from the cluster alone and from both: the map's and the
  *   HUD's slots and the turn box's hold released, the stock map and box
  *   shown again, nothing asked of the renderer while off; the cluster, or
@@ -99,6 +105,7 @@
 #include "src/log.h"
 #include "../src/map_feeds.h"
 #include "../src/atlas_scale.h"
+#include "../src/card_draw.h"
 
 using namespace woc;
 
@@ -506,6 +513,346 @@ static void hud_hidden_in_sport()
     ok("Sport not said again for the hold: the HUD's feed back", feeds.hud_feed() && feeds.status("decode").hud_state != "sport");
     pump(2000, &f1);
     ok("Sport not said again for the hold: the HUD's map showing again", both_up());
+}
+
+/* The HUD's turn card (turn_card.h): two image layers of the HUD's feed,
+ * the row over the map and the lanes under it, drawn from the turn the app
+ * tells. The map is 60 % wide here: 480x212 at 160,134 of the 800x480 HUD. */
+static void hud_turn_card()
+{
+    const std::vector<uint8_t> f1 = atlas(31), f2 = atlas(32);
+    Rig b(false, 6000, false, true, true);
+    b.feed.reset();
+    b.start();
+    FeedConfig fc;
+    fc.socket = b.path;
+    fc.video.level_bits = 0;
+    fc.hud_width_pct = 60;
+    MapFeeds feeds(fc, true, true, 10);
+    feeds.set_stream(true, false, Picture::Shown);
+    std::vector<uint8_t> spare;
+    const auto pump = [&](int64_t ms, const std::vector<uint8_t> *frame) {
+        for (int64_t t = 0; t < ms; t += 5) {
+            b.now += 5;
+            if (frame && t % 65 == 0 && feeds.wants_frames()) {
+                spare.assign(frame->begin(), frame->end());
+                spare[(size_t)(t / 65) % 1088] ^= 0x80;
+                feeds.offer(&spare, (uint64_t)b.now, b.now);
+            }
+            for (int round = 0; round < 400; round++) {
+                std::vector<pollfd> fds;
+                const size_t first = b.svc->poll_fds(&fds);
+                const int n = ::poll(fds.data(), fds.size(), 0);
+                b.port.tick(b.now);
+                b.svc->after_poll(fds, first, b.now);
+                const bool pending = (feeds.cluster() && feeds.cluster()->wants_write()) || (feeds.hud_feed() && feeds.hud_feed()->wants_write());
+                const bool scaling = hud_scaling(feeds, b.now);
+                if (scaling)
+                    usleep(1000);
+                feeds.poll(b.now);
+                if (round > 0 && n <= 0 && !pending && !scaling)
+                    break;
+            }
+        }
+    };
+    /* the HUD's image layers, the upper one first */
+    const auto cards = [&]() {
+        std::vector<const crs::Layer *> v;
+        for (const crs::Layer *x : b.svc->compositor().layers())
+            if (x->target() == 2 && std::string(x->kind()) == "image")
+                v.push_back(x);
+        std::sort(v.begin(), v.end(), [](const crs::Layer *l, const crs::Layer *r) { return l->params.rect.y < r->params.rect.y; });
+        return v;
+    };
+    const auto at = [](const crs::Layer *l, int x, int y, unsigned w, unsigned h) {
+        return l->params.rect.x == x && l->params.rect.y == y && l->params.rect.w == w && l->params.rect.h == h;
+    };
+    /* the HUD's scene shows this picture */
+    const auto drawn = [&](const CardImage &m) {
+        crs::FakeGraph *g = b.gpu.graph("hud");
+        bool on = false;
+        if (g)
+            for (const auto &kv : g->shown.buffers)
+                on = on || (kv.second.f == crs::TexFormat::RGBA8 && kv.second.w == m.w && kv.second.h == m.h && kv.second.px == m.rgba);
+        return on;
+    };
+    const auto row = [](const Turn &t, float scale, unsigned w, unsigned h) {
+        CardImage m;
+        draw_card_row(t, scale, w, h, &m);
+        return m;
+    };
+    const auto lanes = [](const std::string &l, float scale, unsigned w, unsigned h) {
+        CardImage m;
+        draw_card_lanes(l, scale, w, h, &m);
+        return m;
+    };
+    const auto card = [](bool on, unsigned pct, int dx, int dy) {
+        CardConfig c;
+        c.on = on;
+        c.pct = pct;
+        c.dx = dx;
+        c.dy = dy;
+        return c;
+    };
+    Turn right;
+    right.arrow = "right";
+    right.dist = "450 m";
+    right.road = "Example Street";
+    right.lanes = "s*,s*,r";
+
+    pump(2000, &f1);
+    const crs::Layer *map = nullptr;
+    for (const crs::Layer *x : b.svc->compositor().layers())
+        if (x->target() == 2)
+            map = x;
+    ok("card: the HUD's map first, 480x212 at 160,134", map && at(map, 160, 134, 480, 212) && feeds.status("decode").hud_state == "showing");
+    feeds.set_turn(right, b.now);
+    pump(500, &f1);
+    FeedStatus st = feeds.status("decode");
+    ok("card off (the default): a turn told draws nothing", cards().empty() && !st.hud_card && st.hud_card_pct == 100);
+
+    feeds.set_card(card(true, 100, 0, 0));
+    pump(500, &f1);
+    std::vector<const crs::Layer *> c = cards();
+    st = feeds.status("decode");
+    ok("card on: the row over the map and the lanes under its right end", c.size() == 2 && at(c[0], 160, 78, 480, 44) && at(c[1], 422, 360, 218, 36));
+    ok("card on: both drawn over the map, as it is, and the status says so",
+       c.size() == 2 && c[0]->params.visible && c[1]->params.visible && c[0]->params.z > 0 && c[0]->params.contend &&
+           c[0]->params.yield && st.hud_card && st.hud_card_pct == 100 && st.hud_card_x == 0 && st.hud_card_y == 0);
+    ok("card on: the turn's row and its lanes are on the HUD", drawn(row(right, 1.0f, 480, 44)) && drawn(lanes("s*,s*,r", 1.0f, 218, 36)));
+    ok("card on: the map still shows, the cluster's too", st.state == "showing" && st.hud_state == "showing");
+
+    Turn nearer = right;
+    nearer.dist = "400 m";
+    feeds.set_turn(nearer, b.now);
+    pump(500, &f1);
+    ok("the distance counting down: the row drawn again, the layers kept",
+       drawn(row(nearer, 1.0f, 480, 44)) && !drawn(row(right, 1.0f, 480, 44)) && cards() == c);
+    Turn left;
+    left.arrow = "left";
+    left.dist = "1.2 km";
+    left.road = "Another Road";
+    feeds.set_turn(left, b.now);
+    pump(500, &f1);
+    ok("another turn with no lanes: its row, the lanes clear", drawn(row(left, 1.0f, 480, 44)) && drawn(lanes("", 1.0f, 218, 36)));
+
+    /* a turn is told again while it lasts; one not told again goes */
+    pump(MapFeeds::kTurnHoldMs - 1000, &f1);
+    ok("a turn told once stays until just before its hold ends", drawn(row(left, 1.0f, 480, 44)));
+    feeds.set_turn(left, b.now);
+    pump(MapFeeds::kTurnHoldMs - 1000, &f1);
+    ok("told again within the hold: still drawn", drawn(row(left, 1.0f, 480, 44)));
+    pump(2000, &f1);
+    ok("not told again for the hold: the row clear, the map still showing",
+       drawn(row(Turn(), 1.0f, 480, 44)) && !drawn(row(left, 1.0f, 480, 44)) && feeds.status("decode").hud_state == "showing");
+    feeds.set_turn(right, b.now);
+    pump(500, &f1);
+    feeds.set_turn(Turn(), b.now);
+    pump(500, &f1);
+    ok("no turn told: clear at once", drawn(row(Turn(), 1.0f, 480, 44)) && drawn(lanes("", 1.0f, 218, 36)) && !drawn(row(right, 1.0f, 480, 44)));
+
+    /* ---- its size and place ---- */
+    feeds.set_turn(right, b.now);
+    feeds.set_card(card(true, 150, 0, 0));
+    pump(500, &f1);
+    c = cards();
+    ok("150 %: larger pictures, the row 18 over the map, the lanes 21 under it",
+       c.size() == 2 && at(c[0], 160, 50, 480, 66) && at(c[1], 313, 367, 327, 54) && drawn(row(right, 1.5f, 480, 66)) &&
+           drawn(lanes("s*,s*,r", 1.5f, 327, 54)) && feeds.status("decode").hud_card_pct == 150);
+    feeds.set_card(card(true, 100, 50, -10));
+    pump(500, &f1);
+    c = cards();
+    st = feeds.status("decode");
+    ok("moved: both go together, the status has the offset",
+       c.size() == 2 && at(c[0], 210, 68, 480, 44) && at(c[1], 472, 350, 218, 36) && st.hud_card_x == 50 && st.hud_card_y == -10);
+    const uint32_t row_id = c.size() == 2 ? c[0]->id() : 0;
+    feeds.set_card(card(true, 100, -400, 0));
+    pump(500, &f1);
+    c = cards();
+    ok("moved past the HUD's edge: held at it, the status has how far it went, the layer only moved",
+       c.size() == 2 && at(c[0], 0, 78, 480, 44) && feeds.status("decode").hud_card_x == -160 && c[0]->id() == row_id);
+    feeds.set_card(card(true, 100, 0, 0));
+    feeds.set_hud_offset(40, 20);
+    pump(500, &f1);
+    c = cards();
+    ok("the map moved: the card goes with it", c.size() == 2 && at(c[0], 200, 98, 480, 44) && at(c[1], 462, 380, 218, 36));
+    feeds.set_hud_offset(0, 0);
+    feeds.set_hud_width(40);
+    pump(500, &f1);
+    c = cards();
+    ok("the map smaller (320x140 at 240,169): the row as wide as it, the lanes end at its right edge",
+       c.size() == 2 && at(c[0], 240, 113, 320, 44) && at(c[1], 342, 323, 218, 36) && drawn(row(right, 1.0f, 320, 44)));
+    feeds.set_hud_width(60);
+    pump(500, &f1);
+
+    /* ---- the map shorter while the card is on ---- */
+    const auto hud_map = [&]() {
+        const crs::Layer *m = nullptr;
+        for (const crs::Layer *x : b.svc->compositor().layers())
+            if (x->target() == 2 && std::string(x->kind()) != "image")
+                m = x;
+        return m;
+    };
+    CardConfig cropped = card(true, 100, 0, 0);
+    cropped.crop = 20;
+    feeds.set_card(cropped);
+    pump(1500, &f1);
+    c = cards();
+    ok("crop 20 %: the map as wide, 168 high around the same centre (480x168 at 160,156), the status says so",
+       hud_map() && at(hud_map(), 160, 156, 480, 168) && feeds.status("decode").hud_card_crop == 20 &&
+           feeds.status("decode").hud_state == "showing");
+    ok("crop 20 %: the row and the lanes follow the shorter map", c.size() == 2 && at(c[0], 160, 100, 480, 44) && at(c[1], 422, 338, 218, 36));
+    CardConfig off = cropped;
+    off.on = false;
+    feeds.set_card(off);
+    pump(1500, &f1);
+    ok("crop 20 % with the card off: the map at its full height", hud_map() && at(hud_map(), 160, 134, 480, 212) && cards().empty());
+    feeds.set_card(card(true, 100, 0, 0));
+    pump(1500, &f1);
+    ok("crop 0: the map at its full height", hud_map() && at(hud_map(), 160, 134, 480, 212));
+
+    /* ---- it shows with the map ---- */
+    feeds.set_hud_keep_shown(true);
+    pump(300, &f1);
+    c = cards();
+    ok("the map kept shown over BMW's pop-ups: the card too", c.size() == 2 && !c[0]->params.yield && !c[1]->params.yield);
+    feeds.set_hud_keep_shown(false);
+    feeds.set_stream(false, false, Picture::Shown);
+    pump(300, nullptr);
+    c = cards();
+    ok("the stream not live: the card hidden with the map", c.size() == 2 && !c[0]->params.visible && !c[1]->params.visible);
+    feeds.set_stream(true, false, Picture::Shown);
+    feeds.set_turn(nearer, b.now);
+    pump(1500, &f2);
+    c = cards();
+    ok("live again: shown again, with the turn told meanwhile",
+       c.size() == 2 && c[0]->params.visible && c[1]->params.visible && drawn(row(nearer, 1.0f, 480, 44)));
+
+    feeds.set_card(card(false, 100, 0, 0));
+    pump(500, &f1);
+    ok("card off: its layers gone, the map still showing", cards().empty() && feeds.status("decode").hud_state == "showing" && !feeds.status("decode").hud_card);
+    feeds.set_card(card(true, 100, 0, 0));
+    feeds.set_hud(false);
+    pump(2500, &f1);
+    ok("the HUD off: no card", cards().empty() && !feeds.hud_feed() && feeds.status("decode").hud_card);
+    feeds.set_turn(right, b.now);
+    feeds.set_hud(true);
+    pump(2500, &f1);
+    c = cards();
+    ok("the HUD on again: its feed takes the card's settings and the turn", c.size() == 2 && at(c[0], 160, 78, 480, 44) && drawn(row(right, 1.0f, 480, 44)));
+    const crs::Layer *cluster = nullptr;
+    for (const crs::Layer *x : b.svc->compositor().layers())
+        if (x->target() == 0)
+            cluster = x;
+    ok("the card leaves the cluster's map alone", cluster && cluster->params.rect.w == 1088 && feeds.status("decode").state == "showing");
+}
+
+/* The HUD hosted by another app's scene while the turn card is on: the
+ * card's coordinates are the HUD's, so no card there and the map not cut
+ * for it; the host gone, both back on the HUD. */
+static void hud_card_hosted()
+{
+    char tmpl[] = "/tmp/woc-card-host-XXXXXX";
+    const std::string root = mkdtemp(tmpl) ? tmpl : "/nonexistent";
+    const std::string file = root + "/design.scene";
+    std::ofstream(file) << "scene 0x010004f8\nnode plate -\npass main\n";
+    chmod(file.c_str(), 0644);
+    const std::vector<uint8_t> f1 = atlas(41);
+    Rig b(false, 6000, false, true, true);
+    b.feed.reset();
+    b.sc.targets[1].scene_files = true;
+    b.sc.scene_files.root = root;
+    b.sc.scene_files.owner = getuid();
+    b.start();
+    FeedConfig fc;
+    fc.socket = b.path;
+    fc.video.level_bits = 0;
+    fc.hud_width_pct = 60;
+    MapFeeds feeds(fc, true, true, 10);
+    feeds.set_stream(true, false, Picture::Shown);
+    cr::Client design("design", b.path);
+    std::vector<uint8_t> spare;
+    const auto pump = [&](int64_t ms, const std::vector<uint8_t> *frame) {
+        for (int64_t t = 0; t < ms; t += 5) {
+            b.now += 5;
+            if (frame && t % 65 == 0 && feeds.wants_frames()) {
+                spare.assign(frame->begin(), frame->end());
+                spare[(size_t)(t / 65) % 1088] ^= 0x80;
+                feeds.offer(&spare, (uint64_t)b.now, b.now);
+            }
+            for (int round = 0; round < 400; round++) {
+                std::vector<pollfd> fds;
+                const size_t first = b.svc->poll_fds(&fds);
+                const int n = ::poll(fds.data(), fds.size(), 0);
+                b.port.tick(b.now);
+                b.svc->after_poll(fds, first, b.now);
+                const bool pending = (feeds.cluster() && feeds.cluster()->wants_write()) ||
+                                     (feeds.hud_feed() && feeds.hud_feed()->wants_write()) || design.wants_write();
+                const bool scaling = hud_scaling(feeds, b.now);
+                if (scaling)
+                    usleep(1000);
+                feeds.poll(b.now);
+                design.poll(b.now);
+                if (round > 0 && n <= 0 && !pending && !scaling)
+                    break;
+            }
+        }
+    };
+    const auto count_on = [&](int target, bool images) {
+        unsigned n = 0;
+        for (const crs::Layer *x : b.svc->compositor().layers())
+            if (x->target() == target && (std::string(x->kind()) == "image") == images)
+                n++;
+        return n;
+    };
+    const auto map_on = [&](int target) {
+        const crs::Layer *m = nullptr;
+        for (const crs::Layer *x : b.svc->compositor().layers())
+            if (x->target() == target && std::string(x->kind()) != "image")
+                m = x;
+        return m;
+    };
+    const auto at = [](const crs::Layer *l, int x, int y, unsigned w, unsigned h) {
+        return l && l->params.rect.x == x && l->params.rect.y == y && l->params.rect.w == w && l->params.rect.h == h;
+    };
+    CardConfig c;
+    c.on = true;
+    c.pct = 100;
+    c.crop = 20;
+    Turn right;
+    right.arrow = "right";
+    right.dist = "450 m";
+    right.lanes = "s*,r";
+    feeds.set_card(c);
+    feeds.set_turn(right, b.now);
+    pump(2500, &f1);
+    ok("hosted card: on its own HUD first, the map cut to 480x168 and the card beside it",
+       at(map_on(2), 160, 156, 480, 168) && count_on(2, true) == 2);
+
+    cr::SceneOptions so;
+    so.target = "panel";
+    so.file = file;
+    so.sha256 = {crs::sha256_file(file)};
+    so.layers = true;
+    const uint32_t sc = design.scene(so);
+    pump(500, &f1);
+    cr::Host h;
+    h.target = "hud";
+    h.x = 0; h.y = 0; h.w = 800; h.h = 480;   /* no src: all of the HUD */
+    design.host(sc, h);
+    feeds.set_turn(right, b.now);
+    pump(2500, &f1);
+    ok("hosted card: the HUD hosted, its map in the panel's scene at its full height (480x212 at 160,134)",
+       feeds.status("decode").hud_state == "showing" && at(map_on(1), 160, 134, 480, 212));
+    ok("hosted card: no card anywhere while hosted", count_on(1, true) == 0 && count_on(2, true) == 0);
+
+    design.drop(sc);
+    feeds.set_turn(right, b.now);
+    pump(2500, &f1);
+    ok("hosted card: the host gone, the map cut on the HUD again and the card back",
+       at(map_on(2), 160, 156, 480, 168) && count_on(2, true) == 2);
+    const int removed = std::system(("rm -rf " + root).c_str());
+    (void)removed;
 }
 
 /* Only what the renderer needs goes over its socket. */
@@ -1336,6 +1683,8 @@ int main()
     guide_hold();
     show_off();
     hud_hidden_in_sport();
+    hud_turn_card();
+    hud_card_hosted();
     only_what_is_needed();
     {   /* (its own scope: the names of the rest of main) */
     /* ---- MapFeeds: the cluster, and the HUD's copy when it is on ---- */

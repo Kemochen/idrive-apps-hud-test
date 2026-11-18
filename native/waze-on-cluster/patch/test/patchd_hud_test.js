@@ -2,7 +2,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 Robert Nisipeanu
 /* patchd's map settings ({"cmd":"cluster"}, "hud", "hud-size", "hud-pos",
- * "hud-keep-shown", "hud-hide-sport"):
+ * "hud-keep-shown", "hud-hide-sport", "hud-card", "hud-card-size", "hud-card-pos",
+ * "hud-card-crop"):
  * each saved in map.state.conf for the render's next start, replacing an
  * earlier value and keeping the other lines, waze-on-cluster.local.conf
  * untouched; a bad value is refused and nothing written. A burst of changes
@@ -88,7 +89,7 @@ function ask(obj) {
             buf.split('\n').forEach(function (l) {
                 var m = null;
                 try { m = JSON.parse(l); } catch (e) {}
-                if (m && /^(cluster|hud|hud-size|hud-pos|hud-keep-shown|hud-hide-sport)-reply$/.test(m.ev)) { s.end(); resolve(m); }
+                if (m && /^(cluster|hud|hud-size|hud-pos|hud-keep-shown|hud-hide-sport|hud-card|hud-card-size|hud-card-pos|hud-card-crop)-reply$/.test(m.ev)) { s.end(); resolve(m); }
             });
         });
         s.on('error', reject);
@@ -158,6 +159,37 @@ function ok(name, cond) {
     state = fs.readFileSync(STATE, 'utf8');
     r = await ask({ cmd: 'hud-hide-sport', on: '1' });
     ok('a hide-in-Sport that is not 0 or 1 is refused, nothing written', !r.ok && fs.readFileSync(STATE, 'utf8') === state);
+    /* The HUD's turn card: on or off, its size, its place. */
+    r = await ask({ cmd: 'hud-card', on: 1 });
+    ok('the turn card on is saved next to them', r.ok && r.hud_card === 1 &&
+        /hud_hide_sport = 0\nhud_card = 1\n$/.test(fs.readFileSync(STATE, 'utf8')));
+    r = await ask({ cmd: 'hud-card-size', hud_card_pct: 130 });
+    ok('its size is saved', r.ok && r.hud_card_pct === 130 && /hud_card = 1\nhud_card_pct = 130\n$/.test(fs.readFileSync(STATE, 'utf8')));
+    r = await ask({ cmd: 'hud-card-pos', hud_card_x: -40, hud_card_y: 25 });
+    ok('its place is saved', r.ok && r.hud_card_x === -40 && r.hud_card_y === 25 &&
+        /hud_card_pct = 130\nhud_card_x = -40\nhud_card_y = 25\n$/.test(fs.readFileSync(STATE, 'utf8')));
+    r = await ask({ cmd: 'hud-card-crop', hud_card_crop: 35 });
+    ok('the map\'s height cut with the card is saved', r.ok && r.hud_card_crop === 35 &&
+        /hud_card_y = 25\nhud_card_crop = 35\n$/.test(fs.readFileSync(STATE, 'utf8')));
+    r = await ask({ cmd: 'hud-card-crop', hud_card_crop: 0 });
+    ok('no cut (0) replaces it', r.ok && r.hud_card_crop === 0 && /hud_card_y = 25\nhud_card_crop = 0\n$/.test(fs.readFileSync(STATE, 'utf8')));
+    r = await ask({ cmd: 'hud-card', on: 0 });
+    ok('the turn card off replaces it, its size, place and cut kept', r.ok && r.hud_card === 0 &&
+        /hud_card_pct = 130\nhud_card_x = -40\nhud_card_y = 25\nhud_card_crop = 0\nhud_card = 0\n$/.test(fs.readFileSync(STATE, 'utf8')) &&
+        fs.readFileSync(STATE, 'utf8').split('hud_card = ').length === 2);
+    state = fs.readFileSync(STATE, 'utf8');
+    var refused = true;
+    var bad = [{ cmd: 'hud-card', on: '1' }, { cmd: 'hud-card', on: 2 }, { cmd: 'hud-card-size', hud_card_pct: 40 },
+        { cmd: 'hud-card-size', hud_card_pct: 151 }, { cmd: 'hud-card-size', hud_card_pct: 99.5 },
+        { cmd: 'hud-card-size', hud_card_pct: '100' }, { cmd: 'hud-card-size' }, { cmd: 'hud-card-pos', hud_card_x: 801, hud_card_y: 0 },
+        { cmd: 'hud-card-pos', hud_card_x: 0, hud_card_y: -801 }, { cmd: 'hud-card-pos', hud_card_x: 1.5, hud_card_y: 0 },
+        { cmd: 'hud-card-pos', hud_card_x: 10 }, { cmd: 'hud-card-crop', hud_card_crop: -5 }, { cmd: 'hud-card-crop', hud_card_crop: 45 },
+        { cmd: 'hud-card-crop', hud_card_crop: 12.5 }, { cmd: 'hud-card-crop', hud_card_crop: '20' }, { cmd: 'hud-card-crop' }];
+    for (var bi = 0; bi < bad.length; bi++) {
+        r = await ask(bad[bi]);
+        refused = refused && !r.ok && typeof r.reason === 'string' && fs.readFileSync(STATE, 'utf8') === state;
+    }
+    ok('a card setting that is not a whole number in its range is refused, nothing written', refused);
     ok('the local conf untouched by every setting', fs.readFileSync(CONF, 'utf8') === conf);
     /* A burst: one write SAVE_MS after the last change, every reply after it. */
     var saves = function () { return out.split('(saved for the next start)').length - 1; };
