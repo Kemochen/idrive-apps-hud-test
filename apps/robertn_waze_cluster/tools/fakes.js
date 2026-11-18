@@ -15,7 +15,13 @@
  * hide_bmw_guidance (none with `hide` null, as a tool before the switch).
  * drive -> `sport`, the car in a Sport mode or not: while `hudHideSport` is
  * 1 the HUD's state is then "sport" (none with `hudHideSport` null, as a
- * tool before the setting).
+ * tool before the setting). hud's hud_card, hud_card_pct, hud_card_x and
+ * hud_card_y -> the status with the turn card's settings (none with
+ * `hudCard` null, as a tool before it) and hud_card_crop (none with
+ * `hudCardCrop` null, as a tool before it), the offset held inside +-cardMaxX
+ * when that is set; turn -> `turn`, the turn as last told (null: none), and
+ * `turns`, every one told. With `single` set a second connection is told
+ * "busy" and closed, as the render does.
  *
  * FakePatch speaks the patch daemon protocol: on connect the log backlog and
  * the current state; apply -> busy, then patched with the asked panel;
@@ -139,6 +145,16 @@ class FakeRender extends LineServer {
         /* the HUD map hidden in a Sport mode (null: a tool without the field), and the mode as told */
         this.hudHideSport = 0;
         this.sport = 0;
+        /* the HUD's turn card (hudCard null: a tool without it), and the turns as told */
+        this.hudCard = 0;
+        this.hudCardPct = 100;
+        this.hudCardX = 0;
+        this.hudCardY = 0;
+        this.hudCardCrop = 20;
+        this.turn = null;
+        this.turns = [];
+        /* one owner: a second connection is told busy and closed */
+        this.single = false;
         this._showTimer = null;
     }
 
@@ -166,6 +182,10 @@ class FakeRender extends LineServer {
                 hud_width_pct: this.hudWidth || 0, hud_x: this.hudX || 0, hud_y: this.hudY || 0 });
             if (this.hudKeep !== null) s.hud_keep_shown = this.hudKeep;
             if (this.hudHideSport !== null) s.hud_hide_sport = this.hudHideSport;
+            if (this.hudCard !== null) {
+                Object.assign(s, { hud_card: this.hudCard, hud_card_pct: this.hudCardPct, hud_card_x: this.hudCardX, hud_card_y: this.hudCardY });
+                if (this.hudCardCrop !== null) s.hud_card_crop = this.hudCardCrop;
+            }
         }
         if (this.hide !== null) {
             s.hide_bmw_guidance = this.hide;
@@ -183,6 +203,12 @@ class FakeRender extends LineServer {
     }
 
     _onConnect(socket) {
+        if (this.single && this._clients.size > 1) {
+            this.refused = (this.refused || 0) + 1;
+            this._send(socket, { ev: 'status', state: 'error', target: null, page: null, reason: 'busy' });
+            socket.end();
+            return;
+        }
         this._send(socket, this._status());
         this.backlog.forEach((line) => this._send(socket, { ev: 'log', line }));
     }
@@ -212,7 +238,19 @@ class FakeRender extends LineServer {
             if (msg.hud_y !== undefined) this.hudY = Number(msg.hud_y);
             if (msg.hud_keep_shown !== undefined && this.hudKeep !== null) this.hudKeep = Number(msg.hud_keep_shown);
             if (msg.hud_hide_sport !== undefined && this.hudHideSport !== null) this.hudHideSport = Number(msg.hud_hide_sport);
+            if (this.hudCard !== null) {
+                const held = (v) => (this.cardMaxX ? Math.max(-this.cardMaxX, Math.min(this.cardMaxX, v)) : v);
+                if (msg.hud_card !== undefined) this.hudCard = Number(msg.hud_card);
+                if (msg.hud_card_pct !== undefined) this.hudCardPct = Number(msg.hud_card_pct);
+                if (msg.hud_card_x !== undefined) this.hudCardX = held(Number(msg.hud_card_x));
+                if (msg.hud_card_y !== undefined) this.hudCardY = Number(msg.hud_card_y);
+                if (msg.hud_card_crop !== undefined && this.hudCardCrop !== null) this.hudCardCrop = Number(msg.hud_card_crop);
+            }
             this._broadcast(this._status());
+        }
+        if (msg.cmd === 'turn' && typeof msg.arrow === 'string') {
+            this.turn = msg.arrow ? msg : null;
+            this.turns.push(msg);
         }
         if (msg.cmd === 'drive' && (msg.sport === '0' || msg.sport === '1')) {
             this.sport = Number(msg.sport);
@@ -244,7 +282,8 @@ class FakePatch extends LineServer {
         this.mute = false;         /* commands received and not answered */
         this.holdAa = false;       /* an Android Auto change stays busy until releaseAa(failure) */
         this.releaseAa = null;
-        this.map = { cluster: 1, hud: 0, hud_width_pct: 0, hud_offset_x: 0, hud_offset_y: 0, hud_keep_shown: 0, hud_hide_sport: 0 };
+        this.map = { cluster: 1, hud: 0, hud_width_pct: 0, hud_offset_x: 0, hud_offset_y: 0, hud_keep_shown: 0, hud_hide_sport: 0,
+            hud_card: 0, hud_card_pct: 100, hud_card_x: 0, hud_card_y: 0, hud_card_crop: 20 };
         this.shared = null;
         this.own = {};
         this.active = null;
@@ -323,9 +362,12 @@ class FakePatch extends LineServer {
             return;
         }
         const MAP = { cluster: ['cluster'], hud: ['hud'], 'hud-size': ['hud_width_pct'], 'hud-pos': ['hud_offset_x', 'hud_offset_y'],
-            'hud-keep-shown': ['hud_keep_shown'], 'hud-hide-sport': ['hud_hide_sport'] };
+            'hud-keep-shown': ['hud_keep_shown'], 'hud-hide-sport': ['hud_hide_sport'], 'hud-card': ['hud_card'],
+            'hud-card-size': ['hud_card_pct'], 'hud-card-pos': ['hud_card_x', 'hud_card_y'], 'hud-card-crop': ['hud_card_crop'] };
         if (MAP[msg.cmd]) {
-            const v = msg.cmd === 'hud-pos' ? [msg.hud_x, msg.hud_y] : [msg.cmd === 'hud-size' ? msg.hud_width_pct : msg.on];
+            const v = msg.cmd === 'hud-pos' ? [msg.hud_x, msg.hud_y] : msg.cmd === 'hud-card-pos' ? [msg.hud_card_x, msg.hud_card_y]
+                : [msg.cmd === 'hud-size' ? msg.hud_width_pct : msg.cmd === 'hud-card-size' ? msg.hud_card_pct
+                    : msg.cmd === 'hud-card-crop' ? msg.hud_card_crop : msg.on];
             this.map = Object.assign({}, this.map);
             MAP[msg.cmd].forEach((k, i) => { this.map[k] = v[i]; });
             return;

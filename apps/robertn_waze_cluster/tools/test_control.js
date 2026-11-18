@@ -474,6 +474,115 @@ test('the HUD map in Sport mode: shown by default; a flip goes to the render and
     c.close();
 });
 
+test('the turn card on the HUD: off by default; a tick goes to the render and patchd; greyed while the HUD is off and for a ' +
+    'render without it; its size and place change only while it is on', async (render, patch) => {
+    const c = control();
+    c.open();
+    await until('connected', () => c.connectedRender() && c.connectedPatch());
+    render.stream(true);
+    await until('the HUD off', () => c.renderStatus && c.hudOn() === false);
+    assert.deepStrictEqual([c.hudCard(), c.canToggleHudCard(), c.canChangeHudCard()], [false, false, false], 'off, greyed while the HUD is off');
+    c.toggleHudCard();
+    c.setHudCardSizeStep(8);
+    c.setHudCardCropStep(8);
+    c.moveHudCard('left');
+    render.hud = 1;
+    render.announce(render.state, render.reason);
+    await until('the HUD on', () => c.canToggleHudCard());
+    assert.strictEqual(render.received.filter((m) => m.hud_card !== undefined || m.hud_card_pct !== undefined || m.hud_card_x !== undefined).length, 0,
+        'nothing sent while greyed');
+    assert.strictEqual(c.canChangeHudCard(), false, 'the card off: its size and place greyed');
+    assert.deepStrictEqual([c.hudCardSizeText(), c.hudCardPositionText()], ['Turn card size: 100 %', 'Turn card position: Standard']);
+    c.setHudCardSizeStep(8);
+    c.setHudCardCropStep(8);
+    c.moveHudCard('left');
+    c.resetHudCard();
+    assert.strictEqual(c.canChangeHudCardCrop(), false, 'the card off: the map\'s height with it greyed');
+    assert.strictEqual(render.received.filter((m) => m.hud_card_pct !== undefined || m.hud_card_x !== undefined || m.hud_card_crop !== undefined).length, 0,
+        'none sent while the card is off');
+
+    c.toggleHudCard();
+    await until('on', () => c.hudCard() === true && render.hudCard === 1 && c.canChangeHudCard());
+    await until('saved', () => patch.map.hud_card === 1);
+    assert.deepStrictEqual(render.received.filter((m) => m.hud_card !== undefined), [{ cmd: 'hud', hud_card: '1' }]);
+    assert.deepStrictEqual(patch.received.filter((m) => m.cmd === 'hud-card'), [{ cmd: 'hud-card', on: 1 }]);
+
+    /* its size: 50 to 150 % in steps of 10, the slider's 0 to 10 */
+    assert.strictEqual(c.hudCardSizeStep(), 5, '100 % is the middle step');
+    c.setHudCardSizeStep(8);
+    assert.strictEqual(c.hudCardSizeText(), 'Turn card size: 130 %', 'shown at once');
+    await until('130 % at the render and saved', () => render.hudCardPct === 130 && patch.map.hud_card_pct === 130);
+    c.setHudCardSizeStep(0);
+    await until('50 %', () => render.hudCardPct === 50 && patch.map.hud_card_pct === 50 && c.hudCardSizeStep() === 0);
+    c.setHudCardSizeStep(10);
+    await until('150 %', () => render.hudCardPct === 150 && c.hudCardSizeText() === 'Turn card size: 150 %');
+    const sizes = render.received.filter((m) => m.hud_card_pct !== undefined).length;
+    [-1, 11, 2.5, '3', 10].forEach((step) => c.setHudCardSizeStep(step));
+    await sleep(30);
+    assert.strictEqual(render.received.filter((m) => m.hud_card_pct !== undefined).length, sizes, 'a step that is none, or the one it is at: nothing sent');
+    assert.deepStrictEqual(patch.received.filter((m) => m.cmd === 'hud-card-size').map((m) => m.hud_card_pct), [130, 50, 150]);
+
+    /* the map's height while the card is on: 100 % down to 60 % in steps of 5, the slider's 8 to 0; the render and patchd
+     * take the cut (hud_card_crop, 0 to 40) */
+    assert.deepStrictEqual([c.hudCardCropStep(), c.hudCardCropText(), c.canChangeHudCardCrop()], [4, 'Map height with turn card: 80 %', true],
+        'cut by 20 % by default');
+    c.setHudCardCropStep(8);
+    assert.strictEqual(c.hudCardCropText(), 'Map height with turn card: 100 %', 'shown at once');
+    await until('no cut at the render and saved', () => render.hudCardCrop === 0 && patch.map.hud_card_crop === 0);
+    c.setHudCardCropStep(0);
+    await until('cut by 40 %', () => render.hudCardCrop === 40 && patch.map.hud_card_crop === 40 && c.hudCardCropStep() === 0 &&
+        c.hudCardCropText() === 'Map height with turn card: 60 %');
+    const crops = render.received.filter((m) => m.hud_card_crop !== undefined).length;
+    [-1, 9, 2.5, '3', 0].forEach((step) => c.setHudCardCropStep(step));
+    await sleep(30);
+    assert.strictEqual(render.received.filter((m) => m.hud_card_crop !== undefined).length, crops, 'a step that is none, or the one it is at: nothing sent');
+    assert.deepStrictEqual(render.received.filter((m) => m.hud_card_crop !== undefined).map((m) => m.hud_card_crop), ['0', '40']);
+    assert.deepStrictEqual(patch.received.filter((m) => m.cmd === 'hud-card-crop').map((m) => m.hud_card_crop), [0, 40]);
+    render.hudCardCrop = null;   /* a render with the card but before the cut */
+    render.announce(render.state, render.reason);
+    await until('greyed on a render without it', () => !c.canChangeHudCardCrop() && c.hudCardCropText() === 'Map height with turn card: —' &&
+        c.hudCardCropStep() === null && c.canChangeHudCard());
+    c.setHudCardCropStep(4);
+    await sleep(30);
+    assert.strictEqual(patch.received.filter((m) => m.cmd === 'hud-card-crop').length, 2, 'nothing sent to a render without it');
+    render.hudCardCrop = 40;
+    render.announce(render.state, render.reason);
+    await until('back', () => c.canChangeHudCardCrop());
+
+    /* its place: 10 px a press from its place by the map */
+    assert.strictEqual(c.canResetHudCard(), false, 'at its place: nothing to reset');
+    c.moveHudCard('right'); c.moveHudCard('right'); c.moveHudCard('up');
+    assert.strictEqual(c.hudCardPositionText(), 'Turn card position: 20 px right, 10 px up', 'shown at once');
+    await until('moved at the render and saved', () => render.hudCardX === 20 && render.hudCardY === -10 &&
+        patch.map.hud_card_x === 20 && patch.map.hud_card_y === -10);
+    c.moveHudCard('down'); c.moveHudCard('down'); c.moveHudCard('left'); c.moveHudCard('left'); c.moveHudCard('left');
+    await until('the other way', () => render.hudCardX === -10 && render.hudCardY === 10 && c.hudCardPositionText() === 'Turn card position: 10 px left, 10 px down');
+    assert.strictEqual(c.canResetHudCard(), true);
+    c.moveHudCard('sideways');
+    c.resetHudCard();
+    await until('back at its place', () => render.hudCardX === 0 && render.hudCardY === 0 && patch.map.hud_card_x === 0 &&
+        c.hudCardPositionText() === 'Turn card position: Standard' && !c.canResetHudCard());
+    /* the render holds it inside the HUD and says how far it went */
+    render.cardMaxX = 30;
+    for (let i = 0; i < 6; i++) c.moveHudCard('right');
+    await until('held at the HUD\'s edge', () => render.hudCardX === 30);
+    await until('the row shows how far it went', () => c.hudCardPositionText() === 'Turn card position: 30 px right', 2000);
+    render.cardMaxX = 0;
+    c.resetHudCard();
+    await until('reset', () => render.hudCardX === 0);
+
+    c.toggleHudCard();
+    await until('off again', () => c.hudCard() === false && patch.map.hud_card === 0 && !c.canChangeHudCard());
+    assert.strictEqual(patch.map.hud_card_pct, 150, 'its size kept for the next time');
+    assert.strictEqual(patch.map.hud_card_crop, 40, 'the map\'s height with it kept too');
+    render.hudCard = null;
+    render.announce(render.state, render.reason);
+    await until('a render without it', () => c.hudCard() === null && !c.canToggleHudCard());
+    assert.deepStrictEqual([c.hudCardSizeStep(), c.hudCardSizeText(), c.hudCardPositionText()], [null, 'Turn card size: —', 'Turn card position: —']);
+    assert.deepStrictEqual([c.hudCardCropStep(), c.hudCardCropText(), c.canChangeHudCardCrop()], [null, 'Map height with turn card: —', false]);
+    c.close();
+});
+
 test('an asked HUD size the render does not show: the render\'s own after a moment, at once on a render reconnect; ' +
     'the same step taken again', async (render, patch) => {
     render.hud = 1;

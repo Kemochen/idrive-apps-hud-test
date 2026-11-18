@@ -63,6 +63,8 @@ make -C native/waze-on-cluster test test-x86 target
 node apps/robertn_waze_cluster/tools/test_control.js
 node apps/robertn_waze_cluster/tools/test_page.js
 node apps/robertn_waze_cluster/tools/test_drive_mode.js
+node apps/robertn_waze_cluster/tools/test_turn_decode.js
+node apps/robertn_waze_cluster/tools/test_turn_guide.js
 node apps/robertn_waze_cluster/tools/test_i18n.js
 node release/test/release_test.js
 node release/release.js check                         # reproducible artifacts
@@ -81,4 +83,5 @@ MPL-2.0 ([`LICENSES/MPL-2.0.txt`](LICENSES/MPL-2.0.txt)). Third-party files
 keep their own licenses: the RAMSES and vsomeip interfaces in cluster-render
 (MPL-2.0), the Intel Media SDK headers in waze-on-cluster (MIT), the Noto
 Sans glyphs (OFL-1.1) and Material Symbols icons (Apache-2.0) of its turn
-card, Project Nayuki's QR code generator in robertn_waze_cluster (MIT).
+card, Project Nayuki's QR code generator and the guidance decoder ported
+from idrive7-apps' Redline in robertn_waze_cluster (MIT).

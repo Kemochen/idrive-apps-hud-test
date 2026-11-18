@@ -37,7 +37,13 @@
  * without the setting; Hide HUD map in Sport mode, a checkbox under it,
  * unticked by default, greyed likewise: ticked, the HUD map goes while the
  * car is in a Sport mode (the head unit's FES, read from the app's start)
- * and HUD map says Hidden in Sport mode; Own settings for this driver, a checkbox under Show on, greyed
+ * and HUD map says Hidden in Sport mode; Turn card on HUD, a checkbox under
+ * the position's rows, unticked by default with its size slider and
+ * position buttons greyed: ticked, the next turn BMW's guidance lists
+ * (asked from then on, read-only) is told to the render through the page's
+ * connection, each new one and none; its size a 10 % step a turn, its place
+ * 10 px a press, Reset back; greyed likewise;
+ * Own settings for this driver, a checkbox under Show on, greyed
  * while no driver profile is detected, ticked for a profile with its own
  * map settings, a switch of profile moving the render to that profile's
  * (or the shared) settings, unticked the shared ones back; no label greyed (the HMI's labels have no setEnabled, its
@@ -63,7 +69,7 @@ const fs = require('fs');
 const net = require('net');
 const path = require('path');
 const { FakeRender, FakePatch, FakeLogs, RENDER_PAGE, RENDER_FPS } = require('./fakes.js');
-const { RENDER_PATH, PATCH_PATH, PENDING_PATH, SIZE, SAFE, HUD_SIZE_STEPS } = require('../src/waze_cluster_control.js');
+const { RENDER_PATH, PATCH_PATH, PENDING_PATH, SIZE, SAFE, HUD_SIZE_STEPS, CARD_SIZE_STEPS, CARD_CROP_STEPS } = require('../src/waze_cluster_control.js');
 const { LOGS_PATH } = require('../src/logs_control.js');
 
 const MANIFEST = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'mgu-app.json'), 'utf8'));
@@ -251,6 +257,12 @@ function driveMode(mode) {
     driveModeNow = mode;
     if (driveModeChanged) driveModeChanged(driveModeField());
 }
+/* the next turn's direction, as BMW's guidance list answers the app's queryContent (null: no route), and how often it was asked */
+let turnDirection = null;
+let guidanceCalls = 0;
+const guidanceReply = () => ({ GuidanceEventListError: 'NO_ERROR', viewContent: [{ eventsInView: !turnDirection ? [] : [{ intersection: {
+    uid: '2', formattedDistance: { distance: '200', unit: 'METER', rawDistance: 1 }, description: { elements: [{ text: 'Example Street' }] },
+    direction: turnDirection, detailedGeometry: 'UNDEFINED' } }] }] });
 const someipBuilders = {
     buildTypedProxy: (iface, instance) => Promise.resolve(iface === 'de.bmw.infotainment.personalization.SessionManager' ? {
         init: () => Promise.resolve(),
@@ -263,6 +275,14 @@ const someipBuilders = {
             subscribe: (cb) => { driveModeChanged = cb; return Promise.resolve(); },
             getValue: () => Promise.resolve(driveModeField())
         }
+    } : iface === 'de.bmw.infotainment.navigation.guiding.GuidanceEventList' ? {
+        init: () => Promise.resolve(),
+        waitUntilAvailable: () => Promise.resolve(),
+        _someIpProxy: { callMethod: () => { guidanceCalls++; return Promise.resolve(guidanceReply()); } }
+    } : iface === 'de.bmw.infotainment.navigation.guiding.Guidance' ? {
+        init: () => Promise.resolve(),
+        waitUntilAvailable: () => Promise.resolve(),
+        currentLaneGuiding: { getValue: () => Promise.resolve({ rows: [] }) }
     } : {
         init: () => Promise.resolve(),
         waitUntilAvailable: () => Promise.resolve(),
@@ -305,6 +325,10 @@ async function main() {
         'wocHeadGeneral General', 'wocShowOn Show on: Cluster', 'wocProfile Own settings for this driver', 'wocMap Cluster map: Off', "wocGuide Hide BMW's turn box", 'wocLogs Logs',
         'wocHeadHud HUD', 'wocHud HUD map: \u2014', "wocHudKeep Keep HUD map over BMW's pop-ups", 'wocHudSport Hide HUD map in Sport mode', 'wocHudSize Size: \u2014', 'wocHudPos Position: \u2014', 'wocHudLeft Move left',
         'wocHudRight Move right', 'wocHudUp Move up', 'wocHudDown Move down', 'wocHudCentre Centre',
+        'wocHudCard Turn card on HUD', 'wocHudCardSize Turn card size: \u2014', 'wocHudCardCrop Map height with turn card: \u2014',
+        'wocHudCardPos Turn card position: \u2014',
+        'wocHudCardLeft Move turn card left', 'wocHudCardRight Move turn card right', 'wocHudCardUp Move turn card up',
+        'wocHudCardDown Move turn card down', 'wocHudCardReset Reset turn card position',
         'wocHeadCarPlay CarPlay', 'wocStatus Status: Connecting…', 'wocEnable Patch', 'wocDisable Remove patch', 'wocWifi ', 'wocWifiHint ',
         'wocHeadAa Android Auto', 'wocAaStatus Status: Connecting…', 'wocAaEnable Patch', 'wocAaDisable Remove patch',
         'wocAaZoom Zoom: —', 'wocAaZoomOut Zoom out', 'wocAaZoomIn Zoom in', "wocAaCard Hide phone's turn card",
@@ -324,13 +348,19 @@ async function main() {
         .find((id) => components[id].name === n)].properties.Focusable.value]), Array(4).fill(['0', 0]), 'the section headers take no focus');
     assert.strictEqual(main.find(([, , name]) => focus[name] === '3')[2], 'wocShowOn', 'the first row the controller stops on: Show on');
     assert(!main.some(([, , name]) => /^wocRow|^wocSetup|^wocCapture/.test(name)), 'no log rows, setup line or capture on the main page');
-    assert.deepStrictEqual(['wocAaCard', 'wocGuide', 'wocProfile', 'wocHudKeep', 'wocHudSport'].map((n) => widgets[n]), Array(5).fill('LT_CheckBox_1Row'),
+    assert.deepStrictEqual(['wocAaCard', 'wocGuide', 'wocProfile', 'wocHudKeep', 'wocHudSport', 'wocHudCard'].map((n) => widgets[n]), Array(6).fill('LT_CheckBox_1Row'),
         'the on/off settings are checkboxes');
     assert.deepStrictEqual([widgets.wocShowOn, widgets.wocHudSize], ['LT_DropDownMenu_1Row_2Col3070', 'LT_Slider_LeftJustified_Fill_Steps'],
         'where the map shows: a drop-down of four; the HUD\'s size: a slider');
     assert.deepStrictEqual(components['62'].rows.map((r) => r.ItemText.value), ['Cluster', 'HUD (experimental)', 'Cluster and HUD (experimental)', 'Off']);
     assert.deepStrictEqual(['MinValue', 'MaxValue', 'NumberOfSteps'].map((k) => components['52'].rows[0][k].value), [0, HUD_SIZE_STEPS, HUD_SIZE_STEPS],
         'the slider: one step for each 5 %');
+    assert.strictEqual(widgets.wocHudCardSize, 'LT_Slider_LeftJustified_Fill_Steps', 'the turn card\'s size: a slider');
+    assert.deepStrictEqual(['MinValue', 'MaxValue', 'NumberOfSteps'].map((k) => components['66'].rows[0][k].value), [0, CARD_SIZE_STEPS, CARD_SIZE_STEPS],
+        'its slider: one step for each 10 %');
+    assert.strictEqual(widgets.wocHudCardCrop, 'LT_Slider_LeftJustified_Fill_Steps', 'the map\'s height with the card: a slider');
+    assert.deepStrictEqual(['MinValue', 'MaxValue', 'NumberOfSteps'].map((k) => components['73'].rows[0][k].value), [0, CARD_CROP_STEPS, CARD_CROP_STEPS],
+        'its slider: one step for each 5 %');
     /* every info row reads "Name: Value" */
     assert(main.filter(([, type, name]) => type === 'label' && !/^wocHead|^(wocRestartStatus|wocWifi|wocWifiHint)$/.test(name))
         .every(([, , , text]) => /^[A-Z][A-Za-z ]+: [A-Z\u2014]/.test(text)), 'info rows as Name: Value');
@@ -370,12 +400,15 @@ async function main() {
         process.exit = (code) => { throw new Error(`process.exit(${code})`); };
         runSource();
         OnlineApp.instance._profiles._pollMs = 20;
+        OnlineApp.instance._turns._pollMs = 20;
+        OnlineApp.instance._turns._idleMs = 60;
         const status = byName.wocStatus;
         await until('page shows the map', () => byName.wocMap.text === `Cluster map: Showing ${RENDER_PAGE} — ${RENDER_FPS}` && status.text === 'Status: Patched');
         assert(!logs.some((l) => /^error/.test(l)), logs.filter((l) => /^error/.test(l)).join('\n'));
         const bound = logs.filter((l) => l.startsWith('info: BIND OK: ')).map((l) => l.split(' ')[3]).sort();
         assert.deepStrictEqual(bound, ['wocAaCard', 'wocAaDisable', 'wocAaEnable', 'wocAaZoomIn', 'wocAaZoomOut', 'wocCapture', 'wocDisable', 'wocEnable',
-            'wocGuide', 'wocHudCentre', 'wocHudDown', 'wocHudKeep', 'wocHudLeft', 'wocHudRight', 'wocHudSport', 'wocHudUp', 'wocLogs', 'wocLogsSave', 'wocProfile',
+            'wocGuide', 'wocHudCard', 'wocHudCardDown', 'wocHudCardLeft', 'wocHudCardReset', 'wocHudCardRight', 'wocHudCardUp', 'wocHudCentre', 'wocHudDown',
+            'wocHudKeep', 'wocHudLeft', 'wocHudRight', 'wocHudSport', 'wocHudUp', 'wocLogs', 'wocLogsSave', 'wocProfile',
             'wocRestart'],
             'bound buttons and checkbox');
         assert.strictEqual(byName.wocRestart.visible, false, 'restart button hidden while the map shows');
@@ -459,11 +492,15 @@ async function main() {
         /* ---- where the map shows, and the HUD ---- */
         const showOn = byName.wocShowOn;
         const size = byName.wocHudSize;
-        const hudRows = () => ['wocHudKeep', 'wocHudSport', 'wocHudSize', 'wocHudLeft', 'wocHudRight', 'wocHudUp', 'wocHudDown'].map((n) => byName[n].enabled);
+        const hudRows = () => ['wocHudKeep', 'wocHudSport', 'wocHudSize', 'wocHudLeft', 'wocHudRight', 'wocHudUp', 'wocHudDown', 'wocHudCard']
+            .map((n) => byName[n].enabled);
+        const cardRows = () => ['wocHudCardSize', 'wocHudCardCrop', 'wocHudCardLeft', 'wocHudCardRight', 'wocHudCardUp', 'wocHudCardDown']
+            .map((n) => byName[n].enabled);
         await until('the cluster, the HUD off', () => showOn.shown() === 'Show on: Cluster' && showOn.enabled === true &&
             byName.wocHud.text === 'HUD map: Off' && size.text === 'Size: Standard' && size.cells['0:Value'] === 5 &&
             byName.wocHudPos.text === 'Position: Centre');
         assert(hudRows().every((e) => e === false) && byName.wocHudCentre.enabled === false, 'the size and position greyed while off');
+        assert(cardRows().every((e) => e === false) && byName.wocHudCardReset.enabled === false, 'the turn card\'s too');
         render.received.length = 0;
         size.turn(1);
         await until('a greyed slider turned: back where it was', () => size.cells['0:Value'] === 5);
@@ -542,6 +579,65 @@ async function main() {
         render.hudHideSport = 0;
         render.announce(render.state, render.reason);
         await until('enabled again', () => sport.enabled === true);
+        /* Turn card on HUD: unticked by default, its size and position greyed, BMW's guidance not asked; a press ticks it at the
+         * render, patchd saves it, and the next turn is told to the render through the page's connection; its size and place */
+        const cardBox = byName.wocHudCard, cardSize = byName.wocHudCardSize, cardPos = byName.wocHudCardPos, cardCrop = byName.wocHudCardCrop;
+        await until('the card off by default', () => cardBox.enabled === true && cardBox.selected === false && cardBox.text === 'Turn card on HUD' &&
+            cardSize.text === 'Turn card size: 100 %' && cardSize.cells['0:Value'] === 5 && cardPos.text === 'Turn card position: Standard' &&
+            cardCrop.text === 'Map height with turn card: 80 %' && cardCrop.cells['0:Value'] === 4);
+        assert(cardRows().every((e) => e === false) && byName.wocHudCardReset.enabled === false, 'its size and position greyed while it is off');
+        turnDirection = 'RIGHT';
+        render.received.length = 0;
+        cardSize.turn(1);
+        byName.wocHudCardLeft.emit('action');
+        await until('a greyed slider turned: back where it was', () => cardSize.cells['0:Value'] === 5);
+        await sleep(150);
+        assert.deepStrictEqual([guidanceCalls, render.received, render.turns], [0, [], []], 'the card off: BMW\'s guidance not asked, nothing told');
+        const connections = render.connections;
+        await sleep(450);
+        cardBox.press();
+        await until('ticked: its rows act', () => render.hudCard === 1 && cardBox.selected === true && cardRows().every((e) => e === true));
+        await until('saved', () => patch.received.some((m) => m.cmd === 'hud-card' && m.on === 1) && patch.map.hud_card === 1);
+        await until('the next turn told to the render', () => render.turn !== null);
+        assert.deepStrictEqual(render.turn,
+            { cmd: 'turn', arrow: 'right', exit: '', angle: '', side: '', dist: '200 m', road: 'Example Street', lanes: '' });
+        turnDirection = 'UTURN_LEFT';
+        await until('another turn told', () => render.turn && render.turn.arrow === 'uturn_left');
+        turnDirection = null;
+        await until('no turn told', () => render.turn === null);
+        assert.strictEqual(render.connections, connections, 'through the page\'s connection');
+        cardSize.turn(1);
+        await until('larger', () => cardSize.text === 'Turn card size: 110 %' && render.hudCardPct === 110 && cardSize.cells['0:Value'] === 6);
+        await until('its size saved', () => patch.received.some((m) => m.cmd === 'hud-card-size' && m.hud_card_pct === 110));
+        cardCrop.turn(1);
+        await until('the map taller', () => cardCrop.text === 'Map height with turn card: 85 %' && render.hudCardCrop === 15 && cardCrop.cells['0:Value'] === 5);
+        await until('its height saved', () => patch.received.some((m) => m.cmd === 'hud-card-crop' && m.hud_card_crop === 15));
+        byName.wocHudCardLeft.emit('action');
+        await sleep(450);
+        byName.wocHudCardUp.emit('action');
+        await until('moved', () => cardPos.text === 'Turn card position: 10 px left, 10 px up' && render.hudCardX === -10 && render.hudCardY === -10 &&
+            byName.wocHudCardReset.enabled === true);
+        await until('its place saved', () => patch.map.hud_card_x === -10 && patch.map.hud_card_y === -10);
+        byName.wocHudCardReset.emit('action');
+        await until('back at its place', () => cardPos.text === 'Turn card position: Standard' && render.hudCardX === 0 && byName.wocHudCardReset.enabled === false);
+        render.hudCard = null;   /* a render without the turn card */
+        render.announce(render.state, render.reason);
+        await until('a render without it: greyed, unticked', () => cardBox.enabled === false && cardBox.selected === false && cardRows().every((e) => e === false) &&
+            cardSize.text === 'Turn card size: \u2014' && cardCrop.text === 'Map height with turn card: \u2014');
+        render.hudCard = 1;
+        render.announce(render.state, render.reason);
+        await until('ticked again', () => cardBox.enabled === true && cardBox.selected === true);
+        await sleep(450);
+        cardBox.press();
+        await until('unticked: off, its rows greyed, its size kept', () => render.hudCard === 0 && cardBox.selected === false && patch.map.hud_card === 0 &&
+            cardRows().every((e) => e === false) && cardSize.text === 'Turn card size: 110 %');
+        turnDirection = 'RIGHT';
+        const asked = guidanceCalls;
+        render.turns.length = 0;
+        await sleep(150);
+        assert.deepStrictEqual([guidanceCalls, render.turns], [asked, []], 'off again: not asked, nothing told');
+        turnDirection = null;
+        render.received.length = 0;
         await sleep(450);
         showOn.pick(2);
         await until('both', () => render.cluster === 1 && showOn.shown() === 'Show on: Cluster and HUD (experimental)' &&
@@ -607,6 +703,8 @@ async function main() {
             'Off for neither, the HUD\'s rows and the turn box greyed then; the HUD: off by default with its size and position greyed; ' +
             'the size slider, Position and Keep HUD map over BMW\'s pop-ups change it, the checkbox greyed for a render without it; ' +
             'Hide HUD map in Sport mode hides it in a Sport mode and says so, greyed with the HUD off and for a render without it; ' +
+            'Turn card on HUD tells the render the next turn BMW\'s guidance lists, asked only while it is ticked, its size and place ' +
+            'changed by its slider and buttons, all greyed with the HUD off, its size and place also while it is unticked; ' +
             'Disabled after errors greys them');
 
         /* ---- own settings per driver profile ---- */
@@ -732,10 +830,11 @@ async function main() {
         Object.values(components).filter((d) => !/^(wocRestart|wocWifi)/.test(d.name) && d.type !== 'title')
             .forEach((d) => assert.strictEqual(byName[d.name].visible, true, `${d.name} stays on the page`));
         ['wocEnable', 'wocDisable', 'wocAaEnable', 'wocAaDisable', 'wocAaZoomOut', 'wocAaZoomIn', 'wocAaCard', 'wocGuide', 'wocShowOn', 'wocProfile', 'wocHudSize',
-            'wocHudLeft', 'wocHudCentre', 'wocHudKeep', 'wocHudSport']
+            'wocHudLeft', 'wocHudCentre', 'wocHudKeep', 'wocHudSport', 'wocHudCard', 'wocHudCardSize', 'wocHudCardCrop', 'wocHudCardLeft', 'wocHudCardReset']
             .forEach((n) => assert.deepStrictEqual([...byName[n].enabledSeen].sort(), [false, true], `${n} greyed and enabled in place`));
         const valueRow = /^[A-Z][A-Za-z ]+: [A-Z0-9\u2014]/;
-        ['wocStatus', 'wocAaStatus', 'wocAaZoom', 'wocMap', 'wocHud', 'wocHudSize', 'wocHudPos', 'wocRestartStatus']
+        ['wocStatus', 'wocAaStatus', 'wocAaZoom', 'wocMap', 'wocHud', 'wocHudSize', 'wocHudPos', 'wocHudCardSize', 'wocHudCardCrop', 'wocHudCardPos',
+            'wocRestartStatus']
             .forEach((n) => assert(valueRow.test(byName[n].text), `${n}: "${byName[n].text}" as Name: Value`));
         console.log('ok   no row came or went but CarPlay Wi-Fi, its line and the restart\'s; the buttons were greyed and enabled in place; ' +
             'info rows as Name: Value');

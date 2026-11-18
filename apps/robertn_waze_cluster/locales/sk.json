@@ -96,6 +96,15 @@
     "Own settings for this driver": "Vlastné nastavenia pre tohto vodiča",
     "Keep HUD map over BMW's pop-ups": "Ponechať mapu na HUD nad kontextovými oknami BMW",
     "Hide HUD map in Sport mode": "Skryť mapu na HUD v režime Sport",
-    "Hidden in Sport mode": "Skryté v režime Sport"
+    "Hidden in Sport mode": "Skryté v režime Sport",
+    "Turn card on HUD": "Navigačné pokyny na HUD",
+    "Turn card size: {0}": "Veľkosť navigačných pokynov: {0}",
+    "Map height with turn card: {0}": "Výška mapy s navigačnými pokynmi: {0}",
+    "Turn card position: {0}": "Poloha navigačných pokynov: {0}",
+    "Move turn card left": "Posunúť navigačné pokyny vľavo",
+    "Move turn card right": "Posunúť navigačné pokyny vpravo",
+    "Move turn card up": "Posunúť navigačné pokyny hore",
+    "Move turn card down": "Posunúť navigačné pokyny dole",
+    "Reset turn card position": "Obnoviť polohu navigačných pokynov"
   }
 }

@@ -9,6 +9,27 @@ map stays. Unticked, the default, the driving mode changes nothing. It can
 be changed only while the map shows on the HUD. Kept for the next start,
 and per driver profile with Own settings for this driver.
 
+Turn card on HUD, a checkbox in HUD (experimental, not yet confirmed on a
+car). Ticked, the next turn of the route is drawn beside the HUD map: the
+street, the arrow and the distance in a row over the map, and the lanes
+under its right end, each lane with all its arrows and only the one to take
+lit. It needs a navigation app that gives the car its turns (Apple Maps
+does, Google Maps is reported to, Waze does not), and it reads them from
+the car's own navigation without changing anything there. The arrows and
+lanes are Mapbox's navigation icons; a roundabout points at its exit, and a
+motorway exit or entry, a three-way fork, a lane change, an overpass, an
+underpass, a ferry and a car train each have their own icon. Turn card size
+and the Move turn card buttons set how large it is and where it sits; Reset
+turn card position puts it back. Street names are drawn in Latin letters
+only for now. Unticked, the default, nothing is read or drawn. The lane
+reads go into the logs that Save logs collects, without street names.
+
+Map height with turn card, a slider in HUD. While the turn card is on, the
+HUD map is cut equally at its top and bottom so the street row above it and
+the lanes below it fit: 60 % to 100 % of its height, 80 % by default. Kept
+for the next start, and per driver profile with Own settings for this
+driver.
+
 ## 0.6.12
 
 The cluster's safe area is back to 504x368 at (286, 72); a smaller area made

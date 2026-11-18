@@ -96,6 +96,15 @@
     "Own settings for this driver": "Configuración propia para este conductor",
     "Keep HUD map over BMW's pop-ups": "Mantener mapa en el HUD sobre ventanas emergentes de BMW",
     "Hide HUD map in Sport mode": "Ocultar mapa en el HUD en modo Sport",
-    "Hidden in Sport mode": "Oculto en modo Sport"
+    "Hidden in Sport mode": "Oculto en modo Sport",
+    "Turn card on HUD": "Indicación de giro en el HUD",
+    "Turn card size: {0}": "Tamaño de la indicación de giro: {0}",
+    "Map height with turn card: {0}": "Altura del mapa con indicación de giro: {0}",
+    "Turn card position: {0}": "Posición de la indicación de giro: {0}",
+    "Move turn card left": "Mover indicación de giro a la izquierda",
+    "Move turn card right": "Mover indicación de giro a la derecha",
+    "Move turn card up": "Mover indicación de giro arriba",
+    "Move turn card down": "Mover indicación de giro abajo",
+    "Reset turn card position": "Restablecer posición de la indicación de giro"
   }
 }

@@ -96,6 +96,15 @@
     "Own settings for this driver": "Omat asetukset tälle kuljettajalle",
     "Keep HUD map over BMW's pop-ups": "Pidä HUD-kartta BMW:n ponnahdusikkunoiden päällä",
     "Hide HUD map in Sport mode": "Piilota HUD-kartta Sport-tilassa",
-    "Hidden in Sport mode": "Piilotettu Sport-tilassa"
+    "Hidden in Sport mode": "Piilotettu Sport-tilassa",
+    "Turn card on HUD": "Kääntymisohje HUD-näytössä",
+    "Turn card size: {0}": "Kääntymisohjeen koko: {0}",
+    "Map height with turn card: {0}": "Kartan korkeus kääntymisohjeen kanssa: {0}",
+    "Turn card position: {0}": "Kääntymisohjeen sijainti: {0}",
+    "Move turn card left": "Siirrä kääntymisohjetta vasemmalle",
+    "Move turn card right": "Siirrä kääntymisohjetta oikealle",
+    "Move turn card up": "Siirrä kääntymisohjetta ylös",
+    "Move turn card down": "Siirrä kääntymisohjetta alas",
+    "Reset turn card position": "Palauta kääntymisohjeen sijainti"
   }
 }

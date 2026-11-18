@@ -98,6 +98,15 @@
     "Own settings for this driver": "Eigen instellingen voor deze bestuurder",
     "Keep HUD map over BMW's pop-ups": "Kaart in HUD boven BMW-pop-ups houden",
     "Hide HUD map in Sport mode": "Kaart in HUD verbergen in Sport-modus",
-    "Hidden in Sport mode": "Verborgen in Sport-modus"
+    "Hidden in Sport mode": "Verborgen in Sport-modus",
+    "Turn card on HUD": "Afslagkaart in HUD",
+    "Turn card size: {0}": "Grootte van afslagkaart: {0}",
+    "Map height with turn card: {0}": "Kaarthoogte met afslagkaart: {0}",
+    "Turn card position: {0}": "Positie van afslagkaart: {0}",
+    "Move turn card left": "Afslagkaart naar links",
+    "Move turn card right": "Afslagkaart naar rechts",
+    "Move turn card up": "Afslagkaart omhoog",
+    "Move turn card down": "Afslagkaart omlaag",
+    "Reset turn card position": "Positie van afslagkaart herstellen"
   }
 }

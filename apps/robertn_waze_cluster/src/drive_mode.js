@@ -19,9 +19,10 @@
  * it starts and every RESEND_MS while it lasts, since the render counts one
  * for 90 s only, so a mode this no longer reports never keeps the map away;
  * its end once. It goes through the page's own render connection while the
- * page is open (it owns the render's control socket), else through a short
- * connection of its own, whose first status line says whether the setting
- * is in use. Not in use, nothing is told and no connection made until the
+ * page is open (it owns the render's control socket), else through the
+ * app's background connection while that is up (render_link.js: the turn
+ * card keeps it), else through a short connection of its own, whose first
+ * status line says whether the setting is in use. Not in use, nothing is told and no connection made until the
  * page's status says otherwise or recheck() (another driver profile's
  * settings may be in effect). The render down or owned by another is tried
  * again at the next read.
@@ -191,6 +192,12 @@ function tellOnce(path, msg, statusMs, holdMs) {
             finish(undefined);
         }, statusMs);
         const onStatus = (status) => {
+            if (status.state === 'error' && status.reason === 'busy') {
+                /* owned by another: says nothing of the setting */
+                s.end();
+                finish(undefined);
+                return;
+            }
             const inUse = status.hud === 1 && status.hud_hide_sport === 1;
             if (inUse) {
                 s.write(JSON.stringify(msg) + '\n');
@@ -223,12 +230,14 @@ function tellOnce(path, msg, statusMs, holdMs) {
 }
 
 class DriveModeSync {
-    /* options: control (the page's WazeClusterControl), log, reader (a
-     * driveModeReader), changed (called when available() changes),
-     * renderPath, pollMs, resendMs, statusMs, holdMs. */
+    /* options: control (the page's WazeClusterControl), link (the app's
+     * RenderLink, if any), log, reader (a driveModeReader), changed (called
+     * when available() changes), renderPath, pollMs, resendMs, statusMs,
+     * holdMs. */
     constructor(options) {
         const o = options || {};
         this._control = o.control || null;
+        this._link = o.link || null;
         this._log = o.log || { info() {}, warn() {} };
         this._reader = o.reader;
         this._changed = o.changed || function () {};
@@ -282,9 +291,9 @@ class DriveModeSync {
         if (this._stopped || this._telling || this.sport === null) {
             return;
         }
-        const live = this._liveInUse();
-        if (live !== undefined) {
-            this._inUse = live;
+        const up = this._live();
+        if (up) {
+            this._inUse = up.inUse;
         }
         if (this._inUse === false) {
             this._told = false;
@@ -292,21 +301,28 @@ class DriveModeSync {
         }
         const due = this.sport ? !this._told || Date.now() - this._toldAt >= this._resendMs : this._told;
         if (due) {
-            this._tell(live === true);
+            this._tell(up && up.inUse ? up.send : null);
         }
     }
 
-    /* Whether the setting is in use, from the page's render connection:
-     * undefined without it. A render without the setting never uses it. */
-    _liveInUse() {
+    /* A connection that is up, the page's or else the app's background
+     * one, as { inUse, send }: whether its status says the setting is in
+     * use (a render without the setting never uses it) and how to tell it;
+     * null without one. */
+    _live() {
         const c = this._control;
-        if (!c || !c.render || !c.render.connected() || !c.renderStatus) {
-            return undefined;
+        if (c && c.render && c.render.connected() && c.renderStatus) {
+            return { inUse: c.hudHideSport() === true && c.hudOn() === true, send: (m) => c.render.send(m) };
         }
-        return c.hudHideSport() === true && c.hudOn() === true;
+        const l = this._link;
+        if (l && l.connected()) {
+            return { inUse: l.status.hud === 1 && l.status.hud_hide_sport === 1, send: (m) => l.send(m) };
+        }
+        return null;
     }
 
-    _tell(throughPage) {
+    /* send: a connection that is up; null: a short one of its own. */
+    _tell(send) {
         const sport = this.sport;
         const msg = { cmd: 'drive', sport: sport ? '1' : '0' };
         const sent = () => {
@@ -316,8 +332,8 @@ class DriveModeSync {
             this._told = sport;
             this._toldAt = Date.now();
         };
-        if (throughPage) {
-            this._control.render.send(msg);
+        if (send) {
+            send(msg);
             sent();
             return;
         }

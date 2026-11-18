@@ -96,6 +96,15 @@
     "Own settings for this driver": "Свои настройки для этого водителя",
     "Keep HUD map over BMW's pop-ups": "Оставлять карту на HUD поверх всплывающих окон BMW",
     "Hide HUD map in Sport mode": "Скрывать карту на HUD в режиме Sport",
-    "Hidden in Sport mode": "Скрыта в режиме Sport"
+    "Hidden in Sport mode": "Скрыта в режиме Sport",
+    "Turn card on HUD": "Подсказка поворота на HUD",
+    "Turn card size: {0}": "Размер подсказки поворота: {0}",
+    "Map height with turn card: {0}": "Высота карты с подсказкой поворота: {0}",
+    "Turn card position: {0}": "Положение подсказки поворота: {0}",
+    "Move turn card left": "Сдвинуть подсказку поворота влево",
+    "Move turn card right": "Сдвинуть подсказку поворота вправо",
+    "Move turn card up": "Сдвинуть подсказку поворота вверх",
+    "Move turn card down": "Сдвинуть подсказку поворота вниз",
+    "Reset turn card position": "Сбросить положение подсказки поворота"
   }
 }

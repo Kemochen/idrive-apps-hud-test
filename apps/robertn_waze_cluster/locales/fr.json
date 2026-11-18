@@ -96,6 +96,15 @@
     "Own settings for this driver": "Réglages propres à ce conducteur",
     "Keep HUD map over BMW's pop-ups": "Garder la carte sur le HUD devant les pop-up BMW",
     "Hide HUD map in Sport mode": "Masquer la carte sur le HUD en mode Sport",
-    "Hidden in Sport mode": "Masquée en mode Sport"
+    "Hidden in Sport mode": "Masquée en mode Sport",
+    "Turn card on HUD": "Guidage sur le HUD",
+    "Turn card size: {0}": "Taille du guidage : {0}",
+    "Map height with turn card: {0}": "Hauteur de la carte avec guidage : {0}",
+    "Turn card position: {0}": "Position du guidage : {0}",
+    "Move turn card left": "Déplacer le guidage à gauche",
+    "Move turn card right": "Déplacer le guidage à droite",
+    "Move turn card up": "Déplacer le guidage vers le haut",
+    "Move turn card down": "Déplacer le guidage vers le bas",
+    "Reset turn card position": "Réinitialiser la position du guidage"
   }
 }

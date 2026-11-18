@@ -96,6 +96,15 @@
     "Own settings for this driver": "Setări proprii pentru acest șofer",
     "Keep HUD map over BMW's pop-ups": "Păstrare hartă pe HUD peste ferestrele pop-up BMW",
     "Hide HUD map in Sport mode": "Ascundere hartă pe HUD în modul Sport",
-    "Hidden in Sport mode": "Ascunsă în modul Sport"
+    "Hidden in Sport mode": "Ascunsă în modul Sport",
+    "Turn card on HUD": "Indicații de virare pe HUD",
+    "Turn card size: {0}": "Mărime indicații de virare: {0}",
+    "Map height with turn card: {0}": "Înălțimea hărții cu indicații de virare: {0}",
+    "Turn card position: {0}": "Poziție indicații de virare: {0}",
+    "Move turn card left": "Mută indicațiile de virare la stânga",
+    "Move turn card right": "Mută indicațiile de virare la dreapta",
+    "Move turn card up": "Mută indicațiile de virare în sus",
+    "Move turn card down": "Mută indicațiile de virare în jos",
+    "Reset turn card position": "Resetare poziție indicații de virare"
   }
 }

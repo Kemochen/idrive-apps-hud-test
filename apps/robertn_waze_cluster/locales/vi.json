@@ -96,6 +96,15 @@
     "Own settings for this driver": "Cài đặt riêng cho người lái này",
     "Keep HUD map over BMW's pop-ups": "Giữ bản đồ trên HUD phía trên cửa sổ bật lên của BMW",
     "Hide HUD map in Sport mode": "Ẩn bản đồ trên HUD ở chế độ Sport",
-    "Hidden in Sport mode": "Đã ẩn ở chế độ Sport"
+    "Hidden in Sport mode": "Đã ẩn ở chế độ Sport",
+    "Turn card on HUD": "Thẻ chỉ hướng trên HUD",
+    "Turn card size: {0}": "Kích thước thẻ chỉ hướng: {0}",
+    "Map height with turn card: {0}": "Chiều cao bản đồ khi có thẻ chỉ hướng: {0}",
+    "Turn card position: {0}": "Vị trí thẻ chỉ hướng: {0}",
+    "Move turn card left": "Dời thẻ chỉ hướng sang trái",
+    "Move turn card right": "Dời thẻ chỉ hướng sang phải",
+    "Move turn card up": "Dời thẻ chỉ hướng lên",
+    "Move turn card down": "Dời thẻ chỉ hướng xuống",
+    "Reset turn card position": "Đặt lại vị trí thẻ chỉ hướng"
   }
 }

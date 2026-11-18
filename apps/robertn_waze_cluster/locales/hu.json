@@ -96,6 +96,15 @@
     "Own settings for this driver": "Saját beállítások ennek a vezetőnek",
     "Keep HUD map over BMW's pop-ups": "Térkép megtartása a HUD-on a BMW felugró ablakai felett",
     "Hide HUD map in Sport mode": "Térkép elrejtése a HUD-on Sport módban",
-    "Hidden in Sport mode": "Elrejtve Sport módban"
+    "Hidden in Sport mode": "Elrejtve Sport módban",
+    "Turn card on HUD": "Navigációs kártya a HUD-on",
+    "Turn card size: {0}": "Navigációs kártya mérete: {0}",
+    "Map height with turn card: {0}": "Térkép magassága navigációs kártyával: {0}",
+    "Turn card position: {0}": "Navigációs kártya pozíciója: {0}",
+    "Move turn card left": "Navigációs kártya mozgatása balra",
+    "Move turn card right": "Navigációs kártya mozgatása jobbra",
+    "Move turn card up": "Navigációs kártya mozgatása fel",
+    "Move turn card down": "Navigációs kártya mozgatása le",
+    "Reset turn card position": "Navigációs kártya pozíciójának visszaállítása"
   }
 }

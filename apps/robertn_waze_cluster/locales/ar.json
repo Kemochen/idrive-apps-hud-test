@@ -96,6 +96,15 @@
     "Own settings for this driver": "إعدادات خاصة لهذا السائق",
     "Keep HUD map over BMW's pop-ups": "إبقاء خريطة HUD فوق النوافذ المنبثقة من BMW",
     "Hide HUD map in Sport mode": "إخفاء خريطة HUD في وضع Sport",
-    "Hidden in Sport mode": "مخفية في وضع Sport"
+    "Hidden in Sport mode": "مخفية في وضع Sport",
+    "Turn card on HUD": "بطاقة الانعطاف على HUD",
+    "Turn card size: {0}": "حجم بطاقة الانعطاف: {0}",
+    "Map height with turn card: {0}": "ارتفاع الخريطة مع بطاقة الانعطاف: {0}",
+    "Turn card position: {0}": "موضع بطاقة الانعطاف: {0}",
+    "Move turn card left": "تحريك بطاقة الانعطاف لليسار",
+    "Move turn card right": "تحريك بطاقة الانعطاف لليمين",
+    "Move turn card up": "تحريك بطاقة الانعطاف للأعلى",
+    "Move turn card down": "تحريك بطاقة الانعطاف للأسفل",
+    "Reset turn card position": "إعادة موضع بطاقة الانعطاف"
   }
 }

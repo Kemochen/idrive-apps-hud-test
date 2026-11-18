@@ -96,6 +96,15 @@
     "Own settings for this driver": "Lastne nastavitve za tega voznika",
     "Keep HUD map over BMW's pop-ups": "Ohrani zemljevid na HUD nad pojavnimi okni BMW",
     "Hide HUD map in Sport mode": "Skrij zemljevid na HUD v načinu Sport",
-    "Hidden in Sport mode": "Skrito v načinu Sport"
+    "Hidden in Sport mode": "Skrito v načinu Sport",
+    "Turn card on HUD": "Navodila za zavoj na HUD",
+    "Turn card size: {0}": "Velikost navodil za zavoj: {0}",
+    "Map height with turn card: {0}": "Višina zemljevida z navodili za zavoj: {0}",
+    "Turn card position: {0}": "Položaj navodil za zavoj: {0}",
+    "Move turn card left": "Premakni navodila za zavoj levo",
+    "Move turn card right": "Premakni navodila za zavoj desno",
+    "Move turn card up": "Premakni navodila za zavoj gor",
+    "Move turn card down": "Premakni navodila za zavoj dol",
+    "Reset turn card position": "Ponastavi položaj navodil za zavoj"
   }
 }

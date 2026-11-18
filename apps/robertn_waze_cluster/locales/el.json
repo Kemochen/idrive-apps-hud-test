@@ -96,6 +96,15 @@
     "Own settings for this driver": "Δικές ρυθμίσεις για αυτόν τον οδηγό",
     "Keep HUD map over BMW's pop-ups": "Διατήρηση χάρτη στο HUD πάνω από τα αναδυόμενα της BMW",
     "Hide HUD map in Sport mode": "Απόκρυψη χάρτη στο HUD σε λειτουργία Sport",
-    "Hidden in Sport mode": "Κρυμμένος σε λειτουργία Sport"
+    "Hidden in Sport mode": "Κρυμμένος σε λειτουργία Sport",
+    "Turn card on HUD": "Οδηγίες στροφής στο HUD",
+    "Turn card size: {0}": "Μέγεθος οδηγιών στροφής: {0}",
+    "Map height with turn card: {0}": "Ύψος χάρτη με οδηγίες στροφής: {0}",
+    "Turn card position: {0}": "Θέση οδηγιών στροφής: {0}",
+    "Move turn card left": "Μετακίνηση οδηγιών στροφής αριστερά",
+    "Move turn card right": "Μετακίνηση οδηγιών στροφής δεξιά",
+    "Move turn card up": "Μετακίνηση οδηγιών στροφής πάνω",
+    "Move turn card down": "Μετακίνηση οδηγιών στροφής κάτω",
+    "Reset turn card position": "Επαναφορά θέσης οδηγιών στροφής"
   }
 }

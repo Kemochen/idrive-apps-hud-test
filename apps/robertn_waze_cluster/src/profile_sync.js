@@ -184,6 +184,7 @@ class ProfileSync extends EventEmitter {
         super();
         const o = options || {};
         this._control = o.control || null;
+        this._link = o.link || null;   /* the app's RenderLink, if any */
         this._log = o.log || { info() {}, warn() {} };
         this._read = o.readProfile;
         this._patchPath = o.patchPath || PATCH_PATH;
@@ -319,8 +320,9 @@ class ProfileSync extends EventEmitter {
     /* The render to the settings in effect: a display turned on first, so a
      * switch from one display to the other never passes through neither,
      * then the HUD's size, place, whether it stays shown over BMW's
-     * pop-ups and whether it is hidden in a Sport mode (each from a patchd
-     * that has it). */
+     * pop-ups, whether it is hidden in a Sport mode and its turn card (each
+     * from a patchd that has it). Through the page's connection, else the
+     * app's background one while it is up, else a short one of its own. */
     _toRender(s) {
         const on = (v) => (v ? '1' : '0');
         const shows = ['cluster', 'hud'].sort((a, b) => s[b] - s[a]);
@@ -331,10 +333,22 @@ class ProfileSync extends EventEmitter {
         if (s.hud_hide_sport === 0 || s.hud_hide_sport === 1) {
             hud.hud_hide_sport = on(s.hud_hide_sport);
         }
+        if (s.hud_card === 0 || s.hud_card === 1) {
+            Object.assign(hud, { hud_card: on(s.hud_card), hud_card_pct: String(s.hud_card_pct), hud_card_x: String(s.hud_card_x),
+                hud_card_y: String(s.hud_card_y) });
+        }
+        /* the HUD map's height with the card: absent from a patchd before it */
+        if (Number.isInteger(s.hud_card_crop)) {
+            hud.hud_card_crop = String(s.hud_card_crop);
+        }
         const cmds = shows.map((d) => ({ cmd: d, on: on(s[d]) })).concat([hud]);
         const c = this._control;
         if (c && c.render && c.render.connected()) {
             cmds.forEach((m) => c.render.send(m));
+            return;
+        }
+        if (this._link && this._link.connected()) {
+            cmds.forEach((m) => this._link.send(m));
             return;
         }
         /* the render down or owned by another: its next start reads the saved settings */

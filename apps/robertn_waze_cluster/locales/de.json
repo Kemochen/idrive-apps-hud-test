@@ -96,6 +96,15 @@
     "Own settings for this driver": "Eigene Einstellungen für diesen Fahrer",
     "Keep HUD map over BMW's pop-ups": "Karte im HUD vor BMW-Pop-ups behalten",
     "Hide HUD map in Sport mode": "Karte im HUD im Sport-Modus ausblenden",
-    "Hidden in Sport mode": "Im Sport-Modus ausgeblendet"
+    "Hidden in Sport mode": "Im Sport-Modus ausgeblendet",
+    "Turn card on HUD": "Abbiegekarte im HUD",
+    "Turn card size: {0}": "Größe der Abbiegekarte: {0}",
+    "Map height with turn card: {0}": "Kartenhöhe mit Abbiegekarte: {0}",
+    "Turn card position: {0}": "Position der Abbiegekarte: {0}",
+    "Move turn card left": "Abbiegekarte nach links",
+    "Move turn card right": "Abbiegekarte nach rechts",
+    "Move turn card up": "Abbiegekarte nach oben",
+    "Move turn card down": "Abbiegekarte nach unten",
+    "Reset turn card position": "Position der Abbiegekarte zurücksetzen"
   }
 }

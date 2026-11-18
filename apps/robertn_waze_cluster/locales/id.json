@@ -96,6 +96,15 @@
     "Own settings for this driver": "Pengaturan sendiri untuk pengemudi ini",
     "Keep HUD map over BMW's pop-ups": "Pertahankan peta di HUD di atas pop-up BMW",
     "Hide HUD map in Sport mode": "Sembunyikan peta di HUD dalam mode Sport",
-    "Hidden in Sport mode": "Disembunyikan dalam mode Sport"
+    "Hidden in Sport mode": "Disembunyikan dalam mode Sport",
+    "Turn card on HUD": "Kartu belok di HUD",
+    "Turn card size: {0}": "Ukuran kartu belok: {0}",
+    "Map height with turn card: {0}": "Tinggi peta dengan kartu belok: {0}",
+    "Turn card position: {0}": "Posisi kartu belok: {0}",
+    "Move turn card left": "Geser kartu belok ke kiri",
+    "Move turn card right": "Geser kartu belok ke kanan",
+    "Move turn card up": "Geser kartu belok ke atas",
+    "Move turn card down": "Geser kartu belok ke bawah",
+    "Reset turn card position": "Atur ulang posisi kartu belok"
   }
 }

@@ -27,6 +27,7 @@
 const assert = require('assert');
 const fs = require('fs');
 const { ProfileSync, sessionReader, IFACE, INSTANCE, FIELD } = require('../src/profile_sync.js');
+const { RenderLink } = require('../src/render_link.js');
 const { WazeClusterControl } = require('../src/waze_cluster_control.js');
 const { FakeRender, FakePatch } = require('./fakes.js');
 
@@ -316,6 +317,40 @@ async function main() {
         sync2._toRender(settings(1, 1, 0, 0, 0, 0));
         await until('render moved', () => render.received.length === 3);
         assert.deepStrictEqual(render.received[2], { cmd: 'hud', hud_width_pct: '0', hud_x: '0', hud_y: '0', hud_keep_shown: '0' });
+    });
+    await check('the HUD map\'s height with the turn card goes to the render with a profile\'s settings; a patchd before it: not told', async () => {
+        render.received.length = 0;
+        sync2._toRender(Object.assign(settings(1, 1, 0, 0, 0, 0), { hud_card: 1, hud_card_pct: 100, hud_card_x: 0, hud_card_y: 0, hud_card_crop: 35 }));
+        await until('render moved', () => render.received.length === 3);
+        assert.strictEqual(render.received[2].hud_card_crop, '35');
+        render.received.length = 0;
+        sync2._toRender(Object.assign(settings(1, 1, 0, 0, 0, 0), { hud_card: 1, hud_card_pct: 100, hud_card_x: 0, hud_card_y: 0 }));
+        await until('render moved', () => render.received.length === 3);
+        assert.ok(!('hud_card_crop' in render.received[2]), JSON.stringify(render.received[2]));
+    });
+    await check('the HUD\'s turn card goes to the render with a profile\'s settings; a patchd before it: the render not told it', async () => {
+        render.received.length = 0;
+        sync2._toRender(Object.assign(settings(1, 1, 0, 0, 0, 0), { hud_card: 1, hud_card_pct: 120, hud_card_x: 30, hud_card_y: -20 }));
+        await until('render moved', () => render.received.length === 3);
+        assert.deepStrictEqual(render.received[2], { cmd: 'hud', hud_width_pct: '0', hud_x: '0', hud_y: '0', hud_keep_shown: '0',
+            hud_card: '1', hud_card_pct: '120', hud_card_x: '30', hud_card_y: '-20' });
+        render.received.length = 0;
+        sync2._toRender(settings(1, 1, 0, 0, 0, 0));
+        await until('render moved', () => render.received.length === 3);
+        assert.deepStrictEqual(render.received[2], { cmd: 'hud', hud_width_pct: '0', hud_x: '0', hud_y: '0', hud_keep_shown: '0' });
+    });
+    await check('with the page closed and the app\'s background connection up, a profile\'s settings go through it, no connection of their own', async () => {
+        const link = new RenderLink({ path: RSOCK, retryMs: 50 });
+        link.open();
+        await until('the background connection up', () => link.connected());
+        const linked = new ProfileSync({ link, readProfile: () => Promise.resolve('driverA'), patchPath: PSOCK, renderPath: RSOCK, pollMs: POLL, log: quiet() });
+        const before = render.connections;
+        render.received.length = 0;
+        linked._toRender(Object.assign(settings(0, 1, 60, 0, 0, 0), { hud_card: 0, hud_card_pct: 100, hud_card_x: 0, hud_card_y: 0 }));
+        await until('render moved', () => render.received.length === 3);
+        assert.deepStrictEqual(render.received.map((m) => m.cmd), ['hud', 'cluster', 'hud']);
+        assert.strictEqual(render.connections, before);
+        link.close();
     });
     sync2.stop();
     c.close();

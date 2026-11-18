@@ -96,6 +96,15 @@
     "Own settings for this driver": "Własne ustawienia dla tego kierowcy",
     "Keep HUD map over BMW's pop-ups": "Zachowaj mapę na HUD nad wyskakującymi oknami BMW",
     "Hide HUD map in Sport mode": "Ukryj mapę na HUD w trybie Sport",
-    "Hidden in Sport mode": "Ukryta w trybie Sport"
+    "Hidden in Sport mode": "Ukryta w trybie Sport",
+    "Turn card on HUD": "Karta manewrów na HUD",
+    "Turn card size: {0}": "Rozmiar karty manewrów: {0}",
+    "Map height with turn card: {0}": "Wysokość mapy z kartą manewrów: {0}",
+    "Turn card position: {0}": "Pozycja karty manewrów: {0}",
+    "Move turn card left": "Przesuń kartę manewrów w lewo",
+    "Move turn card right": "Przesuń kartę manewrów w prawo",
+    "Move turn card up": "Przesuń kartę manewrów w górę",
+    "Move turn card down": "Przesuń kartę manewrów w dół",
+    "Reset turn card position": "Przywróć pozycję karty manewrów"
   }
 }

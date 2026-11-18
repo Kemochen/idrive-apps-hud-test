@@ -461,6 +461,248 @@
             }
           ]
         },
+        "65": {
+          "type": "checkBox",
+          "name": "wocHudCard",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Turn card on HUD",
+                "type": "Text"
+              },
+              "eParam_RowSelected": {
+                "value": false,
+                "type": "Bool"
+              }
+            }
+          ]
+        },
+        "66": {
+          "type": "slider",
+          "name": "wocHudCardSize",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "TextDescription": {
+                "value": "Turn card size: —",
+                "type": "Text"
+              },
+              "TextDescriptionVisible": {
+                "value": true,
+                "type": "Bool"
+              },
+              "MiddleIndicatorVisible": {
+                "value": false,
+                "type": "Bool"
+              },
+              "MinValue": {
+                "value": 0,
+                "type": "SInt"
+              },
+              "MaxValue": {
+                "value": 10,
+                "type": "SInt"
+              },
+              "NumberOfSteps": {
+                "value": 10,
+                "type": "SInt"
+              }
+            }
+          ]
+        },
+        "73": {
+          "type": "slider",
+          "name": "wocHudCardCrop",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "TextDescription": {
+                "value": "Map height with turn card: —",
+                "type": "Text"
+              },
+              "TextDescriptionVisible": {
+                "value": true,
+                "type": "Bool"
+              },
+              "MiddleIndicatorVisible": {
+                "value": false,
+                "type": "Bool"
+              },
+              "MinValue": {
+                "value": 0,
+                "type": "SInt"
+              },
+              "MaxValue": {
+                "value": 8,
+                "type": "SInt"
+              },
+              "NumberOfSteps": {
+                "value": 8,
+                "type": "SInt"
+              }
+            }
+          ]
+        },
+        "67": {
+          "type": "label",
+          "name": "wocHudCardPos",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 0,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Turn card position: —",
+                "type": "Text"
+              }
+            }
+          ]
+        },
+        "68": {
+          "type": "button",
+          "name": "wocHudCardLeft",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Move turn card left",
+                "type": "Text"
+              }
+            }
+          ]
+        },
+        "69": {
+          "type": "button",
+          "name": "wocHudCardRight",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Move turn card right",
+                "type": "Text"
+              }
+            }
+          ]
+        },
+        "70": {
+          "type": "button",
+          "name": "wocHudCardUp",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Move turn card up",
+                "type": "Text"
+              }
+            }
+          ]
+        },
+        "71": {
+          "type": "button",
+          "name": "wocHudCardDown",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Move turn card down",
+                "type": "Text"
+              }
+            }
+          ]
+        },
+        "72": {
+          "type": "button",
+          "name": "wocHudCardReset",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Reset turn card position",
+                "type": "Text"
+              }
+            }
+          ]
+        },
         "90": {
           "type": "label",
           "name": "wocHeadCarPlay",

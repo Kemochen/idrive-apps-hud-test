@@ -79,6 +79,20 @@ The app is in the head unit's display language.
 - **Size:** how wide the map is on the HUD.
 - **Move left / Move right / Move up / Move down** and **Centre:** where the
   map sits on the HUD.
+- **Turn card on HUD:** ticked, the next turn of your route is drawn beside
+  the HUD map: the street and, at the right, the arrow and the distance in
+  a row over the map, and the lanes under the map's right end. It works
+  with navigation apps that give the car their turns: Apple Maps does,
+  Google Maps is reported to, Waze does not. Experimental: not yet
+  confirmed on a car. Unticked (the default), nothing is drawn. You can
+  change it only while **Show on** has the HUD.
+- **Turn card size**, **Move turn card left / right / up / down** and
+  **Reset turn card position:** how large the card is and where it sits.
+  Use them to keep it clear of the map and of the car's own speed display.
+- **Map height with turn card:** while the card is on, the HUD map is made
+  shorter, cut equally at its top and bottom, to leave room for the street
+  row above it and the lanes below it. 60 % to 100 % of its height, 80 % by
+  default.
 
 **CarPlay** and **Android Auto**
 
@@ -113,6 +127,7 @@ apply the change.
 | The map never shows on the cluster | Set **Instrument cluster > Central display area** to **Map view**. With Route preview or Assisted Driving View the cluster's own content takes the centre. |
 | `Cluster map: Error` or `Unavailable` | [Report it](#logs-and-reporting-a-problem). |
 | `HUD map: Hidden in Sport mode` | **Hide HUD map in Sport mode** is ticked and the car is in a Sport driving mode. Leave the Sport mode, or untick it. |
+| The turn card is ticked and shows nothing | It shows only while the HUD map shows and your navigation app is guiding. Waze gives the car no turns. A street name with letters outside the Latin alphabet is left out; the arrow and the distance still show. |
 | `HUD map: Disabled after errors` | Update **Cluster renderer** in the Store. The cluster map keeps working. |
 | CarPlay audio cuts out and `CarPlay Wi-Fi: 2.4 GHz` | On your iPhone, turn Wi-Fi off and on. |
 
@@ -200,6 +215,8 @@ node tools/test_control.js           # the socket client against fake sockets
 node tools/test_page.js              # the page against a fake SDK and HMI
 node tools/test_profiles.js          # the driver profiles against fake sockets and SessionManager
 node tools/test_drive_mode.js        # the driving mode against a fake FES and the fake render
+node tools/test_turn_decode.js       # BMW's guidance replies as the turn card's fields
+node tools/test_turn_guide.js        # the next turn against a fake guidance list and the fake render
 node tools/test_i18n.js              # every language: its words, placeholders, RHMI text files
 node tools/build.js                  # robertn_waze_cluster@<version>.src.tgz
 node tools/build.js --sdk <donor>    # also robertn_waze_cluster@<version>.tgz
@@ -224,6 +241,8 @@ Enter starts or stops a fake CarPlay stream.
 | `src/logs_control.js` | the logs socket client |
 | `src/profile_sync.js` | the driver profile in use and its own map settings |
 | `src/drive_mode.js` | the car's driving mode, for Hide HUD map in Sport mode |
+| `src/turn_guide.js`, `src/turn_decode.js` | the next turn of the route, for Turn card on HUD; the decoder ported from idrive7-apps' Redline (MIT, notice in the file) |
+| `src/render_link.js` | the app's connection to the map service while the page is closed |
 | `src/qr.js`, `src/qrcodegen.js` | the QR code PNG; Project Nayuki's generator (MIT, `LICENSE-qrcodegen.txt`) |
 | `tools/` | build, fakes, tests, icon |
 | `package/` | the package tree (manifest, RHMI UI, config, CHANGELOG) |

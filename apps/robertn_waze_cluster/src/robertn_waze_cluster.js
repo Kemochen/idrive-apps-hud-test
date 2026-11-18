@@ -17,7 +17,14 @@
  * and tells the render; greyed too on a head unit with no driving mode to
  * read), the Size
  * slider, Position with Move left, Move right, Move up, Move down and
- * Centre; the checkboxes, the slider and the position buttons are greyed
+ * Centre; then the Turn card on HUD checkbox (turn_guide.js reads the next
+ * turn of BMW's guidance, read-only, and tells the render, which draws it
+ * beside the HUD map; greyed too on a head unit with no guidance list),
+ * its Turn card size slider, the Map height with turn card slider (the HUD
+ * map cut at its top and bottom while the card is on, greyed on a render
+ * without it), Turn card position with Move turn card left,
+ * right, up, down and Reset turn card position, greyed while the card is
+ * off; the checkboxes, the slider and the position buttons are greyed
  * while the HUD is off or disabled after errors. CarPlay and Android Auto
  * have the same rows: Status, Patch, Remove patch; CarPlay adds CarPlay
  * Wi-Fi (the band, 5 GHz or 2.4 GHz) and, on 2.4 GHz, the line under it;
@@ -67,6 +74,8 @@ const { LogsControl, ROWS: LOGS_ROWS } = require('./logs_control.js');
 const { qrPng } = require('./qr.js');
 const { ProfileSync, sessionReader } = require('./profile_sync.js');
 const { DriveModeSync, driveModeReader } = require('./drive_mode.js');
+const { RenderLink } = require('./render_link.js');
+const { TurnGuideSync, turnReader, HANDOVER_MS } = require('./turn_guide.js');
 
 const logger = logging.getSDKLogger();
 
@@ -98,6 +107,12 @@ const HUD_SIZE_NAME = 'wocHudSize';
 const HUD_POS_NAME = 'wocHudPos';
 const HUD_MOVE_NAMES = { left: 'wocHudLeft', right: 'wocHudRight', up: 'wocHudUp', down: 'wocHudDown' };
 const HUD_CENTRE_NAME = 'wocHudCentre';
+const HUD_CARD_NAME = 'wocHudCard';
+const HUD_CARD_SIZE_NAME = 'wocHudCardSize';
+const HUD_CARD_CROP_NAME = 'wocHudCardCrop';
+const HUD_CARD_POS_NAME = 'wocHudCardPos';
+const HUD_CARD_MOVE_NAMES = { left: 'wocHudCardLeft', right: 'wocHudCardRight', up: 'wocHudCardUp', down: 'wocHudCardDown' };
+const HUD_CARD_RESET_NAME = 'wocHudCardReset';
 const CAPTURE_NAME = 'wocCapture';
 const CAPTURE_STATUS = 'wocCaptureStatus';
 const LOGS_NAME = 'wocLogs';
@@ -145,16 +160,27 @@ class WazeClusterApp extends OnlineApp {
         this._control.on('change', () => this._render());
         this._logs = new LogsControl({ log: logger });
         this._logs.on('change', () => this._renderLogs());
+        /* the app's connection to the render while the page is closed (the turn card keeps it) */
+        this._link = new RenderLink({ log: logger });
+        this._openTimer = null;
         /* the map settings per driver profile, page shown or not */
-        this._profiles = new ProfileSync({ control: this._control, log: logger, readProfile: sessionReader(someipBuilders, logger) });
+        this._profiles = new ProfileSync({ control: this._control, link: this._link, log: logger,
+            readProfile: sessionReader(someipBuilders, logger) });
         /* the car's driving mode, for Hide HUD map in Sport mode, page shown or not */
-        this._drive = new DriveModeSync({ control: this._control, log: logger, reader: driveModeReader(someipBuilders, logger),
-            changed: () => this._render() });
-        this._control.on('change', () => this._drive.follow());
+        this._drive = new DriveModeSync({ control: this._control, link: this._link, log: logger,
+            reader: driveModeReader(someipBuilders, logger), changed: () => this._render() });
+        /* the next turn, for Turn card on HUD, page shown or not */
+        this._turns = new TurnGuideSync({ control: this._control, link: this._link, log: logger,
+            reader: turnReader(someipBuilders, logger), changed: () => this._render() });
+        this._control.on('change', () => {
+            this._drive.follow();
+            this._turns.follow();
+        });
         this._profiles.on('change', () => {
             this._render();
             /* another profile's settings may be in effect */
             this._drive.recheck();
+            this._turns.recheck();
         });
 
         this.on('initialized', () => {
@@ -175,6 +201,7 @@ class WazeClusterApp extends OnlineApp {
         logger.info(`robertn_waze_cluster ${this.getAppId()} v${this._packageJson.version} starting`);
         this._profiles.start();
         this._drive.start();
+        this._turns.start();
         if (!this.rhmiApplication) {
             logger.info('no RhmiApplication for this start reason; initializing without a screen');
             return this.initialized();
@@ -221,7 +248,8 @@ class WazeClusterApp extends OnlineApp {
         const names = [STATUS_NAME, MAP_NAME, RESTART_STATUS_NAME, ENABLE_NAME, DISABLE_NAME, WIFI_NAME, WIFI_HINT_NAME, AA_STATUS_NAME,
             AA_ENABLE_NAME, AA_DISABLE_NAME, AA_ZOOM_NAME, AA_ZOOM_OUT_NAME, AA_ZOOM_IN_NAME, AA_CARD_NAME, RESTART_NAME, GUIDE_NAME,
             HEAD_GENERAL_NAME, HEAD_HUD_NAME, SHOW_ON_NAME, PROFILE_NAME, HUD_NAME, HUD_KEEP_NAME, HUD_SPORT_NAME, HUD_SIZE_NAME, HUD_POS_NAME]
-            .concat(Object.values(HUD_MOVE_NAMES), [HUD_CENTRE_NAME, CAPTURE_NAME, CAPTURE_STATUS,
+            .concat(Object.values(HUD_MOVE_NAMES), [HUD_CENTRE_NAME, HUD_CARD_NAME, HUD_CARD_SIZE_NAME, HUD_CARD_CROP_NAME, HUD_CARD_POS_NAME],
+                Object.values(HUD_CARD_MOVE_NAMES), [HUD_CARD_RESET_NAME, CAPTURE_NAME, CAPTURE_STATUS,
                 LOGS_NAME, LOGS_SAVE, LOGS_STATUS, LOGS_QR, LOGS_URL], LOGS_ROW_NAMES);
         names.forEach((name) => { this._components[name] = rhmi.getByName(name); });
         const missing = names.filter((name) => !this._components[name]);
@@ -284,6 +312,31 @@ class WazeClusterApp extends OnlineApp {
         });
         Object.keys(HUD_MOVE_NAMES).forEach((dir) => this._bind(HUD_MOVE_NAMES[dir], () => this._control.moveHud(dir)));
         this._bind(HUD_CENTRE_NAME, () => this._control.centreHud());
+        this._bind(HUD_CARD_NAME, () => {
+            /* as for the turn box: the render's answer decides the tick */
+            delete this._written[`selected:${HUD_CARD_NAME}`];
+            this._control.toggleHudCard();
+            this._render();
+        });
+        /* as the HUD map's size slider */
+        this._components[HUD_CARD_SIZE_NAME].on('changed', (step) => {
+            if (step !== this._written[`cell:${HUD_CARD_SIZE_NAME}:0:Value`]) {
+                logger.info(`SLIDER ${HUD_CARD_SIZE_NAME} ${step}`);
+                delete this._written[`cell:${HUD_CARD_SIZE_NAME}:0:Value`];
+                this._control.setHudCardSizeStep(step);
+                setImmediate(() => this._render());
+            }
+        });
+        this._components[HUD_CARD_CROP_NAME].on('changed', (step) => {
+            if (step !== this._written[`cell:${HUD_CARD_CROP_NAME}:0:Value`]) {
+                logger.info(`SLIDER ${HUD_CARD_CROP_NAME} ${step}`);
+                delete this._written[`cell:${HUD_CARD_CROP_NAME}:0:Value`];
+                this._control.setHudCardCropStep(step);
+                setImmediate(() => this._render());
+            }
+        });
+        Object.keys(HUD_CARD_MOVE_NAMES).forEach((dir) => this._bind(HUD_CARD_MOVE_NAMES[dir], () => this._control.moveHudCard(dir)));
+        this._bind(HUD_CARD_RESET_NAME, () => this._control.resetHudCard());
         this._bind(CAPTURE_NAME, () => this._control.capture());
         this._bind(LOGS_NAME, () => Promise.resolve(rhmi.openState(LOGS_STATE))
             .catch((err) => logger.warn(`openState ${LOGS_STATE} failed: ${err && err.message}`)));
@@ -459,7 +512,21 @@ class WazeClusterApp extends OnlineApp {
         logger.info(`page ${visible ? 'visible' : 'hidden'}`);
         this._reportVisibilityStatus(visible);
         if (visible) {
-            this._control.open();
+            /* the render's control socket is the page's: the app's background
+             * connection closes first, and the render sees it closed before
+             * the page connects */
+            const open = () => {
+                this._openTimer = null;
+                if (this._visible && !this._shutdownPromise) {
+                    this._control.open();
+                }
+            };
+            clearTimeout(this._openTimer);
+            if (this._turns.pageOpening()) {
+                this._openTimer = setTimeout(open, HANDOVER_MS);
+            } else {
+                open();
+            }
             this._profiles.refresh();
             /* back from an overlay or another app on the Logs page, which
              * says nothing of its own */
@@ -468,6 +535,8 @@ class WazeClusterApp extends OnlineApp {
                 this._logs.open();
             }
         } else {
+            clearTimeout(this._openTimer);
+            this._openTimer = null;
             this._control.close();
         }
     }
@@ -549,6 +618,9 @@ class WazeClusterApp extends OnlineApp {
             [HEAD_HUD_NAME, t('HUD')],
             [HUD_MOVE_NAMES.left, t('Move left')], [HUD_MOVE_NAMES.right, t('Move right')], [HUD_MOVE_NAMES.up, t('Move up')],
             [HUD_MOVE_NAMES.down, t('Move down')], [HUD_CENTRE_NAME, t('Centre')],
+            [HUD_CARD_MOVE_NAMES.left, t('Move turn card left')], [HUD_CARD_MOVE_NAMES.right, t('Move turn card right')],
+            [HUD_CARD_MOVE_NAMES.up, t('Move turn card up')], [HUD_CARD_MOVE_NAMES.down, t('Move turn card down')],
+            [HUD_CARD_RESET_NAME, t('Reset turn card position')],
             [RESTART_NAME, t('Restart head unit')]].forEach(([name, text]) => this._write(name, text));
         this._write(STATUS_NAME, c.statusText());
         this._write(MAP_NAME, c.mapText());
@@ -608,6 +680,26 @@ class WazeClusterApp extends OnlineApp {
         this._write(HUD_POS_NAME, c.hudPositionText());
         Object.values(HUD_MOVE_NAMES).forEach((n) => this._setEnabled(n, adjust));
         this._setEnabled(HUD_CENTRE_NAME, c.canCentreHud());
+        /* the turn card: greyed too on a head unit that has no guidance list
+         * to read; its size and place greyed while it is off */
+        const card = this._turns.available();
+        this._write(HUD_CARD_NAME, t('Turn card on HUD'));
+        this._setSelected(HUD_CARD_NAME, c.hudCard() === true);
+        this._setEnabled(HUD_CARD_NAME, c.canToggleHudCard() && card);
+        const adjustCard = c.canChangeHudCard() && card;
+        this._writeCell(HUD_CARD_SIZE_NAME, 'TextDescription', c.hudCardSizeText(), 'Text', 0);
+        if (c.hudCardSizeStep() !== null) {
+            this._writeCell(HUD_CARD_SIZE_NAME, 'Value', c.hudCardSizeStep(), 'SInt', 0);
+        }
+        this._setEnabled(HUD_CARD_SIZE_NAME, adjustCard);
+        this._writeCell(HUD_CARD_CROP_NAME, 'TextDescription', c.hudCardCropText(), 'Text', 0);
+        if (c.hudCardCropStep() !== null) {
+            this._writeCell(HUD_CARD_CROP_NAME, 'Value', c.hudCardCropStep(), 'SInt', 0);
+        }
+        this._setEnabled(HUD_CARD_CROP_NAME, c.canChangeHudCardCrop() && card);
+        this._write(HUD_CARD_POS_NAME, c.hudCardPositionText());
+        Object.values(HUD_CARD_MOVE_NAMES).forEach((n) => this._setEnabled(n, adjustCard));
+        this._setEnabled(HUD_CARD_RESET_NAME, c.canResetHudCard() && card);
     }
 
     _renderLogs() {
@@ -691,8 +783,10 @@ class WazeClusterApp extends OnlineApp {
         clearTimeout(this._hideTimer);
         this._control.close();
         this._logs.close();
+        clearTimeout(this._openTimer);
         this._profiles.stop();
         this._drive.stop();
+        this._turns.stop();
         if (this._qr.file) {
             try {
                 fs.unlinkSync(this._qr.file);

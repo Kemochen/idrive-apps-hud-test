@@ -96,6 +96,15 @@
     "Own settings for this driver": "このドライバー専用の設定",
     "Keep HUD map over BMW's pop-ups": "HUDの地図をBMWのポップアップより優先",
     "Hide HUD map in Sport mode": "SPORTモードでHUDの地図を非表示",
-    "Hidden in Sport mode": "SPORTモード中は非表示"
+    "Hidden in Sport mode": "SPORTモード中は非表示",
+    "Turn card on HUD": "HUDに進路案内を表示",
+    "Turn card size: {0}": "進路案内のサイズ：{0}",
+    "Map height with turn card: {0}": "進路案内表示時の地図の高さ：{0}",
+    "Turn card position: {0}": "進路案内の位置：{0}",
+    "Move turn card left": "進路案内を左へ移動",
+    "Move turn card right": "進路案内を右へ移動",
+    "Move turn card up": "進路案内を上へ移動",
+    "Move turn card down": "進路案内を下へ移動",
+    "Reset turn card position": "進路案内の位置をリセット"
   }
 }

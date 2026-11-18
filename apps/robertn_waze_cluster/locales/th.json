@@ -96,6 +96,15 @@
     "Own settings for this driver": "การตั้งค่าเฉพาะสำหรับผู้ขับขี่คนนี้",
     "Keep HUD map over BMW's pop-ups": "คงแผนที่บน HUD ไว้เหนือป๊อปอัปของ BMW",
     "Hide HUD map in Sport mode": "ซ่อนแผนที่บน HUD ในโหมด Sport",
-    "Hidden in Sport mode": "ซ่อนในโหมด Sport"
+    "Hidden in Sport mode": "ซ่อนในโหมด Sport",
+    "Turn card on HUD": "การ์ดบอกทางเลี้ยวบน HUD",
+    "Turn card size: {0}": "ขนาดการ์ดบอกทางเลี้ยว: {0}",
+    "Map height with turn card: {0}": "ความสูงของแผนที่เมื่อมีการ์ดบอกทางเลี้ยว: {0}",
+    "Turn card position: {0}": "ตำแหน่งการ์ดบอกทางเลี้ยว: {0}",
+    "Move turn card left": "เลื่อนการ์ดบอกทางเลี้ยวไปทางซ้าย",
+    "Move turn card right": "เลื่อนการ์ดบอกทางเลี้ยวไปทางขวา",
+    "Move turn card up": "เลื่อนการ์ดบอกทางเลี้ยวขึ้น",
+    "Move turn card down": "เลื่อนการ์ดบอกทางเลี้ยวลง",
+    "Reset turn card position": "รีเซ็ตตำแหน่งการ์ดบอกทางเลี้ยว"
   }
 }

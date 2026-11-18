@@ -96,6 +96,15 @@
     "Own settings for this driver": "Bu sürücüye özel ayarlar",
     "Keep HUD map over BMW's pop-ups": "HUD haritasını BMW açılır pencerelerinin üstünde tut",
     "Hide HUD map in Sport mode": "HUD haritasını Sport modunda gizle",
-    "Hidden in Sport mode": "Sport modunda gizli"
+    "Hidden in Sport mode": "Sport modunda gizli",
+    "Turn card on HUD": "HUD'da dönüş talimatları",
+    "Turn card size: {0}": "Dönüş talimatlarının boyutu: {0}",
+    "Map height with turn card: {0}": "Dönüş talimatlarıyla harita yüksekliği: {0}",
+    "Turn card position: {0}": "Dönüş talimatlarının konumu: {0}",
+    "Move turn card left": "Dönüş talimatlarını sola taşı",
+    "Move turn card right": "Dönüş talimatlarını sağa taşı",
+    "Move turn card up": "Dönüş talimatlarını yukarı taşı",
+    "Move turn card down": "Dönüş talimatlarını aşağı taşı",
+    "Reset turn card position": "Dönüş talimatlarının konumunu sıfırla"
   }
 }

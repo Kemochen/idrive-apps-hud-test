@@ -98,6 +98,15 @@
     "Own settings for this driver": "此駕駛的專屬設定",
     "Keep HUD map over BMW's pop-ups": "HUD 地圖保持在 BMW 彈出視窗之上",
     "Hide HUD map in Sport mode": "運動模式下隱藏 HUD 地圖",
-    "Hidden in Sport mode": "運動模式下已隱藏"
+    "Hidden in Sport mode": "運動模式下已隱藏",
+    "Turn card on HUD": "HUD 轉向卡片",
+    "Turn card size: {0}": "轉向卡片大小：{0}",
+    "Map height with turn card: {0}": "顯示轉向卡片時的地圖高度：{0}",
+    "Turn card position: {0}": "轉向卡片位置：{0}",
+    "Move turn card left": "轉向卡片左移",
+    "Move turn card right": "轉向卡片右移",
+    "Move turn card up": "轉向卡片上移",
+    "Move turn card down": "轉向卡片下移",
+    "Reset turn card position": "重設轉向卡片位置"
   }
 }

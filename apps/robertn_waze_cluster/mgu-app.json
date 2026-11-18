@@ -12,7 +12,11 @@
     "src/qr.js",
     "src/qrcodegen.js",
     "src/profile_sync.js",
-    "src/drive_mode.js"
+    "src/drive_mode.js",
+    "src/render_link.js",
+    "src/turn_decode.js",
+    "src/lane_reader.js",
+    "src/turn_guide.js"
   ],
   "sdk": [
     "oap-sdk/src/core/OnlineApp.js",

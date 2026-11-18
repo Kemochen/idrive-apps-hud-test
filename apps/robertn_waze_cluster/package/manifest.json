@@ -75,6 +75,30 @@
       "attributes": {
         "statusFESVehicleDynamicSwitchHMI": "rs"
       }
+    },
+    "de.bmw.infotainment.navigation.guiding.GuidanceEventList": {
+      "instances": [
+        "Main_Instance"
+      ],
+      "methods": [
+        "queryContent"
+      ]
+    },
+    "de.bmw.infotainment.navigation.guiding.Guidance": {
+      "instances": [
+        "Main_Instance"
+      ],
+      "attributes": {
+        "currentLaneGuiding": "rs"
+      }
+    },
+    "de.bmw.infotainment.navigation.projectedmodeguiding.ProjectedModeGuiding": {
+      "instances": [
+        "Main_Instance"
+      ],
+      "attributes": {
+        "currentLaneGuiding": "rs"
+      }
     }
   },
   "services": {

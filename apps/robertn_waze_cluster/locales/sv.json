@@ -96,6 +96,15 @@
     "Own settings for this driver": "Egna inställningar för den här föraren",
     "Keep HUD map over BMW's pop-ups": "Behåll karta i HUD över BMW:s popup-fönster",
     "Hide HUD map in Sport mode": "Dölj karta i HUD i Sport-läge",
-    "Hidden in Sport mode": "Dold i Sport-läge"
+    "Hidden in Sport mode": "Dold i Sport-läge",
+    "Turn card on HUD": "Svänganvisning i HUD",
+    "Turn card size: {0}": "Svänganvisningens storlek: {0}",
+    "Map height with turn card: {0}": "Kartans höjd med svänganvisning: {0}",
+    "Turn card position: {0}": "Svänganvisningens position: {0}",
+    "Move turn card left": "Flytta svänganvisning åt vänster",
+    "Move turn card right": "Flytta svänganvisning åt höger",
+    "Move turn card up": "Flytta svänganvisning upp",
+    "Move turn card down": "Flytta svänganvisning ned",
+    "Reset turn card position": "Återställ svänganvisningens position"
   }
 }

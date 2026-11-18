@@ -100,7 +100,16 @@ module.exports = [
    "Own settings for this driver": "إعدادات خاصة لهذا السائق",
    "Keep HUD map over BMW's pop-ups": "إبقاء خريطة HUD فوق النوافذ المنبثقة من BMW",
    "Hide HUD map in Sport mode": "إخفاء خريطة HUD في وضع Sport",
-   "Hidden in Sport mode": "مخفية في وضع Sport"
+   "Hidden in Sport mode": "مخفية في وضع Sport",
+   "Turn card on HUD": "بطاقة الانعطاف على HUD",
+   "Turn card size: {0}": "حجم بطاقة الانعطاف: {0}",
+   "Map height with turn card: {0}": "ارتفاع الخريطة مع بطاقة الانعطاف: {0}",
+   "Turn card position: {0}": "موضع بطاقة الانعطاف: {0}",
+   "Move turn card left": "تحريك بطاقة الانعطاف لليسار",
+   "Move turn card right": "تحريك بطاقة الانعطاف لليمين",
+   "Move turn card up": "تحريك بطاقة الانعطاف للأعلى",
+   "Move turn card down": "تحريك بطاقة الانعطاف للأسفل",
+   "Reset turn card position": "إعادة موضع بطاقة الانعطاف"
   }
  },
  {
@@ -202,7 +211,16 @@ module.exports = [
    "Own settings for this driver": "Vlastní nastavení pro tohoto řidiče",
    "Keep HUD map over BMW's pop-ups": "Ponechat mapu na HUD přes vyskakovací okna BMW",
    "Hide HUD map in Sport mode": "Skrýt mapu na HUD v režimu Sport",
-   "Hidden in Sport mode": "Skryto v režimu Sport"
+   "Hidden in Sport mode": "Skryto v režimu Sport",
+   "Turn card on HUD": "Karta odbočení na HUD",
+   "Turn card size: {0}": "Velikost karty odbočení: {0}",
+   "Map height with turn card: {0}": "Výška mapy s kartou odbočení: {0}",
+   "Turn card position: {0}": "Poloha karty odbočení: {0}",
+   "Move turn card left": "Posunout kartu odbočení vlevo",
+   "Move turn card right": "Posunout kartu odbočení vpravo",
+   "Move turn card up": "Posunout kartu odbočení nahoru",
+   "Move turn card down": "Posunout kartu odbočení dolů",
+   "Reset turn card position": "Obnovit polohu karty odbočení"
   }
  },
  {
@@ -304,7 +322,16 @@ module.exports = [
    "Own settings for this driver": "Egne indstillinger for denne fører",
    "Keep HUD map over BMW's pop-ups": "Behold kort i HUD over BMW's pop-ups",
    "Hide HUD map in Sport mode": "Skjul kort i HUD i Sport-tilstand",
-   "Hidden in Sport mode": "Skjult i Sport-tilstand"
+   "Hidden in Sport mode": "Skjult i Sport-tilstand",
+   "Turn card on HUD": "Svinganvisning i HUD",
+   "Turn card size: {0}": "Svinganvisningens størrelse: {0}",
+   "Map height with turn card: {0}": "Kortets højde med svinganvisning: {0}",
+   "Turn card position: {0}": "Svinganvisningens placering: {0}",
+   "Move turn card left": "Flyt svinganvisning til venstre",
+   "Move turn card right": "Flyt svinganvisning til højre",
+   "Move turn card up": "Flyt svinganvisning op",
+   "Move turn card down": "Flyt svinganvisning ned",
+   "Reset turn card position": "Nulstil svinganvisningens placering"
   }
  },
  {
@@ -406,7 +433,16 @@ module.exports = [
    "Own settings for this driver": "Eigene Einstellungen für diesen Fahrer",
    "Keep HUD map over BMW's pop-ups": "Karte im HUD vor BMW-Pop-ups behalten",
    "Hide HUD map in Sport mode": "Karte im HUD im Sport-Modus ausblenden",
-   "Hidden in Sport mode": "Im Sport-Modus ausgeblendet"
+   "Hidden in Sport mode": "Im Sport-Modus ausgeblendet",
+   "Turn card on HUD": "Abbiegekarte im HUD",
+   "Turn card size: {0}": "Größe der Abbiegekarte: {0}",
+   "Map height with turn card: {0}": "Kartenhöhe mit Abbiegekarte: {0}",
+   "Turn card position: {0}": "Position der Abbiegekarte: {0}",
+   "Move turn card left": "Abbiegekarte nach links",
+   "Move turn card right": "Abbiegekarte nach rechts",
+   "Move turn card up": "Abbiegekarte nach oben",
+   "Move turn card down": "Abbiegekarte nach unten",
+   "Reset turn card position": "Position der Abbiegekarte zurücksetzen"
   }
  },
  {
@@ -508,7 +544,16 @@ module.exports = [
    "Own settings for this driver": "Δικές ρυθμίσεις για αυτόν τον οδηγό",
    "Keep HUD map over BMW's pop-ups": "Διατήρηση χάρτη στο HUD πάνω από τα αναδυόμενα της BMW",
    "Hide HUD map in Sport mode": "Απόκρυψη χάρτη στο HUD σε λειτουργία Sport",
-   "Hidden in Sport mode": "Κρυμμένος σε λειτουργία Sport"
+   "Hidden in Sport mode": "Κρυμμένος σε λειτουργία Sport",
+   "Turn card on HUD": "Οδηγίες στροφής στο HUD",
+   "Turn card size: {0}": "Μέγεθος οδηγιών στροφής: {0}",
+   "Map height with turn card: {0}": "Ύψος χάρτη με οδηγίες στροφής: {0}",
+   "Turn card position: {0}": "Θέση οδηγιών στροφής: {0}",
+   "Move turn card left": "Μετακίνηση οδηγιών στροφής αριστερά",
+   "Move turn card right": "Μετακίνηση οδηγιών στροφής δεξιά",
+   "Move turn card up": "Μετακίνηση οδηγιών στροφής πάνω",
+   "Move turn card down": "Μετακίνηση οδηγιών στροφής κάτω",
+   "Reset turn card position": "Επαναφορά θέσης οδηγιών στροφής"
   }
  },
  {
@@ -610,7 +655,16 @@ module.exports = [
    "Own settings for this driver": "Configuración propia para este conductor",
    "Keep HUD map over BMW's pop-ups": "Mantener mapa en el HUD sobre ventanas emergentes de BMW",
    "Hide HUD map in Sport mode": "Ocultar mapa en el HUD en modo Sport",
-   "Hidden in Sport mode": "Oculto en modo Sport"
+   "Hidden in Sport mode": "Oculto en modo Sport",
+   "Turn card on HUD": "Indicación de giro en el HUD",
+   "Turn card size: {0}": "Tamaño de la indicación de giro: {0}",
+   "Map height with turn card: {0}": "Altura del mapa con indicación de giro: {0}",
+   "Turn card position: {0}": "Posición de la indicación de giro: {0}",
+   "Move turn card left": "Mover indicación de giro a la izquierda",
+   "Move turn card right": "Mover indicación de giro a la derecha",
+   "Move turn card up": "Mover indicación de giro arriba",
+   "Move turn card down": "Mover indicación de giro abajo",
+   "Reset turn card position": "Restablecer posición de la indicación de giro"
   }
  },
  {
@@ -712,7 +766,16 @@ module.exports = [
    "Own settings for this driver": "Ajustes propios para este conductor",
    "Keep HUD map over BMW's pop-ups": "Mantener mapa en el HUD sobre ventanas emergentes de BMW",
    "Hide HUD map in Sport mode": "Ocultar mapa en el HUD en modo Sport",
-   "Hidden in Sport mode": "Oculto en modo Sport"
+   "Hidden in Sport mode": "Oculto en modo Sport",
+   "Turn card on HUD": "Indicación de giro en el HUD",
+   "Turn card size: {0}": "Tamaño de la indicación de giro: {0}",
+   "Map height with turn card: {0}": "Altura del mapa con indicación de giro: {0}",
+   "Turn card position: {0}": "Posición de la indicación de giro: {0}",
+   "Move turn card left": "Mover indicación de giro a la izquierda",
+   "Move turn card right": "Mover indicación de giro a la derecha",
+   "Move turn card up": "Mover indicación de giro arriba",
+   "Move turn card down": "Mover indicación de giro abajo",
+   "Reset turn card position": "Restablecer posición de la indicación de giro"
   }
  },
  {
@@ -814,7 +877,16 @@ module.exports = [
    "Own settings for this driver": "Omat asetukset tälle kuljettajalle",
    "Keep HUD map over BMW's pop-ups": "Pidä HUD-kartta BMW:n ponnahdusikkunoiden päällä",
    "Hide HUD map in Sport mode": "Piilota HUD-kartta Sport-tilassa",
-   "Hidden in Sport mode": "Piilotettu Sport-tilassa"
+   "Hidden in Sport mode": "Piilotettu Sport-tilassa",
+   "Turn card on HUD": "Kääntymisohje HUD-näytössä",
+   "Turn card size: {0}": "Kääntymisohjeen koko: {0}",
+   "Map height with turn card: {0}": "Kartan korkeus kääntymisohjeen kanssa: {0}",
+   "Turn card position: {0}": "Kääntymisohjeen sijainti: {0}",
+   "Move turn card left": "Siirrä kääntymisohjetta vasemmalle",
+   "Move turn card right": "Siirrä kääntymisohjetta oikealle",
+   "Move turn card up": "Siirrä kääntymisohjetta ylös",
+   "Move turn card down": "Siirrä kääntymisohjetta alas",
+   "Reset turn card position": "Palauta kääntymisohjeen sijainti"
   }
  },
  {
@@ -916,7 +988,16 @@ module.exports = [
    "Own settings for this driver": "Réglages propres à ce conducteur",
    "Keep HUD map over BMW's pop-ups": "Garder la carte sur le HUD devant les fenêtres contextuelles BMW",
    "Hide HUD map in Sport mode": "Masquer la carte sur le HUD en mode Sport",
-   "Hidden in Sport mode": "Masquée en mode Sport"
+   "Hidden in Sport mode": "Masquée en mode Sport",
+   "Turn card on HUD": "Guidage sur le HUD",
+   "Turn card size: {0}": "Taille du guidage : {0}",
+   "Map height with turn card: {0}": "Hauteur de la carte avec guidage : {0}",
+   "Turn card position: {0}": "Position du guidage : {0}",
+   "Move turn card left": "Déplacer le guidage à gauche",
+   "Move turn card right": "Déplacer le guidage à droite",
+   "Move turn card up": "Déplacer le guidage vers le haut",
+   "Move turn card down": "Déplacer le guidage vers le bas",
+   "Reset turn card position": "Réinitialiser la position du guidage"
   }
  },
  {
@@ -1018,7 +1099,16 @@ module.exports = [
    "Own settings for this driver": "Réglages propres à ce conducteur",
    "Keep HUD map over BMW's pop-ups": "Garder la carte sur le HUD devant les pop-up BMW",
    "Hide HUD map in Sport mode": "Masquer la carte sur le HUD en mode Sport",
-   "Hidden in Sport mode": "Masquée en mode Sport"
+   "Hidden in Sport mode": "Masquée en mode Sport",
+   "Turn card on HUD": "Guidage sur le HUD",
+   "Turn card size: {0}": "Taille du guidage : {0}",
+   "Map height with turn card: {0}": "Hauteur de la carte avec guidage : {0}",
+   "Turn card position: {0}": "Position du guidage : {0}",
+   "Move turn card left": "Déplacer le guidage à gauche",
+   "Move turn card right": "Déplacer le guidage à droite",
+   "Move turn card up": "Déplacer le guidage vers le haut",
+   "Move turn card down": "Déplacer le guidage vers le bas",
+   "Reset turn card position": "Réinitialiser la position du guidage"
   }
  },
  {
@@ -1120,7 +1210,16 @@ module.exports = [
    "Own settings for this driver": "הגדרות נפרדות לנהג זה",
    "Keep HUD map over BMW's pop-ups": "השארת המפה ב-HUD מעל החלונות הקופצים של BMW",
    "Hide HUD map in Sport mode": "הסתרת המפה ב-HUD במצב Sport",
-   "Hidden in Sport mode": "מוסתרת במצב Sport"
+   "Hidden in Sport mode": "מוסתרת במצב Sport",
+   "Turn card on HUD": "כרטיס פניות ב-HUD",
+   "Turn card size: {0}": "גודל כרטיס הפניות: {0}",
+   "Map height with turn card: {0}": "גובה המפה עם כרטיס הפניות: {0}",
+   "Turn card position: {0}": "מיקום כרטיס הפניות: {0}",
+   "Move turn card left": "הזזת כרטיס הפניות שמאלה",
+   "Move turn card right": "הזזת כרטיס הפניות ימינה",
+   "Move turn card up": "הזזת כרטיס הפניות למעלה",
+   "Move turn card down": "הזזת כרטיס הפניות למטה",
+   "Reset turn card position": "איפוס מיקום כרטיס הפניות"
   }
  },
  {
@@ -1222,7 +1321,16 @@ module.exports = [
    "Own settings for this driver": "Saját beállítások ennek a vezetőnek",
    "Keep HUD map over BMW's pop-ups": "Térkép megtartása a HUD-on a BMW felugró ablakai felett",
    "Hide HUD map in Sport mode": "Térkép elrejtése a HUD-on Sport módban",
-   "Hidden in Sport mode": "Elrejtve Sport módban"
+   "Hidden in Sport mode": "Elrejtve Sport módban",
+   "Turn card on HUD": "Navigációs kártya a HUD-on",
+   "Turn card size: {0}": "Navigációs kártya mérete: {0}",
+   "Map height with turn card: {0}": "Térkép magassága navigációs kártyával: {0}",
+   "Turn card position: {0}": "Navigációs kártya pozíciója: {0}",
+   "Move turn card left": "Navigációs kártya mozgatása balra",
+   "Move turn card right": "Navigációs kártya mozgatása jobbra",
+   "Move turn card up": "Navigációs kártya mozgatása fel",
+   "Move turn card down": "Navigációs kártya mozgatása le",
+   "Reset turn card position": "Navigációs kártya pozíciójának visszaállítása"
   }
  },
  {
@@ -1324,7 +1432,16 @@ module.exports = [
    "Own settings for this driver": "Pengaturan sendiri untuk pengemudi ini",
    "Keep HUD map over BMW's pop-ups": "Pertahankan peta di HUD di atas pop-up BMW",
    "Hide HUD map in Sport mode": "Sembunyikan peta di HUD dalam mode Sport",
-   "Hidden in Sport mode": "Disembunyikan dalam mode Sport"
+   "Hidden in Sport mode": "Disembunyikan dalam mode Sport",
+   "Turn card on HUD": "Kartu belok di HUD",
+   "Turn card size: {0}": "Ukuran kartu belok: {0}",
+   "Map height with turn card: {0}": "Tinggi peta dengan kartu belok: {0}",
+   "Turn card position: {0}": "Posisi kartu belok: {0}",
+   "Move turn card left": "Geser kartu belok ke kiri",
+   "Move turn card right": "Geser kartu belok ke kanan",
+   "Move turn card up": "Geser kartu belok ke atas",
+   "Move turn card down": "Geser kartu belok ke bawah",
+   "Reset turn card position": "Atur ulang posisi kartu belok"
   }
  },
  {
@@ -1426,7 +1543,16 @@ module.exports = [
    "Own settings for this driver": "Impostazioni proprie per questo conducente",
    "Keep HUD map over BMW's pop-ups": "Mantieni la mappa sull'HUD sopra i pop-up BMW",
    "Hide HUD map in Sport mode": "Nascondi la mappa sull'HUD in modalità Sport",
-   "Hidden in Sport mode": "Nascosta in modalità Sport"
+   "Hidden in Sport mode": "Nascosta in modalità Sport",
+   "Turn card on HUD": "Indicazioni di svolta sull'HUD",
+   "Turn card size: {0}": "Dimensione delle indicazioni di svolta: {0}",
+   "Map height with turn card: {0}": "Altezza della mappa con indicazioni di svolta: {0}",
+   "Turn card position: {0}": "Posizione delle indicazioni di svolta: {0}",
+   "Move turn card left": "Sposta le indicazioni di svolta a sinistra",
+   "Move turn card right": "Sposta le indicazioni di svolta a destra",
+   "Move turn card up": "Sposta le indicazioni di svolta in alto",
+   "Move turn card down": "Sposta le indicazioni di svolta in basso",
+   "Reset turn card position": "Ripristina la posizione delle indicazioni di svolta"
   }
  },
  {
@@ -1528,7 +1654,16 @@ module.exports = [
    "Own settings for this driver": "このドライバー専用の設定",
    "Keep HUD map over BMW's pop-ups": "HUDの地図をBMWのポップアップより優先",
    "Hide HUD map in Sport mode": "SPORTモードでHUDの地図を非表示",
-   "Hidden in Sport mode": "SPORTモード中は非表示"
+   "Hidden in Sport mode": "SPORTモード中は非表示",
+   "Turn card on HUD": "HUDに進路案内を表示",
+   "Turn card size: {0}": "進路案内のサイズ：{0}",
+   "Map height with turn card: {0}": "進路案内表示時の地図の高さ：{0}",
+   "Turn card position: {0}": "進路案内の位置：{0}",
+   "Move turn card left": "進路案内を左へ移動",
+   "Move turn card right": "進路案内を右へ移動",
+   "Move turn card up": "進路案内を上へ移動",
+   "Move turn card down": "進路案内を下へ移動",
+   "Reset turn card position": "進路案内の位置をリセット"
   }
  },
  {
@@ -1630,7 +1765,16 @@ module.exports = [
    "Own settings for this driver": "이 운전자 전용 설정",
    "Keep HUD map over BMW's pop-ups": "BMW 팝업 위에 HUD 지도 유지",
    "Hide HUD map in Sport mode": "스포츠 모드에서 HUD 지도 숨기기",
-   "Hidden in Sport mode": "스포츠 모드에서 숨김"
+   "Hidden in Sport mode": "스포츠 모드에서 숨김",
+   "Turn card on HUD": "HUD에 방향 안내 카드 표시",
+   "Turn card size: {0}": "방향 안내 카드 크기: {0}",
+   "Map height with turn card: {0}": "방향 안내 카드 표시 시 지도 높이: {0}",
+   "Turn card position: {0}": "방향 안내 카드 위치: {0}",
+   "Move turn card left": "방향 안내 카드를 왼쪽으로 이동",
+   "Move turn card right": "방향 안내 카드를 오른쪽으로 이동",
+   "Move turn card up": "방향 안내 카드를 위로 이동",
+   "Move turn card down": "방향 안내 카드를 아래로 이동",
+   "Reset turn card position": "방향 안내 카드 위치 초기화"
   }
  },
  {
@@ -1732,7 +1876,16 @@ module.exports = [
    "Own settings for this driver": "Egne innstillinger for denne føreren",
    "Keep HUD map over BMW's pop-ups": "Behold kart i HUD over BMWs popup-vinduer",
    "Hide HUD map in Sport mode": "Skjul kart i HUD i Sport-modus",
-   "Hidden in Sport mode": "Skjult i Sport-modus"
+   "Hidden in Sport mode": "Skjult i Sport-modus",
+   "Turn card on HUD": "Svinganvisning i HUD",
+   "Turn card size: {0}": "Svinganvisningens størrelse: {0}",
+   "Map height with turn card: {0}": "Kartets høyde med svinganvisning: {0}",
+   "Turn card position: {0}": "Svinganvisningens plassering: {0}",
+   "Move turn card left": "Flytt svinganvisning til venstre",
+   "Move turn card right": "Flytt svinganvisning til høyre",
+   "Move turn card up": "Flytt svinganvisning opp",
+   "Move turn card down": "Flytt svinganvisning ned",
+   "Reset turn card position": "Tilbakestill svinganvisningens plassering"
   }
  },
  {
@@ -1836,7 +1989,16 @@ module.exports = [
    "Own settings for this driver": "Eigen instellingen voor deze bestuurder",
    "Keep HUD map over BMW's pop-ups": "Kaart in HUD boven BMW-pop-ups houden",
    "Hide HUD map in Sport mode": "Kaart in HUD verbergen in Sport-modus",
-   "Hidden in Sport mode": "Verborgen in Sport-modus"
+   "Hidden in Sport mode": "Verborgen in Sport-modus",
+   "Turn card on HUD": "Afslagkaart in HUD",
+   "Turn card size: {0}": "Grootte van afslagkaart: {0}",
+   "Map height with turn card: {0}": "Kaarthoogte met afslagkaart: {0}",
+   "Turn card position: {0}": "Positie van afslagkaart: {0}",
+   "Move turn card left": "Afslagkaart naar links",
+   "Move turn card right": "Afslagkaart naar rechts",
+   "Move turn card up": "Afslagkaart omhoog",
+   "Move turn card down": "Afslagkaart omlaag",
+   "Reset turn card position": "Positie van afslagkaart herstellen"
   }
  },
  {
@@ -1938,7 +2100,16 @@ module.exports = [
    "Own settings for this driver": "Własne ustawienia dla tego kierowcy",
    "Keep HUD map over BMW's pop-ups": "Zachowaj mapę na HUD nad wyskakującymi oknami BMW",
    "Hide HUD map in Sport mode": "Ukryj mapę na HUD w trybie Sport",
-   "Hidden in Sport mode": "Ukryta w trybie Sport"
+   "Hidden in Sport mode": "Ukryta w trybie Sport",
+   "Turn card on HUD": "Karta manewrów na HUD",
+   "Turn card size: {0}": "Rozmiar karty manewrów: {0}",
+   "Map height with turn card: {0}": "Wysokość mapy z kartą manewrów: {0}",
+   "Turn card position: {0}": "Pozycja karty manewrów: {0}",
+   "Move turn card left": "Przesuń kartę manewrów w lewo",
+   "Move turn card right": "Przesuń kartę manewrów w prawo",
+   "Move turn card up": "Przesuń kartę manewrów w górę",
+   "Move turn card down": "Przesuń kartę manewrów w dół",
+   "Reset turn card position": "Przywróć pozycję karty manewrów"
   }
  },
  {
@@ -2040,7 +2211,16 @@ module.exports = [
    "Own settings for this driver": "Configurações próprias para este motorista",
    "Keep HUD map over BMW's pop-ups": "Manter mapa no HUD sobre pop-ups da BMW",
    "Hide HUD map in Sport mode": "Ocultar mapa no HUD no modo Sport",
-   "Hidden in Sport mode": "Oculto no modo Sport"
+   "Hidden in Sport mode": "Oculto no modo Sport",
+   "Turn card on HUD": "Indicação de conversão no HUD",
+   "Turn card size: {0}": "Tamanho da indicação de conversão: {0}",
+   "Map height with turn card: {0}": "Altura do mapa com indicação de conversão: {0}",
+   "Turn card position: {0}": "Posição da indicação de conversão: {0}",
+   "Move turn card left": "Mover indicação de conversão para a esquerda",
+   "Move turn card right": "Mover indicação de conversão para a direita",
+   "Move turn card up": "Mover indicação de conversão para cima",
+   "Move turn card down": "Mover indicação de conversão para baixo",
+   "Reset turn card position": "Redefinir posição da indicação de conversão"
   }
  },
  {
@@ -2142,7 +2322,16 @@ module.exports = [
    "Own settings for this driver": "Definições próprias para este condutor",
    "Keep HUD map over BMW's pop-ups": "Manter mapa no HUD sobre pop-ups BMW",
    "Hide HUD map in Sport mode": "Ocultar mapa no HUD no modo Sport",
-   "Hidden in Sport mode": "Oculto no modo Sport"
+   "Hidden in Sport mode": "Oculto no modo Sport",
+   "Turn card on HUD": "Indicação de viragem no HUD",
+   "Turn card size: {0}": "Tamanho da indicação de viragem: {0}",
+   "Map height with turn card: {0}": "Altura do mapa com indicação de viragem: {0}",
+   "Turn card position: {0}": "Posição da indicação de viragem: {0}",
+   "Move turn card left": "Mover indicação de viragem para a esquerda",
+   "Move turn card right": "Mover indicação de viragem para a direita",
+   "Move turn card up": "Mover indicação de viragem para cima",
+   "Move turn card down": "Mover indicação de viragem para baixo",
+   "Reset turn card position": "Repor posição da indicação de viragem"
   }
  },
  {
@@ -2244,7 +2433,16 @@ module.exports = [
    "Own settings for this driver": "Setări proprii pentru acest șofer",
    "Keep HUD map over BMW's pop-ups": "Păstrare hartă pe HUD peste ferestrele pop-up BMW",
    "Hide HUD map in Sport mode": "Ascundere hartă pe HUD în modul Sport",
-   "Hidden in Sport mode": "Ascunsă în modul Sport"
+   "Hidden in Sport mode": "Ascunsă în modul Sport",
+   "Turn card on HUD": "Indicații de virare pe HUD",
+   "Turn card size: {0}": "Mărime indicații de virare: {0}",
+   "Map height with turn card: {0}": "Înălțimea hărții cu indicații de virare: {0}",
+   "Turn card position: {0}": "Poziție indicații de virare: {0}",
+   "Move turn card left": "Mută indicațiile de virare la stânga",
+   "Move turn card right": "Mută indicațiile de virare la dreapta",
+   "Move turn card up": "Mută indicațiile de virare în sus",
+   "Move turn card down": "Mută indicațiile de virare în jos",
+   "Reset turn card position": "Resetare poziție indicații de virare"
   }
  },
  {
@@ -2346,7 +2544,16 @@ module.exports = [
    "Own settings for this driver": "Свои настройки для этого водителя",
    "Keep HUD map over BMW's pop-ups": "Оставлять карту на HUD поверх всплывающих окон BMW",
    "Hide HUD map in Sport mode": "Скрывать карту на HUD в режиме Sport",
-   "Hidden in Sport mode": "Скрыта в режиме Sport"
+   "Hidden in Sport mode": "Скрыта в режиме Sport",
+   "Turn card on HUD": "Подсказка поворота на HUD",
+   "Turn card size: {0}": "Размер подсказки поворота: {0}",
+   "Map height with turn card: {0}": "Высота карты с подсказкой поворота: {0}",
+   "Turn card position: {0}": "Положение подсказки поворота: {0}",
+   "Move turn card left": "Сдвинуть подсказку поворота влево",
+   "Move turn card right": "Сдвинуть подсказку поворота вправо",
+   "Move turn card up": "Сдвинуть подсказку поворота вверх",
+   "Move turn card down": "Сдвинуть подсказку поворота вниз",
+   "Reset turn card position": "Сбросить положение подсказки поворота"
   }
  },
  {
@@ -2448,7 +2655,16 @@ module.exports = [
    "Own settings for this driver": "Vlastné nastavenia pre tohto vodiča",
    "Keep HUD map over BMW's pop-ups": "Ponechať mapu na HUD nad kontextovými oknami BMW",
    "Hide HUD map in Sport mode": "Skryť mapu na HUD v režime Sport",
-   "Hidden in Sport mode": "Skryté v režime Sport"
+   "Hidden in Sport mode": "Skryté v režime Sport",
+   "Turn card on HUD": "Navigačné pokyny na HUD",
+   "Turn card size: {0}": "Veľkosť navigačných pokynov: {0}",
+   "Map height with turn card: {0}": "Výška mapy s navigačnými pokynmi: {0}",
+   "Turn card position: {0}": "Poloha navigačných pokynov: {0}",
+   "Move turn card left": "Posunúť navigačné pokyny vľavo",
+   "Move turn card right": "Posunúť navigačné pokyny vpravo",
+   "Move turn card up": "Posunúť navigačné pokyny hore",
+   "Move turn card down": "Posunúť navigačné pokyny dole",
+   "Reset turn card position": "Obnoviť polohu navigačných pokynov"
   }
  },
  {
@@ -2550,7 +2766,16 @@ module.exports = [
    "Own settings for this driver": "Lastne nastavitve za tega voznika",
    "Keep HUD map over BMW's pop-ups": "Ohrani zemljevid na HUD nad pojavnimi okni BMW",
    "Hide HUD map in Sport mode": "Skrij zemljevid na HUD v načinu Sport",
-   "Hidden in Sport mode": "Skrito v načinu Sport"
+   "Hidden in Sport mode": "Skrito v načinu Sport",
+   "Turn card on HUD": "Navodila za zavoj na HUD",
+   "Turn card size: {0}": "Velikost navodil za zavoj: {0}",
+   "Map height with turn card: {0}": "Višina zemljevida z navodili za zavoj: {0}",
+   "Turn card position: {0}": "Položaj navodil za zavoj: {0}",
+   "Move turn card left": "Premakni navodila za zavoj levo",
+   "Move turn card right": "Premakni navodila za zavoj desno",
+   "Move turn card up": "Premakni navodila za zavoj gor",
+   "Move turn card down": "Premakni navodila za zavoj dol",
+   "Reset turn card position": "Ponastavi položaj navodil za zavoj"
   }
  },
  {
@@ -2652,7 +2877,16 @@ module.exports = [
    "Own settings for this driver": "Egna inställningar för den här föraren",
    "Keep HUD map over BMW's pop-ups": "Behåll karta i HUD över BMW:s popup-fönster",
    "Hide HUD map in Sport mode": "Dölj karta i HUD i Sport-läge",
-   "Hidden in Sport mode": "Dold i Sport-läge"
+   "Hidden in Sport mode": "Dold i Sport-läge",
+   "Turn card on HUD": "Svänganvisning i HUD",
+   "Turn card size: {0}": "Svänganvisningens storlek: {0}",
+   "Map height with turn card: {0}": "Kartans höjd med svänganvisning: {0}",
+   "Turn card position: {0}": "Svänganvisningens position: {0}",
+   "Move turn card left": "Flytta svänganvisning åt vänster",
+   "Move turn card right": "Flytta svänganvisning åt höger",
+   "Move turn card up": "Flytta svänganvisning upp",
+   "Move turn card down": "Flytta svänganvisning ned",
+   "Reset turn card position": "Återställ svänganvisningens position"
   }
  },
  {
@@ -2754,7 +2988,16 @@ module.exports = [
    "Own settings for this driver": "การตั้งค่าเฉพาะสำหรับผู้ขับขี่คนนี้",
    "Keep HUD map over BMW's pop-ups": "คงแผนที่บน HUD ไว้เหนือป๊อปอัปของ BMW",
    "Hide HUD map in Sport mode": "ซ่อนแผนที่บน HUD ในโหมด Sport",
-   "Hidden in Sport mode": "ซ่อนในโหมด Sport"
+   "Hidden in Sport mode": "ซ่อนในโหมด Sport",
+   "Turn card on HUD": "การ์ดบอกทางเลี้ยวบน HUD",
+   "Turn card size: {0}": "ขนาดการ์ดบอกทางเลี้ยว: {0}",
+   "Map height with turn card: {0}": "ความสูงของแผนที่เมื่อมีการ์ดบอกทางเลี้ยว: {0}",
+   "Turn card position: {0}": "ตำแหน่งการ์ดบอกทางเลี้ยว: {0}",
+   "Move turn card left": "เลื่อนการ์ดบอกทางเลี้ยวไปทางซ้าย",
+   "Move turn card right": "เลื่อนการ์ดบอกทางเลี้ยวไปทางขวา",
+   "Move turn card up": "เลื่อนการ์ดบอกทางเลี้ยวขึ้น",
+   "Move turn card down": "เลื่อนการ์ดบอกทางเลี้ยวลง",
+   "Reset turn card position": "รีเซ็ตตำแหน่งการ์ดบอกทางเลี้ยว"
   }
  },
  {
@@ -2856,7 +3099,16 @@ module.exports = [
    "Own settings for this driver": "Bu sürücüye özel ayarlar",
    "Keep HUD map over BMW's pop-ups": "HUD haritasını BMW açılır pencerelerinin üstünde tut",
    "Hide HUD map in Sport mode": "HUD haritasını Sport modunda gizle",
-   "Hidden in Sport mode": "Sport modunda gizli"
+   "Hidden in Sport mode": "Sport modunda gizli",
+   "Turn card on HUD": "HUD'da dönüş talimatları",
+   "Turn card size: {0}": "Dönüş talimatlarının boyutu: {0}",
+   "Map height with turn card: {0}": "Dönüş talimatlarıyla harita yüksekliği: {0}",
+   "Turn card position: {0}": "Dönüş talimatlarının konumu: {0}",
+   "Move turn card left": "Dönüş talimatlarını sola taşı",
+   "Move turn card right": "Dönüş talimatlarını sağa taşı",
+   "Move turn card up": "Dönüş talimatlarını yukarı taşı",
+   "Move turn card down": "Dönüş talimatlarını aşağı taşı",
+   "Reset turn card position": "Dönüş talimatlarının konumunu sıfırla"
   }
  },
  {
@@ -2958,7 +3210,16 @@ module.exports = [
    "Own settings for this driver": "Власні налаштування для цього водія",
    "Keep HUD map over BMW's pop-ups": "Залишати карту на HUD поверх спливних вікон BMW",
    "Hide HUD map in Sport mode": "Приховувати карту на HUD у режимі Sport",
-   "Hidden in Sport mode": "Прихована в режимі Sport"
+   "Hidden in Sport mode": "Прихована в режимі Sport",
+   "Turn card on HUD": "Підказка повороту на HUD",
+   "Turn card size: {0}": "Розмір підказки повороту: {0}",
+   "Map height with turn card: {0}": "Висота карти з підказкою повороту: {0}",
+   "Turn card position: {0}": "Положення підказки повороту: {0}",
+   "Move turn card left": "Посунути підказку повороту ліворуч",
+   "Move turn card right": "Посунути підказку повороту праворуч",
+   "Move turn card up": "Посунути підказку повороту вгору",
+   "Move turn card down": "Посунути підказку повороту вниз",
+   "Reset turn card position": "Скинути положення підказки повороту"
   }
  },
  {
@@ -3060,7 +3321,16 @@ module.exports = [
    "Own settings for this driver": "Cài đặt riêng cho người lái này",
    "Keep HUD map over BMW's pop-ups": "Giữ bản đồ trên HUD phía trên cửa sổ bật lên của BMW",
    "Hide HUD map in Sport mode": "Ẩn bản đồ trên HUD ở chế độ Sport",
-   "Hidden in Sport mode": "Đã ẩn ở chế độ Sport"
+   "Hidden in Sport mode": "Đã ẩn ở chế độ Sport",
+   "Turn card on HUD": "Thẻ chỉ hướng trên HUD",
+   "Turn card size: {0}": "Kích thước thẻ chỉ hướng: {0}",
+   "Map height with turn card: {0}": "Chiều cao bản đồ khi có thẻ chỉ hướng: {0}",
+   "Turn card position: {0}": "Vị trí thẻ chỉ hướng: {0}",
+   "Move turn card left": "Dời thẻ chỉ hướng sang trái",
+   "Move turn card right": "Dời thẻ chỉ hướng sang phải",
+   "Move turn card up": "Dời thẻ chỉ hướng lên",
+   "Move turn card down": "Dời thẻ chỉ hướng xuống",
+   "Reset turn card position": "Đặt lại vị trí thẻ chỉ hướng"
   }
  },
  {
@@ -3164,7 +3434,16 @@ module.exports = [
    "Own settings for this driver": "此驾驶员的专属设置",
    "Keep HUD map over BMW's pop-ups": "HUD 地图保持在 BMW 弹窗之上",
    "Hide HUD map in Sport mode": "运动模式下隐藏 HUD 地图",
-   "Hidden in Sport mode": "运动模式下已隐藏"
+   "Hidden in Sport mode": "运动模式下已隐藏",
+   "Turn card on HUD": "HUD 转向卡片",
+   "Turn card size: {0}": "转向卡片大小：{0}",
+   "Map height with turn card: {0}": "显示转向卡片时的地图高度：{0}",
+   "Turn card position: {0}": "转向卡片位置：{0}",
+   "Move turn card left": "转向卡片左移",
+   "Move turn card right": "转向卡片右移",
+   "Move turn card up": "转向卡片上移",
+   "Move turn card down": "转向卡片下移",
+   "Reset turn card position": "重置转向卡片位置"
   }
  },
  {
@@ -3268,7 +3547,16 @@ module.exports = [
    "Own settings for this driver": "此駕駛的專屬設定",
    "Keep HUD map over BMW's pop-ups": "HUD 地圖保持在 BMW 彈出視窗之上",
    "Hide HUD map in Sport mode": "運動模式下隱藏 HUD 地圖",
-   "Hidden in Sport mode": "運動模式下已隱藏"
+   "Hidden in Sport mode": "運動模式下已隱藏",
+   "Turn card on HUD": "HUD 轉向卡片",
+   "Turn card size: {0}": "轉向卡片大小：{0}",
+   "Map height with turn card: {0}": "顯示轉向卡片時的地圖高度：{0}",
+   "Turn card position: {0}": "轉向卡片位置：{0}",
+   "Move turn card left": "轉向卡片左移",
+   "Move turn card right": "轉向卡片右移",
+   "Move turn card up": "轉向卡片上移",
+   "Move turn card down": "轉向卡片下移",
+   "Reset turn card position": "重設轉向卡片位置"
   }
  }
 ];

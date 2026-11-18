@@ -96,6 +96,15 @@
     "Own settings for this driver": "Impostazioni proprie per questo conducente",
     "Keep HUD map over BMW's pop-ups": "Mantieni la mappa sull'HUD sopra i pop-up BMW",
     "Hide HUD map in Sport mode": "Nascondi la mappa sull'HUD in modalità Sport",
-    "Hidden in Sport mode": "Nascosta in modalità Sport"
+    "Hidden in Sport mode": "Nascosta in modalità Sport",
+    "Turn card on HUD": "Indicazioni di svolta sull'HUD",
+    "Turn card size: {0}": "Dimensione delle indicazioni di svolta: {0}",
+    "Map height with turn card: {0}": "Altezza della mappa con indicazioni di svolta: {0}",
+    "Turn card position: {0}": "Posizione delle indicazioni di svolta: {0}",
+    "Move turn card left": "Sposta le indicazioni di svolta a sinistra",
+    "Move turn card right": "Sposta le indicazioni di svolta a destra",
+    "Move turn card up": "Sposta le indicazioni di svolta in alto",
+    "Move turn card down": "Sposta le indicazioni di svolta in basso",
+    "Reset turn card position": "Ripristina la posizione delle indicazioni di svolta"
   }
 }

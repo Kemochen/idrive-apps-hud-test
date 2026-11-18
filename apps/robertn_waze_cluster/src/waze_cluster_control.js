@@ -14,11 +14,17 @@
  *     app  -> tool  {"cmd":"guide","hide":0|1}  BMW's turn box hidden while the map shows, or not
  *                   {"cmd":"cluster"|"hud","on":"0"|"1"}, {"cmd":"hud","hud_width_pct"|"hud_x","hud_y"|"hud_keep_shown"|"hud_hide_sport"}
  *                    the map's settings (patchd saves them)
+ *                   {"cmd":"hud","hud_card":"0"|"1"|"hud_card_pct"|"hud_card_x","hud_card_y"}  the HUD's turn card: on or
+ *                    off, its size (50-150 %), where it is from its place by the map (patchd saves them)
+ *                   {"cmd":"hud","hud_card_crop":"0".."40"}  the HUD map that much shorter while the card is on,
+ *                    cut at its top and bottom (patchd saves it)
+ *                   {"cmd":"turn","arrow","exit","dist","road","lanes"}  the next turn for the card (turn_guide.js)
  *                   {"cmd":"drive","sport":"0"|"1"}  the car in a Sport mode or not (drive_mode.js)
  *     tool -> app   {"ev":"status","state":"idle"|"starting"|"showing"|"frozen"|"error"|"unsupported",
  *                    "target","page","reason","hide_bmw_guidance","guide_disabled","cluster","hud",
- *                    "hud_state","hud_width_pct","hud_x","hud_y","hud_keep_shown","hud_hide_sport"}
- *                   (hud_keep_shown and hud_hide_sport 0|1, each absent from a tool before it;
+ *                    "hud_state","hud_width_pct","hud_x","hud_y","hud_keep_shown","hud_hide_sport",
+ *                    "hud_card","hud_card_pct","hud_card_x","hud_card_y","hud_card_crop"}
+ *                   (hud_keep_shown, hud_hide_sport and hud_card 0|1, each absent from a tool before it;
  *                    hud_state "sport": the HUD map hidden while the car is in a Sport mode)
  *                   (unsupported: the head unit refuses the tool, which stays idle)
  *                   (idle's reason: why a live stream shows no map; hide_bmw_guidance 0|1,
@@ -115,6 +121,23 @@ const SHOWN_ON = ['cluster', 'hud', 'both', 'off'];
  * HUD_ASKED_MS has passed, the render reconnects or patchd fails to save the size; then the render's own. */
 const HUD_MOVE_PX = 10, HUD_MOVE_MAX = 400, HUD_ASKED_MS = 300;
 const MOVES = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
+/* The turn card's size: CARD_STEP_PCT steps from CARD_MIN_PCT to CARD_MAX_PCT of the drawn one, CARD_SIZE_STEPS of them. */
+const CARD_MIN_PCT = 50, CARD_MAX_PCT = 150, CARD_STEP_PCT = 10;
+const CARD_SIZE_STEPS = (CARD_MAX_PCT - CARD_MIN_PCT) / CARD_STEP_PCT;
+/* The HUD map's height while the card is on: cut by 0 to CARD_CROP_MAX %, CARD_CROP_STEP a step; the slider's
+ * CARD_CROP_STEPS is the whole height, 0 the most cut. */
+const CARD_CROP_MAX = 40, CARD_CROP_STEP = 5;
+const CARD_CROP_STEPS = CARD_CROP_MAX / CARD_CROP_STEP;
+
+/* An offset in HUD pixels as words ("20 px right, 10 px up"), or home (the word for none). */
+function offsetText(x, y, home) {
+    if (!x && !y) {
+        return home;
+    }
+    const h = x > 0 ? t('{0} px right', x) : x < 0 ? t('{0} px left', -x) : '';
+    const v = y > 0 ? t('{0} px down', y) : y < 0 ? t('{0} px up', -y) : '';
+    return h && v ? t('{0}, {1}', h, v) : h || v;
+}
 
 /* One newline-delimited-JSON stream socket, reconnecting while open.
  * link: 'down' | 'up' | 'absent' (ENOENT) | 'refused' (ECONNREFUSED) | 'failed'.
@@ -156,6 +179,11 @@ class LineSocket extends EventEmitter {
 
     connected() {
         return this.link === 'up';
+    }
+
+    /* Open: connected, or connecting again. */
+    isOpen() {
+        return this._open;
     }
 
     send(obj) {
@@ -335,6 +363,11 @@ class WazeClusterControl extends EventEmitter {
         this.emit('change');
     }
 
+    /* Open: the render's control socket is the page's to own. */
+    isOpen() {
+        return this.render.isOpen();
+    }
+
     connectedRender() {
         return this.render.connected();
     }
@@ -505,6 +538,12 @@ class WazeClusterControl extends EventEmitter {
     _clearAskedHud() {
         clearTimeout(this._askedHudTimer);
         this._askedHud = null;
+        clearTimeout(this._askedCardTimer);
+        this._askedCard = null;
+        clearTimeout(this._askedCardPosTimer);
+        this._askedCardPos = null;
+        clearTimeout(this._askedCropTimer);
+        this._askedCrop = null;
     }
 
     /* ---- where the HUD map is: moved from its centre, in HUD pixels ---- */
@@ -586,16 +625,145 @@ class WazeClusterControl extends EventEmitter {
 
     hudPositionText() {
         const at = this.hudOffset();
-        if (!at) {
-            return t('Position: {0}', '—');
+        return t('Position: {0}', at ? offsetText(at[0], at[1], t('Centre')) : '—');
+    }
+
+    /* ---- the turn card on the HUD ---- */
+    /* True while the turn card is on, false while it is off; null while
+     * the render has not said, or has none. */
+    hudCard() {
+        const v = this.renderStatus && this.renderStatus.hud_card;
+        return v === 0 || v === 1 ? v === 1 : null;
+    }
+    /* Ticked and unticked as the HUD map's size and place change: only with the map on the HUD. */
+    canToggleHudCard() {
+        return this.canChangeHudSize() && this.hudCard() !== null;
+    }
+    /* Flips it: the render at once, patchd saves it; the render's next status shows it. */
+    toggleHudCard() {
+        if (this.canToggleHudCard()) {
+            const on = !this.hudCard();
+            this.render.send({ cmd: 'hud', hud_card: on ? '1' : '0' });
+            this.patch.send({ cmd: 'hud-card', on: on ? 1 : 0 });
         }
-        const [x, y] = at;
-        if (!x && !y) {
-            return t('Position: {0}', t('Centre'));
+    }
+    /* Its size and place change only while it is on. */
+    canChangeHudCard() {
+        return this.canToggleHudCard() && this.hudCard() === true;
+    }
+    hudCardPct() {
+        if (this._askedCard != null) {
+            return this._askedCard;
         }
-        const h = x > 0 ? t('{0} px right', x) : x < 0 ? t('{0} px left', -x) : '';
-        const v = y > 0 ? t('{0} px down', y) : y < 0 ? t('{0} px up', -y) : '';
-        return t('Position: {0}', h && v ? t('{0}, {1}', h, v) : h || v);
+        const v = this.renderStatus && this.renderStatus.hud_card_pct;
+        return this.hudCard() !== null && typeof v === 'number' ? v : null;
+    }
+    hudCardSizeText() {
+        const pct = this.hudCardPct();
+        return t('Turn card size: {0}', pct == null ? '—' : t('{0} %', pct));
+    }
+    /* The size as a slider position, 0 (CARD_MIN_PCT) to CARD_SIZE_STEPS
+     * (CARD_MAX_PCT); null while the render has not said. */
+    hudCardSizeStep() {
+        const pct = this.hudCardPct();
+        return pct == null ? null : Math.round((Math.max(CARD_MIN_PCT, Math.min(CARD_MAX_PCT, pct)) - CARD_MIN_PCT) / CARD_STEP_PCT);
+    }
+    /* The card at a slider position: the render at once, patchd saves it. */
+    setHudCardSizeStep(step) {
+        if (!Number.isInteger(step) || step < 0 || step > CARD_SIZE_STEPS || !this.canChangeHudCard() || step === this.hudCardSizeStep()) {
+            return;
+        }
+        const pct = CARD_MIN_PCT + step * CARD_STEP_PCT;
+        this._askedCard = pct;
+        clearTimeout(this._askedCardTimer);
+        this._askedCardTimer = setTimeout(() => {
+            this._askedCard = null;
+            this.emit('change');
+        }, HUD_ASKED_MS);
+        this.render.send({ cmd: 'hud', hud_card_pct: String(pct) });
+        this.patch.send({ cmd: 'hud-card-size', hud_card_pct: pct });
+        this.emit('change');
+    }
+    /* How much of the HUD map's height is cut while the card is on, 0 to
+     * CARD_CROP_MAX %; null while the render has not said, or has none. */
+    hudCardCrop() {
+        if (this._askedCrop != null) {
+            return this._askedCrop;
+        }
+        const v = this.renderStatus && this.renderStatus.hud_card_crop;
+        return this.hudCard() !== null && typeof v === 'number' ? v : null;
+    }
+    /* Changes as the card's size does, on a render that has it. */
+    canChangeHudCardCrop() {
+        return this.canChangeHudCard() && this.hudCardCrop() !== null;
+    }
+    /* The height left, as the HUD's Size shows its width. */
+    hudCardCropText() {
+        const crop = this.hudCardCrop();
+        return t('Map height with turn card: {0}', crop == null ? '—' : t('{0} %', 100 - crop));
+    }
+    /* The height as a slider position, CARD_CROP_STEPS (no cut) to 0 (CARD_CROP_MAX cut); null while the render has not said. */
+    hudCardCropStep() {
+        const crop = this.hudCardCrop();
+        return crop == null ? null : Math.round((CARD_CROP_MAX - Math.max(0, Math.min(CARD_CROP_MAX, crop))) / CARD_CROP_STEP);
+    }
+    /* The height at a slider position: the render at once, patchd saves it. */
+    setHudCardCropStep(step) {
+        if (!Number.isInteger(step) || step < 0 || step > CARD_CROP_STEPS || !this.canChangeHudCardCrop() || step === this.hudCardCropStep()) {
+            return;
+        }
+        const crop = CARD_CROP_MAX - step * CARD_CROP_STEP;
+        this._askedCrop = crop;
+        clearTimeout(this._askedCropTimer);
+        this._askedCropTimer = setTimeout(() => {
+            this._askedCrop = null;
+            this.emit('change');
+        }, HUD_ASKED_MS);
+        this.render.send({ cmd: 'hud', hud_card_crop: String(crop) });
+        this.patch.send({ cmd: 'hud-card-crop', hud_card_crop: crop });
+        this.emit('change');
+    }
+    /* Where it is: moved from its place by the map, in HUD pixels. */
+    hudCardOffset() {
+        if (this._askedCardPos) {
+            return this._askedCardPos;
+        }
+        const s = this.renderStatus;
+        return this.hudCard() !== null && typeof s.hud_card_x === 'number' && typeof s.hud_card_y === 'number' ? [s.hud_card_x, s.hud_card_y] : null;
+    }
+    /* Moves it a step (left / right / up / down): the render moves it at once, patchd saves it. */
+    moveHudCard(dir) {
+        const d = MOVES[dir];
+        const at = this.hudCardOffset();
+        if (!d || !at || !this.canChangeHudCard()) {
+            return;
+        }
+        const clamp = (v) => Math.max(-HUD_MOVE_MAX, Math.min(HUD_MOVE_MAX, v));
+        this._setHudCardPos(clamp(at[0] + d[0] * HUD_MOVE_PX), clamp(at[1] + d[1] * HUD_MOVE_PX));
+    }
+    canResetHudCard() {
+        const at = this.hudCardOffset();
+        return this.canChangeHudCard() && !!at && (at[0] !== 0 || at[1] !== 0);
+    }
+    resetHudCard() {
+        if (this.canResetHudCard()) {
+            this._setHudCardPos(0, 0);
+        }
+    }
+    _setHudCardPos(x, y) {
+        this._askedCardPos = [x, y];
+        clearTimeout(this._askedCardPosTimer);
+        this._askedCardPosTimer = setTimeout(() => {
+            this._askedCardPos = null;
+            this.emit('change');
+        }, HUD_ASKED_MS);
+        this.render.send({ cmd: 'hud', hud_card_x: String(x), hud_card_y: String(y) });
+        this.patch.send({ cmd: 'hud-card-pos', hud_card_x: x, hud_card_y: y });
+        this.emit('change');
+    }
+    hudCardPositionText() {
+        const at = this.hudCardOffset();
+        return t('Turn card position: {0}', at ? offsetText(at[0], at[1], t('Standard')) : '—');
     }
 
     /* CarPlay's Patch button is offered for an original (never patched, or reverted), an
@@ -1065,6 +1233,17 @@ class WazeClusterControl extends EventEmitter {
             if (this._askedPos && msg.hud_x === this._askedPos[0] && msg.hud_y === this._askedPos[1]) {
                 this._askedPos = null;
             }
+            if (this._askedCard != null && msg.hud_card_pct === this._askedCard) {
+                clearTimeout(this._askedCardTimer);
+                this._askedCard = null;
+            }
+            if (this._askedCardPos && msg.hud_card_x === this._askedCardPos[0] && msg.hud_card_y === this._askedCardPos[1]) {
+                this._askedCardPos = null;
+            }
+            if (this._askedCrop != null && msg.hud_card_crop === this._askedCrop) {
+                clearTimeout(this._askedCropTimer);
+                this._askedCrop = null;
+            }
             this.emit('change');
         }
     }
@@ -1082,7 +1261,7 @@ class WazeClusterControl extends EventEmitter {
             this._noteCardAsked(msg);
             this._wake();
             this.emit('change');
-        } else if (/^(cluster|hud|hud-size|hud-pos|hud-keep-shown|hud-hide-sport)-reply$/.test(msg.ev)) {
+        } else if (/^(cluster|hud|hud-size|hud-pos|hud-keep-shown|hud-hide-sport|hud-card|hud-card-size|hud-card-pos|hud-card-crop)-reply$/.test(msg.ev)) {
             if (!msg.ok) {
                 this._log.info(`patchd did not save the setting: ${msg.reason || 'refused'}`);
             }
@@ -1107,5 +1286,5 @@ class WazeClusterControl extends EventEmitter {
 module.exports = {
     WazeClusterControl, LineSocket,
     RENDER_PATH, PATCH_PATH, PENDING_PATH, AA_PENDING_PATH, BOOT_ID_PATH,
-    SIZE, SAFE, ZOOM_STEP, RESTART_FAILED, SHOWN_ON, HUD_SIZE_STEPS
+    SIZE, SAFE, ZOOM_STEP, RESTART_FAILED, SHOWN_ON, HUD_SIZE_STEPS, CARD_SIZE_STEPS, CARD_CROP_STEPS
 };

@@ -96,6 +96,15 @@
     "Own settings for this driver": "הגדרות נפרדות לנהג זה",
     "Keep HUD map over BMW's pop-ups": "השארת המפה ב-HUD מעל החלונות הקופצים של BMW",
     "Hide HUD map in Sport mode": "הסתרת המפה ב-HUD במצב Sport",
-    "Hidden in Sport mode": "מוסתרת במצב Sport"
+    "Hidden in Sport mode": "מוסתרת במצב Sport",
+    "Turn card on HUD": "כרטיס פניות ב-HUD",
+    "Turn card size: {0}": "גודל כרטיס הפניות: {0}",
+    "Map height with turn card: {0}": "גובה המפה עם כרטיס הפניות: {0}",
+    "Turn card position: {0}": "מיקום כרטיס הפניות: {0}",
+    "Move turn card left": "הזזת כרטיס הפניות שמאלה",
+    "Move turn card right": "הזזת כרטיס הפניות ימינה",
+    "Move turn card up": "הזזת כרטיס הפניות למעלה",
+    "Move turn card down": "הזזת כרטיס הפניות למטה",
+    "Reset turn card position": "איפוס מיקום כרטיס הפניות"
   }
 }

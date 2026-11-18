@@ -96,6 +96,15 @@
     "Own settings for this driver": "이 운전자 전용 설정",
     "Keep HUD map over BMW's pop-ups": "BMW 팝업 위에 HUD 지도 유지",
     "Hide HUD map in Sport mode": "스포츠 모드에서 HUD 지도 숨기기",
-    "Hidden in Sport mode": "스포츠 모드에서 숨김"
+    "Hidden in Sport mode": "스포츠 모드에서 숨김",
+    "Turn card on HUD": "HUD에 방향 안내 카드 표시",
+    "Turn card size: {0}": "방향 안내 카드 크기: {0}",
+    "Map height with turn card: {0}": "방향 안내 카드 표시 시 지도 높이: {0}",
+    "Turn card position: {0}": "방향 안내 카드 위치: {0}",
+    "Move turn card left": "방향 안내 카드를 왼쪽으로 이동",
+    "Move turn card right": "방향 안내 카드를 오른쪽으로 이동",
+    "Move turn card up": "방향 안내 카드를 위로 이동",
+    "Move turn card down": "방향 안내 카드를 아래로 이동",
+    "Reset turn card position": "방향 안내 카드 위치 초기화"
   }
 }

@@ -96,6 +96,15 @@
     "Own settings for this driver": "Vlastní nastavení pro tohoto řidiče",
     "Keep HUD map over BMW's pop-ups": "Ponechat mapu na HUD přes vyskakovací okna BMW",
     "Hide HUD map in Sport mode": "Skrýt mapu na HUD v režimu Sport",
-    "Hidden in Sport mode": "Skryto v režimu Sport"
+    "Hidden in Sport mode": "Skryto v režimu Sport",
+    "Turn card on HUD": "Karta odbočení na HUD",
+    "Turn card size: {0}": "Velikost karty odbočení: {0}",
+    "Map height with turn card: {0}": "Výška mapy s kartou odbočení: {0}",
+    "Turn card position: {0}": "Poloha karty odbočení: {0}",
+    "Move turn card left": "Posunout kartu odbočení vlevo",
+    "Move turn card right": "Posunout kartu odbočení vpravo",
+    "Move turn card up": "Posunout kartu odbočení nahoru",
+    "Move turn card down": "Posunout kartu odbočení dolů",
+    "Reset turn card position": "Obnovit polohu karty odbočení"
   }
 }
