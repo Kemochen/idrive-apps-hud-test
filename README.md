@@ -3,6 +3,44 @@
 Apps for the iDrive 7 head unit of a BMW, installed from the
 [mgu Store](https://github.com/robertnisipeanu/mgu-store).
 
+## HUD guidance experiment
+
+This repository builds on Robert Nisipeanu's Maps on Cluster. The starting
+point already displayed phone navigation maps on the HUD and included
+minakoto00's HUD Turn Card prototype, with maneuver arrows, distance, road
+names and lane guidance. [Upstream project](https://github.com/robertnisipeanu/idrive-apps) ·
+[Pinned Turn Card commit](https://github.com/minakoto00/idrive-apps/commit/79a4f201df874897ee1efd51dccc686ef9ad274d)
+
+### What this experiment adds
+
+- **Projected-route checks.** The turn card requires an active CarPlay or
+  Android Auto route and live map video. It clears expired turns and
+  discards guidance that crosses a disconnect or reconnect.
+- **Lane handling.** The card shows up to six lanes and highlights
+  recommendations reported by BMW's navigation service. When BMW recommends
+  a lane without identifying a single direction, a white marker highlights
+  the lane. Missing or unreliable lane data clears the row. A previous
+  maneuver's lane row stays hidden until the service updates or clears it.
+- **Read-only diagnostics.** The optional `nav_diagnostics` setting logs the
+  projected-route status, decoded maneuver and distance, and separate
+  samples from BMW's guidance and projection lane interfaces. Entries
+  include UTC observation times and omit coordinates. The log uses the
+  navigation protocol as the source label, so Apple Maps and Google Maps
+  comparison runs need to be labeled separately. [App and diagnostic settings](apps/robertn_waze_cluster/README.md)
+- **Tests and packaging.** Host tests cover maneuver and lane decoding,
+  missing data, route cancellation, and reconnects. The release branch
+  records the matched app and native service versions used for the
+  reproducible MGU Store USB builds. [Experimental release branch](https://github.com/Kemochen/idrive-apps-hud-test/tree/experimental/hud-carplay-release)
+
+### Vehicle validation
+
+The app, native map service, renderer and release suites passed locally.
+Google Maps lane availability on the BMW G05, windshield readability,
+and the changeover from an existing stable installation still need
+real-car verification. For testing, use the app and native service from
+the same experimental build and have the matching stable rollback
+packages available.
+
 ## Maps on cluster
 
 Shows your phone's navigation map on the instrument cluster: CarPlay (Waze,
@@ -11,7 +49,7 @@ on the head-up display (experimental).
 
 ![The map on the cluster](docs/hud/cluster-map.jpg)
 
-**Install:** in the Store, install **Maps on cluster** from the
+**Install the upstream stable version:** in the Store, install **Maps on cluster** from the
 `robertnisipeanu/idrive-apps` source (add the source if your Store doesn't
 list it). Restart the head unit when the Store asks, and
 in the car's settings set **Instrument cluster > Central display area** to
