@@ -1,7 +1,7 @@
 {
   "name": "robertn_waze_cluster",
-  "version": "0.6.12",
-  "description": "Shows the CarPlay or Android Auto map on the instrument cluster, and on the HUD if you choose. On supported cars it turns on by itself after you install it and restart the head unit.",
+  "version": "0.6.26112201",
+  "description": "Experimental HUD guidance build. Shows the CarPlay or Android Auto map on the instrument cluster, and on the HUD if you choose. On supported cars it turns on by itself after you install it and restart the head unit.",
   "private": false,
   "main": "javascript/runner.js",
   "oapAppSettings": {
