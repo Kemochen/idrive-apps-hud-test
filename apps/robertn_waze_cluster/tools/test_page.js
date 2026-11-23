@@ -279,6 +279,10 @@ const someipBuilders = {
         init: () => Promise.resolve(),
         waitUntilAvailable: () => Promise.resolve(),
         _someIpProxy: { callMethod: () => { guidanceCalls++; return Promise.resolve(guidanceReply()); } }
+    } : iface === 'de.bmw.infotainment.a4a.carplay.CarPlayManager' ? {
+        init: () => Promise.resolve(),
+        waitUntilAvailable: () => Promise.resolve(),
+        projectedGuidanceActive: { getValue: () => Promise.resolve(turnDirection !== null) }
     } : iface === 'de.bmw.infotainment.navigation.guiding.Guidance' ? {
         init: () => Promise.resolve(),
         waitUntilAvailable: () => Promise.resolve(),
