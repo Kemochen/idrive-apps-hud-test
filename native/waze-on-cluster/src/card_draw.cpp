@@ -341,6 +341,14 @@ void draw_card_lanes(const std::string &lanes, float scale, unsigned w, unsigned
         const card::Pick icon = card::lane_icon(items[i]);
         if (icon.icon)
             paint_icon(&c, icon, x0 + line / 2 + i * cell + (cell - size) / 2, top, size, kLaneGrey);
+        const auto &item = items[i];
+        if (icon.icon && item.size() >= 2 && item.compare(item.size() - 2, 2, "+!") == 0) {
+            const float x = x0 + line / 2 + (i + 0.5f) * cell;
+            const float y = h - 3 * scale;
+            card::Shape marker;
+            marker.lines.push_back(card::Line{{{x - cell / 5, y}, {x + cell / 5, y}}, 3 * scale, true, false});
+            paint_shape(&c, marker, (int)std::floor(x - cell / 2), 0, (int)std::ceil(x + cell / 2), (int)h, kWhite, kWhite);
+        }
     }
 }
 

@@ -721,6 +721,11 @@ static void hud_turn_card()
     pump(300, nullptr);
     c = cards();
     ok("the stream not live: the card hidden with the map", c.size() == 2 && !c[0]->params.visible && !c[1]->params.visible);
+    feeds.set_turn(right, b.now);
+    feeds.set_stream(true, false, Picture::Shown);
+    pump(1500, &f2);
+    ok("reconnect: a turn from before or during disconnect is absent",
+       drawn(row(Turn(), 1.0f, 480, 44)) && !drawn(row(right, 1.0f, 480, 44)));
     feeds.set_stream(true, false, Picture::Shown);
     feeds.set_turn(nearer, b.now);
     pump(1500, &f2);
@@ -824,6 +829,7 @@ static void hud_card_hosted()
     right.dist = "450 m";
     right.lanes = "s*,r";
     feeds.set_card(c);
+    feeds.set_stream(true, false, Picture::Shown);
     feeds.set_turn(right, b.now);
     pump(2500, &f1);
     ok("hosted card: on its own HUD first, the map cut to 480x168 and the card beside it",

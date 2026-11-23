@@ -151,6 +151,8 @@ void MapFeeds::set_card(const CardConfig &c)
 
 void MapFeeds::set_turn(const Turn &t, int64_t now_ms)
 {
+    if (!live_ && !t.empty())
+        return;
     turn_ = t;
     turn_at_ms_ = now_ms;
     if (hud_)
@@ -239,6 +241,8 @@ void MapFeeds::repeat(uint64_t id, int64_t now_ms)
 
 void MapFeeds::set_stream(bool live, bool frozen, Picture picture)
 {
+    if (!live && !turn_.empty())
+        set_turn(Turn(), 0);
     live_ = live;
     frozen_ = frozen;
     picture_ = picture;

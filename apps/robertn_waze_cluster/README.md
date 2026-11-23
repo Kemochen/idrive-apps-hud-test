@@ -81,11 +81,12 @@ The app is in the head unit's display language.
   map sits on the HUD.
 - **Turn card on HUD:** ticked, the next turn of your route is drawn beside
   the HUD map: the street and, at the right, the arrow and the distance in
-  a row over the map, and the lanes under the map's right end. It works
-  with navigation apps that give the car their turns: Apple Maps does,
-  Google Maps is reported to, Waze does not. Experimental: not yet
-  confirmed on a car. Unticked (the default), nothing is drawn. You can
-  change it only while **Show on** has the HUD.
+  a row over the map, and the lanes under the map's right end. Requires a
+  live projection and an active projected route reported by the head unit.
+  The lane row uses BMW's structured guidance, when available. Apple Maps
+  has supplied that data on a G21. Google Maps lane availability on the
+  G05 is unverified. The card is off by default and can be changed while
+  **Show on** includes the HUD.
 - **Turn card size**, **Move turn card left / right / up / down** and
   **Reset turn card position:** how large the card is and where it sits.
   Use them to keep it clear of the map and of the car's own speed display.
@@ -93,6 +94,14 @@ The app is in the head unit's display language.
   shorter, cut equally at its top and bottom, to leave room for the street
   row above it and the lanes below it. 60 % to 100 % of its height, 80 % by
   default.
+
+To compare native navigation, Apple Maps, and Google Maps, set
+`nav_diagnostics = 1` in the native service's local configuration and
+restart that service while parked. **Save logs** includes UTC samples of
+the active provider, the decoded turn, and both structured lane sources
+even when the card is off. The log includes available street or exit text
+and omits coordinates. Set the value to `0` or remove it and restart to
+stop sampling. Compare the log against the center display by observation.
 
 **CarPlay** and **Android Auto**
 

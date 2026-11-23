@@ -217,13 +217,20 @@ check('a lane shows all its arrows, each once, * on the one to take; every direc
     /* straight or right, take right: both arrows, the right one marked */
     assert.strictEqual(lanesOf(lanes([lane('RIGHT', ['STRAIGHT_ON'])])), 'r*+s');
     assert.strictEqual(lanesOf(lanes([lane('NONE', ['STRAIGHT_ON', 'RIGHT'])])), 's+r');
-    /* directionToFollow NONE, the arrows to take listed: the first of them is the one to take */
-    assert.strictEqual(lanesOf(lanes([lane('NONE', [], true, ['STRAIGHT_ON', 'RIGHT'])])), 's*+r');
-    /* highlighted with no arrow to follow: its first arrow */
-    assert.strictEqual(lanesOf(lanes([lane('NONE', ['UTURN_LEFT', 'LEFT'], true)])), 'ul*+l');
+    /* A lane-level recommendation does not select one of several arrows. */
+    assert.strictEqual(lanesOf(lanes([lane('NONE', [], true, ['STRAIGHT_ON', 'RIGHT'])])), 's+r+!');
+    assert.strictEqual(lanesOf(lanes([lane('NONE', ['UTURN_LEFT', 'LEFT'], true)])), 'ul+l+!');
     /* an arrow twice is once; one the catalog lacks is left out */
     assert.strictEqual(lanesOf(lanes([lane('RIGHT', ['RIGHT', 'DIAGONAL', 'STRAIGHT_ON'])])), 'r*+s');
-    assert.strictEqual(lanesOf(lanes([lane('NONE', ['DIAGONAL'])])), '-');
+    assert.strictEqual(lanesOf(lanes([lane('NONE', ['DIAGONAL'])])), '');
+});
+
+check('five lanes for a highway exit, including two recommended lanes and combined directions', () => {
+    const v = lanes([lane('NONE', ['LEFT', 'STRAIGHT_ON']), lane('NONE', ['STRAIGHT_ON']),
+        lane('RIGHT', ['STRAIGHT_ON']), lane('RIGHT'), lane('NONE', ['RIGHT'])]);
+    const c = cardOf(reply([event('branch', { branchType: 'HIGHWAY_OUT_RIGHT' }, '850', 'METER', 'Exit 44')]), v);
+    assert.deepStrictEqual(c, { arrow: 'offramp_right', exit: '', angle: '', side: '', dist: '850 m', road: 'Exit 44',
+        lanes: 'l+s,s,r*+s,r*,r' });
 });
 
 check('more than six lanes: the six around the ones to take', () => {
@@ -239,6 +246,9 @@ check('no lanes: none sent, no rows, an empty row, a value that is not lanes', (
         assert.strictEqual(lanesOf(v), '', JSON.stringify(v));
     });
     assert.strictEqual(cardOf(reply([turn('LEFT')]), { rows: [] }).lanes, '');
+    const unreliable = lanes([lane('RIGHT')]);
+    unreliable.rows[0].unreliable = true;
+    assert.strictEqual(cardOf(reply([turn('RIGHT')]), unreliable).lanes, '');
 });
 
 check('lanes with no turn make no card', () => {

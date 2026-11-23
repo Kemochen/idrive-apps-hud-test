@@ -254,29 +254,36 @@ function eventsOf(reply) {
     return isObj(view) && Array.isArray(view.eventsInView) ? view.eventsInView : null;
 }
 
-/* One lane as its item: its arrows, the ones to follow first, each once,
- * joined by +; * on the one to take: the first to follow, or on a lane
- * highlighted with none to follow its first arrow; - when it has none. */
+/* One lane's authoritative arrows, each once and joined by +. A single
+ * indicated direction is marked with *. ! highlights the lane itself
+ * when BMW marks the lane or sends more than one direction to follow. */
 function laneItem(l) {
     const lane = isObj(l) ? l : {};
     const names = (a) => (Array.isArray(a) ? a : []).map((x) => enumOf('TurnDirection', x)).filter((s) => s && s !== 'NONE');
     const one = enumOf('TurnDirection', lane.directionToFollow);
-    const follows = (one && one !== 'NONE' ? [one] : []).concat(names(lane.directionsToFollow));
-    const all = follows.concat(names(lane.otherDirections)).filter((d, i, list) => list.indexOf(d) === i);
+    const follows = Array.from(new Set((one && one !== 'NONE' ? [one] : []).concat(names(lane.directionsToFollow))));
+    const all = Array.from(new Set(follows.concat(names(lane.otherDirections))));
     const take = follows.length > 0 || lane.isHighlighted === true;
     if (!all.length) {
-        return { text: take ? '-*' : '-', take };
+        return { text: '-', take: false, follows };
     }
-    return { text: all.map((d, i) => LANE_LETTERS[d] + (take && i === 0 ? '*' : '')).join('+'), take };
+    const arrows = all.map((d, i) => LANE_LETTERS[d] + (follows.length === 1 && i === 0 ? '*' : ''));
+    if (take && follows.length !== 1) {
+        arrows.push('!');
+    }
+    return { text: arrows.join('+'), take, follows };
 }
 
 /* currentLaneGuiding's first row as the card's lanes; '' when there are none. */
 function lanesOf(value) {
     const row = isObj(value) && Array.isArray(value.rows) ? value.rows[0] : null;
-    if (!isObj(row) || !Array.isArray(row.lanes) || !row.lanes.length) {
+    if (!isObj(row) || row.unreliable === true || !Array.isArray(row.lanes) || !row.lanes.length) {
         return '';
     }
     const items = row.lanes.map(laneItem);
+    if (items.every((item) => item.text === '-')) {
+        return '';
+    }
     const taken = items.map((it, i) => (it.take ? i : -1)).filter((i) => i >= 0);
     /* more than the card holds: the window centred on the lanes to take */
     const centre = taken.length ? (taken[0] + taken[taken.length - 1]) / 2 : 0;
@@ -284,18 +291,29 @@ function lanesOf(value) {
     return items.slice(start, start + LANES_MAX).map((it) => it.text).join(',');
 }
 
-/* The next turn's card from a queryContent reply and the lanes' value, or null. */
-function cardOf(reply, lanes) {
+/* The next turn and its identity as supplied by the guidance list. Distance
+ * changes without changing the turn. Some firmware omits the UID. */
+function nextManeuver(reply) {
     const events = eventsOf(reply) || [];
     for (let i = 0; i < events.length; i++) {
         const u = unionOf(events[i]);
         const a = u ? arrowOf(u.kind, u.body) : null;
         if (a) {
-            return { arrow: a.arrow, exit: a.exit, angle: a.angle, side: a.side, dist: distOf(u.body), road: roadOf(u.body),
-                lanes: lanesOf(lanes) };
+            const { uid } = u.body;
+            const id = typeof uid === 'number' && Number.isSafeInteger(uid) && uid >= 0 ||
+                typeof uid === 'string' && /^\d{1,20}$/.test(uid) ? String(uid) : null;
+            return {
+                id, kind: u.kind,
+                card: { arrow: a.arrow, exit: a.exit, angle: a.angle, side: a.side, dist: distOf(u.body), road: roadOf(u.body) }
+            };
         }
     }
     return null;
 }
 
-module.exports = { cardOf, lanesOf, ROAD_MAX, LANES_MAX };
+function cardOf(reply, lanes) {
+    const turn = nextManeuver(reply);
+    return turn ? Object.assign(turn.card, { lanes: lanesOf(lanes) }) : null;
+}
+
+module.exports = { cardOf, nextManeuver, eventsOf, lanesOf, laneItem, ROAD_MAX, LANES_MAX };

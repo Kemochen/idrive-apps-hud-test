@@ -81,7 +81,7 @@ std::vector<std::string> g_local_conf_warnings;
 volatile sig_atomic_t g_stop;
 void on_signal(int) { g_stop = 1; }
 
-std::string status_line(const FeedStatus &s)
+std::string status_line(const FeedStatus &s, bool nav_live, bool nav_diagnostics)
 {
     return "{\"ev\":\"status\",\"state\":" + json_escape(s.state) + ",\"target\":" + json_escape(s.target) +
            ",\"page\":" + json_escape(s.page) + ",\"reason\":" + json_escape(s.reason) +
@@ -98,13 +98,16 @@ std::string status_line(const FeedStatus &s)
            ",\"hud_card\":" + (s.hud_card ? "1" : "0") + ",\"hud_card_pct\":" + std::to_string(s.hud_card_pct) +
            ",\"hud_card_x\":" + std::to_string(s.hud_card_x) + ",\"hud_card_y\":" + std::to_string(s.hud_card_y) +
            ",\"hud_card_crop\":" + std::to_string(s.hud_card_crop) +
+           ",\"nav_live\":" + (nav_live ? "1" : "0") +
+           ",\"nav_diagnostics\":" + (nav_diagnostics ? "1" : "0") +
            /* only while hosted: otherwise the line is as it always was */
            (s.hosted ? ",\"hosted\":1" : "") + "}";
 }
 
 class Server : public Control::Handler {
 public:
-    Server(MapFeeds *feeds, GuideSetting *guide) : feeds_(feeds), guide_(guide) {}
+    Server(MapFeeds *feeds, GuideSetting *guide, bool nav_diagnostics)
+        : nav_diagnostics_(nav_diagnostics), feeds_(feeds), guide_(guide) {}
     void set_control(Control *c) { control_ = c; }
 
     /* start picks the cluster target the map goes to (`run`); cluster and
@@ -144,7 +147,7 @@ public:
             feeds_->set_sport(is_sport, now_ms());
         } else if (cmd == "turn" && msg.count("arrow")) {
             on_turn(msg);
-        } else if (cmd == "note" && msg.count("text")) {
+        } else if (cmd == "note" && nav_diagnostics_ && msg.count("text")) {
             on_note(msg.at("text"));
         } else if (cmd == "hud" && (on != msg.end() || pct != msg.end() || hx != msg.end() || hy != msg.end() ||
                                     keep != msg.end() || hide_sport != msg.end() || card)) {
@@ -220,6 +223,7 @@ public:
     }
 
 private:
+    const bool nav_diagnostics_;
     /* The next turn for the HUD's card; an empty arrow: none. Its fields are
      * cut to what the card can show. The street's name never goes to the
      * log, which the app can save and share. */
@@ -335,7 +339,7 @@ int serve(Config cfg)
         {"hud_width_pct", 0, 100},  {"hud_offset_x", -800, 800},     {"hud_offset_y", -800, 800},
         {"hud_scale_down", 0, 1},   {"hud_round_corners", 0, 1},     {"hud_black_background", 0, 1},
         {"hud_keep_shown", 0, 1},   {"hud_hide_sport", 0, 1},
-        {"hud_card", 0, 1},         {"hud_card_pct", 50, 150},
+        {"hud_card", 0, 1},         {"hud_card_pct", 50, 150},        {"nav_diagnostics", 0, 1},
         {"hud_card_x", -800, 800},  {"hud_card_y", -800, 800},  {"hud_card_crop", 0, 40},
         {"freeze_ms", 0, 600000},   {"freeze_min_fps", 1, 60},       {"alt_screen_port", 0, 65535},
         {"idle_ms", 1000, 600000},  {"blank_ms", 1000, 600000},
@@ -422,7 +426,8 @@ int serve(Config cfg)
     VideoProducer producer(vc);
     MapFeeds feed(fc, cfg.num("cluster") == 1, cfg.num("hud") == 1, (unsigned)cfg.num("hud_fps"));
     feed.set_hud_hide_sport(cfg.num("hud_hide_sport") == 1);
-    Server server(&feed, &guide);
+    const bool nav_diagnostics = cfg.num("nav_diagnostics") == 1;
+    Server server(&feed, &guide, nav_diagnostics);
     Control control(&server);
     server.set_control(&control);
     if (!control.listen(cfg.str("socket_path"), (unsigned)std::strtoul(cfg.str("socket_mode").c_str(), nullptr, 8),
@@ -488,7 +493,7 @@ int serve(Config cfg)
             producer.set_part(feed.part());
         producer.retry_sources(now);
         const FeedStatus fs = feed.status(producer.decode_status(), producer.stream_reason());
-        const std::string status = status_line(fs);
+        const std::string status = status_line(fs, live, nav_diagnostics);
         /* The frame rate changes the status every second; the log keeps
          * to its state, reason and target, so the app's last lines are not
          * all status. */
@@ -671,6 +676,7 @@ void define_keys(Config *cfg)
     cfg->define("hud_keep_shown", "0");
     cfg->define("hud_hide_sport", "0");
     cfg->define("hud_card", "0");
+    cfg->define("nav_diagnostics", "0");
     cfg->define("hud_card_pct", "100");
     cfg->define("hud_card_x", "0");
     cfg->define("hud_card_y", "0");

@@ -22,7 +22,7 @@ const { WazeClusterControl } = require('../src/waze_cluster_control.js');
 const { RenderLink } = require('../src/render_link.js');
 const { DriveModeSync } = require('../src/drive_mode.js');
 const { TurnGuideSync, turnReader, eventQuery, EVENTS_IFACE, LANES_IFACE, PHONE_LANES_IFACE, INSTANCE, LANES_WAIT_MS,
-    NOTE_VALUE_MAX } = require('../src/turn_guide.js');
+    CARPLAY, ANDROID_AUTO } = require('../src/turn_guide.js');
 
 const RENDER = `/tmp/woc-tg-${process.pid}.sock`;
 const PATCH = `/tmp/woc-tg-patch-${process.pid}.sock`;
@@ -79,6 +79,16 @@ function builders(o) {
     };
     b.buildTypedProxy = (iface, instance) => {
         b.built.push(`${iface} ${instance}`);
+        if (iface === CARPLAY[0] || iface === ANDROID_AUTO[0]) {
+            if (o.disconnected && iface === CARPLAY[0]) {
+                return Promise.resolve({ init: () => Promise.resolve(), waitUntilAvailable: () => Promise.reject(new Error('disconnected')),
+                    projectedGuidanceActive: { getValue: () => Promise.resolve(true) } });
+            }
+            return Promise.resolve({
+                init: () => Promise.resolve(), waitUntilAvailable: () => Promise.resolve(),
+                projectedGuidanceActive: { getValue: () => Promise.resolve(iface === CARPLAY[0] ? o.carplay !== false : o.android === true) }
+            });
+        }
         if (iface === EVENTS_IFACE) {
             if (o.noEvents) return Promise.reject(new Error('no interface configuration'));
             const proxy = { init: () => Promise.resolve(), waitUntilAvailable: () => (o.away ? Promise.reject(new Error('not available')) : Promise.resolve()) };
@@ -92,7 +102,10 @@ function builders(o) {
                 () => !!o.phoneHangs));
         }
         if (o.noLanes) return Promise.reject(new Error('no interface configuration'));
-        return Promise.resolve(lanesProxy(() => b.laneReads++, () => (o.lanes ? o.lanes() : { rows: [] }), () => !!o.lanesFail));
+        const guidance = lanesProxy(() => b.laneReads++, () => (o.lanes ? o.lanes() : { rows: [] }), () => !!o.lanesFail);
+        guidance.guidingProvider = { getValue: () => Promise.resolve(o.provider) };
+        guidance.guidanceState = { getValue: () => Promise.resolve(o.nativeState) };
+        return Promise.resolve(guidance);
     };
     return b;
 }
@@ -172,20 +185,22 @@ async function main() {
         assert.deepStrictEqual(await turnReader(b, quiet(), { readMs: 200 }).read(), { card: card('straight', '200 m', 's*,r') });
         assert.ok(b.laneWaits >= 1, 'waited for Guidance to be available');
     });
-    await check('the reader: a lane read that fails keeps the turn\'s last lanes for up to lanesHoldMs; a new turn never takes them', async () => {
+    await check('a failed lane read clears lanes; a new UID rejects the previous lane row until it changes', async () => {
         const o = { reply: () => reply('STRAIGHT_ON'), lanes: () => LANES };
-        const r = turnReader(builders(o), quiet(), { readMs: 200, lanesHoldMs: 150 });
+        const r = turnReader(builders(o), quiet(), { readMs: 200 });
         assert.deepStrictEqual(await r.read(), { card: card('straight', '200 m', 's*,r') });
         o.lanesFail = true;
-        assert.deepStrictEqual(await r.read(), { card: card('straight', '200 m', 's*,r') }, 'held');
-        o.reply = () => reply('LEFT');
-        assert.deepStrictEqual(await r.read(), { card: card('left') }, 'another turn: not held');
-        o.reply = () => reply('STRAIGHT_ON');
+        assert.deepStrictEqual(await r.read(), { card: card('straight') });
         o.lanesFail = false;
+        const next = reply('STRAIGHT_ON', '850');
+        next.viewContent[0].eventsInView[0].intersection.uid = '3';
+        o.reply = () => next;
+        assert.deepStrictEqual(await r.read(), { card: card('straight', '850 m') });
+        assert.deepStrictEqual(await r.read(), { card: card('straight', '850 m') });
+        o.lanes = () => ({ rows: [] });
         await r.read();
-        o.lanesFail = true;
-        await sleep(200);
-        assert.deepStrictEqual(await r.read(), { card: card('straight') }, 'no longer held after lanesHoldMs');
+        o.lanes = () => LANES;
+        assert.deepStrictEqual(await r.read(), { card: card('straight', '850 m', 's*,r') });
     });
     await check('the reader: lanes failing three times in a row are not read for lanesWaitMs (10 s by default), then read again', async () => {
         assert.strictEqual(LANES_WAIT_MS, 10000);
@@ -198,40 +213,28 @@ async function main() {
         await r.read();
         assert.strictEqual(b.laneReads, 4, 'read again after lanesWaitMs');
     });
-    await check('the reader: notes for the drive log: each new lanes value of Guidance and of ProjectedModeGuiding, failed reads, ' +
-            'each change of the card\'s arrow or lanes; never the street', async () => {
-        const o = { reply: () => reply('STRAIGHT_ON'), lanes: () => LANES, phoneLanes: () => ({ rows: [] }) };
-        const b = builders(o);
+    await check('opt-in diagnostics report source, turn fields and separate lane availability; coordinates are excluded', async () => {
+        const b = builders({ reply: () => reply('STRAIGHT_ON'), provider: 'CAR_PLAY',
+            lanes: () => Object.assign({ latitude: 49.1 }, LANES), phoneLanes: () => ({ rows: [] }) });
         const r = turnReader(b, quiet(), { readMs: 200 });
         await r.read();
-        await sleep(20);   /* ProjectedModeGuiding's read is not waited for */
+        assert.deepStrictEqual(r.takeNotes(), []);
+        assert.strictEqual(b.phoneReads, 0);
+        await r.read(true);
         assert.ok(b.built.includes(`${PHONE_LANES_IFACE} ${INSTANCE}`));
         assert.strictEqual(b.phoneReads, 1);
-        assert.deepStrictEqual(r.takeNotes().sort(), [
-            'card: straight 200 m, lanes s*,r',
-            `lanes guidance: ${JSON.stringify(LANES)}`,
-            'lanes phone: {"rows":[]}'].sort());
+        const notes = r.takeNotes();
+        assert.strictEqual(notes.length, 4);
+        assert.match(notes[0], /^nav \S+ route .*"source":"CAR_PLAY","app":null/);
+        assert.match(notes[1], /"distance":"200 m","street":"Example Street"/);
+        assert.match(notes[2], /Guidance .*"count":2.*"recommended":\[true,false\]/);
+        assert.match(notes[3], /ProjectedModeGuiding .*"count":0/);
+        assert.doesNotMatch(notes.join('\n'), /latitude|49\.1/);
         assert.deepStrictEqual(r.takeNotes(), [], 'taken once');
-        await r.read();
-        assert.deepStrictEqual(r.takeNotes(), [], 'nothing changed: no notes');
-        o.lanesFail = true;
-        await r.read();
-        assert.deepStrictEqual(r.takeNotes().sort(), ['card: straight 200 m, lanes s*,r (held)', 'lanes guidance: read failed (timeout)'].sort());
-        await r.read();
-        await r.read();
-        assert.deepStrictEqual(r.takeNotes(), ['lanes guidance: failed 3 times in a row; not read for 10 s']);
-        o.lanesFail = false;
-        o.reply = () => NO_TURN;
-        o.lanes = () => ({ rows: [{ lanes: new Array(80).fill(LANES.rows[0].lanes[0]) }] });
-        const r2 = turnReader(builders(o), quiet(), { readMs: 200 });
-        await r2.read();
-        const notes = r2.takeNotes();
-        const long = notes.find((n) => n.startsWith('lanes guidance: '));
-        assert.ok(long.length <= 'lanes guidance: '.length + NOTE_VALUE_MAX + 1 && long.endsWith('…'), long);
-        assert.ok(notes.includes('card: none'), notes.join('\n'));
-        assert.ok(notes.every((n) => !/Example Street/.test(n)));
+        await r.read(true);
+        assert.deepStrictEqual(r.takeNotes(), [], 'samples are rate limited');
     });
-    await check('the reader: ProjectedModeGuiding\'s lanes, for the notes only, are not waited for, and read one at a time', async () => {
+    await check('normal rendering does not read the diagnostics-only ProjectedModeGuiding source', async () => {
         const b = builders({ reply: () => reply('STRAIGHT_ON'), lanes: () => LANES, phoneHangs: true });
         const r = turnReader(b, quiet(), { readMs: 500 });
         const start = Date.now();
@@ -239,16 +242,21 @@ async function main() {
         assert.deepStrictEqual(await r.read(), { card: card('straight', '200 m', 's*,r') });
         const took = Date.now() - start;
         assert.ok(took < 500, `two reads took ${took} ms, waiting for a phone read that never answers`);
-        assert.strictEqual(b.phoneReads, 1, 'no second phone read while the first one lasts');
+        assert.strictEqual(b.phoneReads, 0);
     });
-    await check('the reader: no ProjectedModeGuiding: said once in the notes, the turn and Guidance\'s lanes as before', async () => {
+    await check('the diagnostic distinguishes an unsupported service from a valid empty lane row', async () => {
         const b = builders({ reply: () => reply('STRAIGHT_ON'), lanes: () => LANES, noPhoneLanes: true });
         const r = turnReader(b, quiet(), { readMs: 200 });
-        assert.deepStrictEqual(await r.read(), { card: card('straight', '200 m', 's*,r') });
-        await r.read();
-        const notes = r.takeNotes().filter((n) => n.startsWith('lanes phone: '));
-        assert.strictEqual(notes.length, 1, notes.join('\n'));
-        assert.ok(/^lanes phone: none \(.*no interface configuration/.test(notes[0]), notes[0]);
+        assert.deepStrictEqual(await r.read(true), { card: card('straight', '200 m', 's*,r') });
+        assert.match(r.takeNotes()[3], /ProjectedModeGuiding .*"status":"unsupported","count":null/);
+    });
+    await check('cancel, disconnected CarPlay, and unrelated routes suppress otherwise readable turns', async () => {
+        for (const state of [{ carplay: false, provider: 'CAR_PLAY' }, { disconnected: true }, { android: true },
+            { provider: 'ANDROID_AUTO' }, { carplay: false, nativeState: 'ACTIVE' }]) {
+            const o = Object.assign({ reply: () => reply('RIGHT'), lanes: () => LANES }, state);
+            const r = turnReader(builders(o), quiet(), { readMs: 200 });
+            assert.deepStrictEqual(await r.read(), { card: null });
+        }
     });
     await check('the reader: no route: no turn', async () => {
         assert.deepStrictEqual(await turnReader(builders({ reply: () => NO_TURN }), quiet(), { readMs: 200 }).read(), { card: null });
@@ -342,8 +350,10 @@ async function main() {
         assert.strictEqual(turns().length, n, 'none is told once');
         assert.ok(t.reader.reads - reads <= 5, `${t.reader.reads - reads} reads in 200 ms with no turn`);
     });
-    await check('the reader\'s notes go to the render as {"cmd":"note"}, through the turn\'s connection, and to the app\'s log', async () => {
+    await check('opt-in diagnostics log through the render even when the HUD card is off', async () => {
         showing();
+        render.navDiagnostics = 1;
+        render.hudCard = 0;
         render.received.length = 0;
         const state = { card: card('right'), notes: ['lanes guidance: {"rows":[]}', 'card: right 200 m, no lanes'] };
         const t = make(state);
@@ -353,9 +363,11 @@ async function main() {
         await until('a later note told', () => render.count('note') === 3);
         await sleep(100);
         t.stop();
+        render.navDiagnostics = 0;
         assert.deepStrictEqual(render.received.filter((m) => m.cmd === 'note').map((m) => m.text),
             ['lanes guidance: {"rows":[]}', 'card: right 200 m, no lanes', 'lanes guidance: read failed (timeout)']);
-        assert.ok(t.log.lines.includes('info: turn card: lanes guidance: read failed (timeout)'), t.log.lines.join('\n'));
+        assert.ok(!render.received.some((m) => m.cmd === 'turn'));
+        assert.ok(!t.log.lines.some((line) => line.includes('lanes guidance')));
     });
     await check('the card off: nothing read or told, no connection kept; looked at again at recheck()', async () => {
         showing();
@@ -430,7 +442,7 @@ async function main() {
         assert.strictEqual(render.refused || 0, 0, 'the page was not refused');
         t.stop();
     });
-    await check('reads that fail: nothing told (the render drops the turn itself); after two in a row they are spaced out', async () => {
+    await check('failed reads clear the card once and are spaced out after two in a row', async () => {
         showing();
         render.turns.length = 0;
         const state = { card: card('right'), fails: true };
@@ -439,7 +451,7 @@ async function main() {
         await until('two reads', () => t.reader.reads >= 2);
         await sleep(100);
         assert.strictEqual(t.reader.reads, 2, 'no read while spaced out');
-        assert.strictEqual(turns().length, 0);
+        assert.deepStrictEqual(turns(), [{ cmd: 'turn', arrow: '' }]);
         state.fails = false;
         await until('the turn told once reads work', () => render.turn);
         t.stop();

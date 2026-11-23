@@ -8,6 +8,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -292,6 +293,13 @@ static void the_lanes()
     expect(white > 25 && grey > 10, "a lane of two arrows: both drawn, the one to take white, the other grey");
     expect(m.rgba != lanes("r*").rgba && m.rgba != lanes("s+r").rgba && m.rgba != lanes("s*+r").rgba,
            "and not the same as the right arrow alone, nor the lane with none or the other to take");
+
+    const CardImage recommended = lanes("s+r+!");
+    expect(px(recommended, 199, 33)[0] == 255 && alpha(recommended, 199, 33) >= 250,
+           "a lane-level recommendation draws a white marker");
+    const CardImage neutral = lanes("s+r");
+    expect(std::equal(recommended.rgba.begin(), recommended.rgba.begin() + 30 * 218 * 4, neutral.rgba.begin()),
+           "a lane-level recommendation leaves both direction glyphs neutral");
 
     /* a lane's place is 181..216, centred on x 199; its lines are left out */
     const struct {

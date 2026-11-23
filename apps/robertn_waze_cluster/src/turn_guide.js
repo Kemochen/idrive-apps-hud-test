@@ -13,17 +13,9 @@
  * the way PR #94's app found it taken on a car (the proxy's raw SOME/IP
  * proxy, callMethod), else through the typed method. A head unit with no
  * such list, or no way to call it, has no turn card, for good. A call that
- * fails is a failed read. Lanes are read as the app's other fields are
- * (lane_reader.js); a lane read that fails keeps the same turn's last lanes
- * for LANES_HOLD_MS, and three in a row leave them alone for a while.
- * ProjectedModeGuiding's lanes are read for the notes only, so a turn's
- * read never waits for them.
- *
- * The reader keeps notes for the drive log (takeNotes()): each new lanes
- * value of both sources, failed lane reads, and each change of the card's
- * arrow or lanes, never the street. The sync logs them and tells them to the
- * render, {"cmd":"note","text":...}, which keeps them in its own log, the
- * one Save logs collects.
+ * fails is a failed read. An active projected route is required for the
+ * overlay. The two lane interfaces are sampled separately in opt-in
+ * diagnostics. Only Guidance contributes to the live lane row.
  *
  * TurnGuideSync tells the render the turn, {"cmd":"turn",...}, only while
  * the setting is in use (the map on the HUD and Turn card on HUD ticked)
@@ -44,8 +36,8 @@
 'use strict';
 
 const { within } = require('./profile_sync.js');
-const { cardOf } = require('./turn_decode.js');
-const { laneSource, LANES_WAIT_MS, NOTE_VALUE_MAX } = require('./lane_reader.js');
+const { nextManeuver, eventsOf, lanesOf, laneItem } = require('./turn_decode.js');
+const { laneSource, LANES_WAIT_MS } = require('./lane_reader.js');
 
 const EVENTS_IFACE = 'de.bmw.infotainment.navigation.guiding.GuidanceEventList';
 const LANES_IFACE = 'de.bmw.infotainment.navigation.guiding.Guidance';
@@ -53,6 +45,13 @@ const PHONE_LANES_IFACE = 'de.bmw.infotainment.navigation.projectedmodeguiding.P
 const INSTANCE = 'Main_Instance';
 const METHOD = 'queryContent';
 const LANES_FIELD = 'currentLaneGuiding';
+const PROJECTION_ACTIVE = 'projectedGuidanceActive';
+const CARPLAY = ['de.bmw.infotainment.a4a.carplay.CarPlayManager', 'CarPlayManagerInst1'];
+const ANDROID_AUTO = [
+    'de.bmw.infotainment.sdi.aap.androidautoprojectedmanager.AndroidAutoProjectedManager',
+    'AndroidAutoProjectedManagerInst1'
+];
+const DIAGNOSTIC_MS = 10000;
 
 /* a turn is read this often while there is one, and told again this often */
 const POLL_MS = 1000;
@@ -64,10 +63,6 @@ const READ_MS = 900;
 /* reads failing twice in a row wait this long, five times this long */
 const FAIL_WAIT_MS = 2000;
 const FAIL_LONG_WAIT_MS = 30000;
-/* a lane read that fails keeps the same turn's last lanes this long */
-const LANES_HOLD_MS = 3000;
-/* notes not yet taken are kept up to this many, the oldest dropped */
-const NOTES_MAX = 50;
 /* the pause between one connection to the render closing and the other being made */
 const HANDOVER_MS = 300;
 /* after pageOpening() the background connection waits this long for the page to open */
@@ -103,7 +98,7 @@ function callOf(proxy) {
  * null for good when the head unit has no such proxy or usable(proxy) says
  * no (missing(why) is then called once); rejected while it cannot be set
  * up, which is tried again after retryMs, then less often. */
-function lazyProxy(someipBuilders, iface, usable, missing, o) {
+function lazyProxy(someipBuilders, iface, usable, missing, o, instance) {
     let retryMs = o.retryMs || SETUP_RETRY_MS;
     const retryMax = o.retryMaxMs || SETUP_RETRY_MAX_MS;
     let proxy = null;
@@ -126,7 +121,7 @@ function lazyProxy(someipBuilders, iface, usable, missing, o) {
             return Promise.reject(new Error(`${iface} proxy: set up again later`));
         }
         starting = within(Promise.resolve()
-            .then(() => someipBuilders.buildTypedProxy(iface, INSTANCE))
+            .then(() => someipBuilders.buildTypedProxy(iface, instance || INSTANCE))
             .then((p) => (usable(p) ? p.init().then(() => p) : noProxy('nothing to read it with')),
                 (e) => noProxy(`no ${iface} proxy (${e && e.message})`)), o.setupMs, `${iface} proxy`)
             .then((p) => {
@@ -143,94 +138,159 @@ function lazyProxy(someipBuilders, iface, usable, missing, o) {
     };
 }
 
-/* The card as one note: its arrow, a roundabout's exit and angle, the
- * distance and the lanes, never the street. */
-function cardNote(card, held) {
-    if (!card) {
-        return 'card: none';
+const hasGetter = (proxy, name) => !!(proxy && proxy[name]) && typeof proxy[name].getValue === 'function';
+const flag = (value) => typeof value === 'boolean' ? value : null;
+const catalogValue = (value) => (
+    Number.isSafeInteger(value) || typeof value === 'string' && /^[A-Z_]{1,32}$/.test(value) ? value : null
+);
+
+function readField(getProxy, name, ms) {
+    return within(getProxy().then((proxy) => {
+        if (!hasGetter(proxy, name)) {
+            return null;
+        }
+        return Promise.resolve(proxy.waitUntilAvailable(ms)).then(() => proxy[name].getValue());
+    }), ms * 2, name).then((value) => value === undefined ? null : value, () => null);
+}
+
+/* Providers are named in BMW's catalog. A provider may stay selected
+ * after the phone cancels its route, so it cannot activate the card. */
+function projectedRoute(carplay, android, provider) {
+    if ((carplay === true) === (android === true)) {
+        return null;
     }
-    const angle = card.angle ? `at ${card.angle}${card.side ? ` ${card.side}` : ''}` : '';
-    const head = [card.arrow, card.exit ? `exit ${card.exit}` : '', angle, card.dist].filter((s) => s).join(' ');
-    return `card: ${head}, ${card.lanes ? `lanes ${card.lanes}` : 'no lanes'}${held ? ' (held)' : ''}`;
+    const active = carplay === true ? 'CAR_PLAY' : 'ANDROID_AUTO';
+    const named = typeof provider === 'number' ? ['NONE', 'CAR_PLAY', 'ANDROID_AUTO', 'CAR_LIFE', 'OTHER'][provider] : provider;
+    return provider === null || named === 'NONE' || named === active ? active : null;
+}
+
+/* Whitelist fields instead of dumping replies, which can contain route
+ * positions. A source name identifies the protocol, not the phone app. */
+function laneReport(sample) {
+    const rows = sample.ok && sample.value && sample.value.rows;
+    const row = Array.isArray(rows) ? rows[0] : null;
+    const lanes = row && row.lanes;
+    const details = Array.isArray(lanes) ? lanes.slice(0, 6).map(laneItem) : null;
+    return {
+        status: sample.ok ? Array.isArray(rows) ? 'available' : 'missing' : sample.none ? 'unsupported' : 'unreadable',
+        count: Array.isArray(rows) && rows.length === 0 ? 0 : Array.isArray(lanes) ? lanes.length : null,
+        unreliable: row ? flag(row.unreliable) : null,
+        arrows: details && details.map((lane) => lane.text),
+        recommended: details && details.map((lane) => lane.take),
+        highlighted: Array.isArray(lanes) ? lanes.slice(0, 6).map((lane) =>
+            lane && typeof lane.isHighlighted === 'boolean' ? lane.isHighlighted : null) : null
+    };
 }
 
 /* A reader of the next turn: read() -> Promise<{ card } | { none: true }>,
  * card the turn card's fields (turn_decode.js) or null with no turn, none
  * only without the guidance list, for good; rejected when the read gives
  * nothing to go by. takeNotes() -> the notes since the last call.
- * options: readMs, retryMs, retryMaxMs, lanesWaitMs, lanesHoldMs. */
+ * options: readMs, retryMs, retryMaxMs, lanesWaitMs. */
 function turnReader(someipBuilders, log, options) {
     const o = options || {};
     const readMs = o.readMs || READ_MS;
-    const holdMs = o.lanesHoldMs || LANES_HOLD_MS;
     const setup = { retryMs: o.retryMs, retryMaxMs: o.retryMaxMs, setupMs: readMs * 4 };
     let notes = [];
-    const note = (text) => {
-        notes = notes.concat([text]).slice(-NOTES_MAX);
-    };
     const events = lazyProxy(someipBuilders, EVENTS_IFACE, (p) => !!callOf(p),
         (why) => log.warn(`turn card: ${why}; no turn card on this head unit`), setup);
-    const lanesUsable = (p) => !!p && !!p[LANES_FIELD] && typeof p[LANES_FIELD].getValue === 'function';
+    const ignore = () => {};
+    const guidanceProxy = lazyProxy(someipBuilders, LANES_IFACE, (p) => !!p, ignore, setup);
+    const phoneProxy = lazyProxy(someipBuilders, PHONE_LANES_IFACE, (p) => hasGetter(p, LANES_FIELD), ignore, setup);
+    const manager = ([iface, instance]) => lazyProxy(someipBuilders, iface, (p) => hasGetter(p, PROJECTION_ACTIVE), ignore, setup, instance);
+    const carplayManager = manager(CARPLAY);
+    const androidManager = manager(ANDROID_AUTO);
     const laneOptions = { readMs, lanesWaitMs: o.lanesWaitMs };
-    let guidanceProxy = null;
-    let phoneProxy = null;
-    const guidance = laneSource('guidance', LANES_FIELD, () => guidanceProxy(), note, laneOptions);
-    const phone = laneSource('phone', LANES_FIELD, () => phoneProxy(), note, laneOptions);
-    guidanceProxy = lazyProxy(someipBuilders, LANES_IFACE, lanesUsable, (why) => {
-        log.info(`turn card: no lanes (${why}); turns are shown without them`);
-        guidance.missing(why);
-    }, setup);
-    phoneProxy = lazyProxy(someipBuilders, PHONE_LANES_IFACE, lanesUsable, (why) => phone.missing(why), setup);
+    const guidance = laneSource(LANES_FIELD, guidanceProxy, laneOptions);
+    const phone = laneSource(LANES_FIELD, phoneProxy, laneOptions);
 
-    /* the lanes last read, for the turn they came with: { key, value, at } */
-    let held = null;
-    let lastNote = null;
-    /* the lanes for the turn: the ones read now, else the same turn's held ones */
-    const lanesFor = (bare, got) => {
-        const key = bare ? [bare.arrow, bare.exit, bare.angle, bare.road].join('|') : '';
-        if (got.ok) {
-            held = { key, value: got.value, at: Date.now() };
-            return { value: got.value, held: false };
-        }
-        if (held && held.key === key && Date.now() - held.at <= holdMs) {
-            return { value: held.value, held: true };
-        }
-        return { value: undefined, held: false };
+    let lastTurn = null;
+    let lastLanes = '';
+    let blockedLanes = '';
+    let nextReport = 0;
+    const reset = () => {
+        lastTurn = null;
+        blockedLanes = lastLanes || blockedLanes;
     };
-    /* ProjectedModeGuiding's lanes are for the notes only: read beside the
-     * turn but never waited for, and one read at a time */
-    let phoneReading = false;
-    const readPhone = () => {
-        if (phoneReading) {
-            return;
+    const lanesFor = (source, turn, sample) => {
+        const key = JSON.stringify([source, turn.id, turn.kind, turn.card.arrow, turn.card.exit, turn.card.road]);
+        if (lastTurn !== null && key !== lastTurn) {
+            reset();
         }
-        phoneReading = true;
-        const done = () => {
-            phoneReading = false;
-        };
-        phone.read().then(done, done);
+        lastTurn = key;
+        if (!sample.ok) {
+            return '';
+        }
+        const lanes = lanesOf(sample.value);
+        if (lanes && lanes === blockedLanes) {
+            return '';
+        }
+        blockedLanes = '';
+        lastLanes = lanes;
+        return lanes;
     };
-    const read = () => events().then((p) => {
-        if (!p) {
+    const diagnostic = (source, state, flags, turn, sample, projected, carplayMeta, replyOK) => {
+        const at = new Date().toISOString();
+        const card = turn && turn.card;
+        const isExit = card && /^offramp_/.test(card.arrow);
+        const name = card && card.road ? Array.from(card.road).slice(0, 28).join('') : null;
+        notes = [
+            `nav ${at} route ${JSON.stringify({ source, app: null, state, carplay: flags[0], androidAuto: flags[1],
+                provider: flags[2], carplayMetadata: carplayMeta, query: replyOK })}`,
+            `nav ${at} turn ${JSON.stringify({ maneuver: card && card.arrow, uid: turn && turn.id, distance: card && card.dist || null,
+                street: isExit ? null : name, exitName: isExit ? name : null, roundaboutExit: card && card.exit || null,
+                eventTime: null })}`,
+            `nav ${at} Guidance ${JSON.stringify(laneReport(sample))}`,
+            `nav ${at} ProjectedModeGuiding ${JSON.stringify(laneReport(projected))}`
+        ];
+    };
+    const read = (diagnostics) => events().then((p) => {
+        if (!p && !diagnostics) {
             return { none: true };
         }
-        readPhone();
-        const call = callOf(p);
-        const turn = within(Promise.resolve()
+        const report = diagnostics === true && Date.now() >= nextReport;
+        const flags = Promise.all([
+            readField(carplayManager, PROJECTION_ACTIVE, readMs).then(flag),
+            readField(androidManager, PROJECTION_ACTIVE, readMs).then(flag),
+            readField(guidanceProxy, 'guidingProvider', readMs).then(catalogValue)
+        ]);
+        const turn = p ? within(Promise.resolve()
             .then(() => p.waitUntilAvailable(readMs))
-            .then(() => call(eventQuery(), readMs)), readMs * 2, METHOD);
-        return Promise.all([turn, guidance.read()]).then((r) => {
-            const bare = cardOf(r[0], undefined);
-            const lanes = lanesFor(bare, r[1]);
-            const card = bare ? cardOf(r[0], lanes.value) : null;
-            const text = cardNote(card, lanes.held && !!(card && card.lanes));
-            /* a new note when the arrow, the exit, the angle or the lanes change, not the distance */
-            const key = text.replace(/^card: (\S+)( exit \d+)?( at \d+(?: left| right)?)?[^,]*/, '$1$2$3');
-            if (key !== lastNote) {
-                lastNote = key;
-                note(text);
+            .then(() => callOf(p)(eventQuery(), readMs)), readMs * 2, METHOD) : Promise.resolve(null);
+        const laneSample = guidance.read();
+        const extra = report ? Promise.all([
+            readField(guidanceProxy, 'guidanceState', readMs).then(catalogValue),
+            readField(carplayManager, 'projectedGuidanceMetadataAvailable', readMs).then(flag),
+            phone.read()
+        ]) : null;
+        if (report) {
+            nextReport = Date.now() + DIAGNOSTIC_MS;
+        }
+        return Promise.all([turn.then((reply) => ({ reply }), (error) => ({ error })), laneSample, flags]).then(([query, lanes, route]) => {
+            const source = projectedRoute(...route);
+            const maneuver = nextManeuver(query.reply);
+            const card = source && maneuver ? Object.assign({}, maneuver.card, { lanes: lanesFor(source, maneuver, lanes) }) : null;
+            if (!card) {
+                reset();
             }
-            return { card };
+            const result = () => {
+                if (query.error) {
+                    throw query.error;
+                }
+                return { card };
+            };
+            if (!report) {
+                return result();
+            }
+            const nativeFallback = !maneuver && route[0] !== true && route[1] !== true ?
+                readField(guidanceProxy, 'conclusiveDart', readMs) : null;
+            return Promise.all([extra, nativeFallback]).then(([[state, metadata, projected], dart]) => {
+                const native = route[0] !== true && route[1] !== true && (state === 'ACTIVE' || state === 2);
+                const nativeTurn = native && dart && nextManeuver({ viewContent: { eventsInView: [dart] } });
+                diagnostic(source || (native ? 'BMW' : null), state, route, maneuver || nativeTurn || null,
+                    lanes, projected, metadata, eventsOf(query.reply) !== null);
+                return result();
+            });
         });
     });
     const takeNotes = () => {
@@ -238,7 +298,7 @@ function turnReader(someipBuilders, log, options) {
         notes = [];
         return taken;
     };
-    return { read, takeNotes };
+    return { read, takeNotes, reset };
 }
 
 class TurnGuideSync {
@@ -362,7 +422,9 @@ class TurnGuideSync {
         if (!status) {
             return null;
         }
-        const inUse = status.hud === 1 && status.hud_card === 1;
+        const cardOn = status.hud === 1 && status.hud_card === 1;
+        const diagnostics = status.nav_diagnostics === 1;
+        const inUse = cardOn || diagnostics;
         if (inUse !== this._inUse) {
             this._inUse = inUse;
             this._sent = null;
@@ -370,11 +432,15 @@ class TurnGuideSync {
                 this._link.close();
             }
         }
-        if (!inUse || this._none || status.hud_state !== 'showing') {
+        const overlay = cardOn && status.hud_state === 'showing' && status.nav_live === 1;
+        if (!overlay) {
+            this._sent = null;
             this._said(false);
+        }
+        if (!inUse || this._none || (!overlay && !diagnostics)) {
             return null;
         }
-        return { send, name: page ? 'page' : 'link' };
+        return { send, name: page ? 'page' : 'link', diagnostics, overlay };
     }
 
     _said(telling) {
@@ -397,13 +463,11 @@ class TurnGuideSync {
         this._said(true);
     }
 
-    /* The reader's notes: to the app's log, and to the render's log through
-     * channel when there is one (the render's own rate limit applies). */
+    /* Diagnostic samples go only to the opt-in log collected by Save logs. */
     _notes(channel) {
         const notes = typeof this._reader.takeNotes === 'function' ? this._reader.takeNotes() : [];
         for (const text of notes) {
-            this._log.info(`turn card: ${text}`);
-            if (channel) {
+            if (channel && channel.diagnostics) {
                 channel.send({ cmd: 'note', text });
             }
         }
@@ -420,7 +484,7 @@ class TurnGuideSync {
 
     _read(channel) {
         this._reading = true;
-        return Promise.resolve().then(() => this._reader.read()).then((r) => {
+        return Promise.resolve().then(() => this._reader.read(channel.diagnostics)).then((r) => {
             this._fails = 0;
             if (r && r.none) {
                 this._none = true;
@@ -433,11 +497,15 @@ class TurnGuideSync {
             /* the connection as it is now: the page may have opened meanwhile */
             const now = this._stopped ? null : this._channel();
             this._notes(now);
-            if (now && now.name === channel.name) {
+            if (channel.overlay && now && now.overlay && now.name === channel.name) {
                 this._tell(now, card);
             }
         }, (e) => {
-            this._notes(this._stopped ? null : this._channel());
+            const now = this._stopped ? null : this._channel();
+            this._notes(now);
+            if (channel.overlay && now && now.overlay && now.name === channel.name) {
+                this._tell(now, null);
+            }
             this._failed(e);
         }).then(() => {
             this._reading = false;
@@ -449,6 +517,9 @@ class TurnGuideSync {
             return;
         }
         const channel = this._channel();
+        if ((!channel || !channel.overlay) && !this._reading && typeof this._reader.reset === 'function') {
+            this._reader.reset();
+        }
         const due = channel && !this._reading && Date.now() >= this._readAt;
         Promise.resolve(due ? this._read(channel) : undefined).then(() => {
             if (!this._stopped) {
@@ -459,4 +530,4 @@ class TurnGuideSync {
 }
 
 module.exports = { TurnGuideSync, turnReader, eventQuery, EVENTS_IFACE, LANES_IFACE, PHONE_LANES_IFACE, INSTANCE, METHOD, LANES_FIELD,
-    POLL_MS, RESEND_MS, IDLE_MS, HANDOVER_MS, LANES_WAIT_MS, LANES_HOLD_MS, NOTE_VALUE_MAX };
+    CARPLAY, ANDROID_AUTO, POLL_MS, RESEND_MS, IDLE_MS, HANDOVER_MS, LANES_WAIT_MS };

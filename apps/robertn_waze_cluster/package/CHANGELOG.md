@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Gate the HUD card on active projected guidance and a live map stream. Clear
+missing lane metadata and guard against replaying a previous maneuver's
+lane row. Add opt-in diagnostics for BMW's turn and lane interfaces.
+
 Hide HUD map in Sport mode, a checkbox in HUD. Ticked, the HUD map is
 hidden while the car is in a Sport driving mode (Sport, Sport+, Sport
 Individual or XtraBoost) and comes back in any other mode; the cluster's
