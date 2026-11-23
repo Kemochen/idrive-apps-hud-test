@@ -51,7 +51,7 @@ const ANDROID_AUTO = [
     'de.bmw.infotainment.sdi.aap.androidautoprojectedmanager.AndroidAutoProjectedManager',
     'AndroidAutoProjectedManagerInst1'
 ];
-const DIAGNOSTIC_MS = 10000;
+const DIAGNOSTIC_HEARTBEAT_MS = 15000;
 
 /* a turn is read this often while there is one, and told again this often */
 const POLL_MS = 1000;
@@ -207,7 +207,7 @@ function turnReader(someipBuilders, log, options) {
     let lastTurn = null;
     let lastLanes = '';
     let blockedLanes = '';
-    let nextReport = 0;
+    const reports = new Map();
     const reset = () => {
         lastTurn = null;
         blockedLanes = lastLanes || blockedLanes;
@@ -230,25 +230,37 @@ function turnReader(someipBuilders, log, options) {
         return lanes;
     };
     const diagnostic = (source, state, flags, turn, sample, projected, carplayMeta, replyOK) => {
-        const at = new Date().toISOString();
+        const now = Date.now();
+        const at = new Date(now).toISOString();
+        const report = (label, fields, keyFields = fields) => {
+            const key = JSON.stringify(keyFields);
+            const previous = reports.get(label);
+            if (!previous || previous.key !== key || now - previous.at >= DIAGNOSTIC_HEARTBEAT_MS) {
+                reports.set(label, { key, at: now });
+                notes.push(`nav ${at} ${label} ${JSON.stringify(fields)}`);
+            }
+        };
         const card = turn && turn.card;
         const isExit = card && /^offramp_/.test(card.arrow);
         const name = card && card.road ? Array.from(card.road).slice(0, 28).join('') : null;
-        notes = [
-            `nav ${at} route ${JSON.stringify({ source, app: null, state, carplay: flags[0], androidAuto: flags[1],
-                provider: flags[2], carplayMetadata: carplayMeta, query: replyOK })}`,
-            `nav ${at} turn ${JSON.stringify({ maneuver: card && card.arrow, uid: turn && turn.id, distance: card && card.dist || null,
-                street: isExit ? null : name, exitName: isExit ? name : null, roundaboutExit: card && card.exit || null,
-                eventTime: null })}`,
-            `nav ${at} Guidance ${JSON.stringify(laneReport(sample))}`,
-            `nav ${at} ProjectedModeGuiding ${JSON.stringify(laneReport(projected))}`
-        ];
+        report('route', { source, app: null, state, carplay: flags[0], androidAuto: flags[1],
+            provider: flags[2], carplayMetadata: carplayMeta, query: replyOK });
+        const distance = card && card.dist || null;
+        report('turn', { maneuver: card && card.arrow, uid: turn && turn.id, distance,
+            street: isExit ? null : name, exitName: isExit ? name : null, roundaboutExit: card && card.exit || null, eventTime: null },
+        [source, turn && turn.id, card && card.arrow, name, card && card.exit, distance !== null]);
+        report('Guidance', laneReport(sample));
+        report('ProjectedModeGuiding', laneReport(projected));
+        notes = notes.slice(-24);
     };
     const read = (diagnostics) => events().then((p) => {
         if (!p && !diagnostics) {
             return { none: true };
         }
-        const report = diagnostics === true && Date.now() >= nextReport;
+        const report = diagnostics === true;
+        if (!report) {
+            reports.clear();
+        }
         const flags = Promise.all([
             readField(carplayManager, PROJECTION_ACTIVE, readMs).then(flag),
             readField(androidManager, PROJECTION_ACTIVE, readMs).then(flag),
@@ -263,9 +275,6 @@ function turnReader(someipBuilders, log, options) {
             readField(carplayManager, 'projectedGuidanceMetadataAvailable', readMs).then(flag),
             phone.read()
         ]) : null;
-        if (report) {
-            nextReport = Date.now() + DIAGNOSTIC_MS;
-        }
         return Promise.all([turn.then((reply) => ({ reply }), (error) => ({ error })), laneSample, flags]).then(([query, lanes, route]) => {
             const source = projectedRoute(...route);
             const maneuver = nextManeuver(query.reply);
@@ -329,6 +338,8 @@ class TurnGuideSync {
         this._fails = 0;
         this._reading = false;
         this._telling = false;     /* a turn is being told, for the log */
+        this._overlay = false;
+        this._overlayEpoch = 0;
         this._timer = null;
         this._stopped = true;
         this._onStatus = () => this.follow();
@@ -420,6 +431,7 @@ class TurnGuideSync {
             }
         }
         if (!status) {
+            this._setOverlay(false);
             return null;
         }
         const cardOn = status.hud === 1 && status.hud_card === 1;
@@ -433,6 +445,7 @@ class TurnGuideSync {
             }
         }
         const overlay = cardOn && status.hud_state === 'showing' && status.nav_live === 1;
+        this._setOverlay(overlay);
         if (!overlay) {
             this._sent = null;
             this._said(false);
@@ -440,7 +453,14 @@ class TurnGuideSync {
         if (!inUse || this._none || (!overlay && !diagnostics)) {
             return null;
         }
-        return { send, name: page ? 'page' : 'link', diagnostics, overlay };
+        return { send, name: page ? 'page' : 'link', diagnostics, overlay, epoch: this._overlayEpoch };
+    }
+
+    _setOverlay(visible) {
+        if (this._overlay && !visible) {
+            this._overlayEpoch++;
+        }
+        this._overlay = visible;
     }
 
     _said(telling) {
@@ -484,6 +504,8 @@ class TurnGuideSync {
 
     _read(channel) {
         this._reading = true;
+        const stillShowing = (now) => channel.overlay && now && now.overlay &&
+            now.epoch === channel.epoch && now.name === channel.name;
         return Promise.resolve().then(() => this._reader.read(channel.diagnostics)).then((r) => {
             this._fails = 0;
             if (r && r.none) {
@@ -497,13 +519,13 @@ class TurnGuideSync {
             /* the connection as it is now: the page may have opened meanwhile */
             const now = this._stopped ? null : this._channel();
             this._notes(now);
-            if (channel.overlay && now && now.overlay && now.name === channel.name) {
+            if (stillShowing(now)) {
                 this._tell(now, card);
             }
         }, (e) => {
             const now = this._stopped ? null : this._channel();
             this._notes(now);
-            if (channel.overlay && now && now.overlay && now.name === channel.name) {
+            if (stillShowing(now)) {
                 this._tell(now, null);
             }
             this._failed(e);

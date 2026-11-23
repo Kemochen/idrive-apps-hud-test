@@ -214,8 +214,9 @@ async function main() {
         assert.strictEqual(b.laneReads, 4, 'read again after lanesWaitMs');
     });
     await check('opt-in diagnostics report source, turn fields and separate lane availability; coordinates are excluded', async () => {
+        let projected = { rows: [] };
         const b = builders({ reply: () => reply('STRAIGHT_ON'), provider: 'CAR_PLAY',
-            lanes: () => Object.assign({ latitude: 49.1 }, LANES), phoneLanes: () => ({ rows: [] }) });
+            lanes: () => Object.assign({ latitude: 49.1 }, LANES), phoneLanes: () => projected });
         const r = turnReader(b, quiet(), { readMs: 200 });
         await r.read();
         assert.deepStrictEqual(r.takeNotes(), []);
@@ -232,7 +233,12 @@ async function main() {
         assert.doesNotMatch(notes.join('\n'), /latitude|49\.1/);
         assert.deepStrictEqual(r.takeNotes(), [], 'taken once');
         await r.read(true);
-        assert.deepStrictEqual(r.takeNotes(), [], 'samples are rate limited');
+        assert.deepStrictEqual(r.takeNotes(), [], 'identical samples are coalesced');
+        projected = LANES;
+        await r.read(true);
+        const change = r.takeNotes();
+        assert.strictEqual(change.length, 1);
+        assert.match(change[0], /ProjectedModeGuiding .*"count":2/);
     });
     await check('normal rendering does not read the diagnostics-only ProjectedModeGuiding source', async () => {
         const b = builders({ reply: () => reply('STRAIGHT_ON'), lanes: () => LANES, phoneHangs: true });
