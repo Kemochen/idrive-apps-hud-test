@@ -256,6 +256,14 @@ async function main() {
         assert.deepStrictEqual(await r.read(true), { card: card('straight', '200 m', 's*,r') });
         assert.match(r.takeNotes()[3], /ProjectedModeGuiding .*"status":"unsupported","count":null/);
     });
+    await check('diagnostics can still sample route and lane interfaces after a missing event list is detected', async () => {
+        const r = turnReader(builders({ noEvents: true, reply: () => NO_TURN, lanes: () => LANES }), quiet(), { readMs: 200 });
+        assert.deepStrictEqual(await r.read(), { none: true });
+        assert.deepStrictEqual(await r.read(true), { card: null });
+        const notes = r.takeNotes();
+        assert.match(notes[0], /"query":false/);
+        assert.match(notes[2], /Guidance .*"count":2/);
+    });
     await check('cancel, disconnected CarPlay, and unrelated routes suppress otherwise readable turns', async () => {
         for (const state of [{ carplay: false, provider: 'CAR_PLAY' }, { disconnected: true }, { android: true },
             { provider: 'ANDROID_AUTO' }, { carplay: false, nativeState: 'ACTIVE' }]) {

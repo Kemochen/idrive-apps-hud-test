@@ -332,6 +332,7 @@ class TurnGuideSync {
         this._pageWas = false;     /* the page was open at the last look */
         this._inUse = undefined;   /* the setting in use, as last seen; undefined: not known */
         this._none = false;        /* the head unit has no guidance list */
+        this._diagnostics = false;
         this._sent = null;         /* what was last told, and through which connection */
         this._sentAt = 0;
         this._readAt = 0;          /* no read before this */
@@ -421,7 +422,7 @@ class TurnGuideSync {
                 status = c.renderStatus;
                 send = (m) => c.render.send(m);
             }
-        } else if (this._none || this._inUse === false || Date.now() < this._holdUntil) {
+        } else if ((this._none && !this._diagnostics) || this._inUse === false || Date.now() < this._holdUntil) {
             this._link.close();
         } else {
             this._link.open();
@@ -436,6 +437,7 @@ class TurnGuideSync {
         }
         const cardOn = status.hud === 1 && status.hud_card === 1;
         const diagnostics = status.nav_diagnostics === 1;
+        this._diagnostics = diagnostics;
         const inUse = cardOn || diagnostics;
         if (inUse !== this._inUse) {
             this._inUse = inUse;
@@ -444,13 +446,13 @@ class TurnGuideSync {
                 this._link.close();
             }
         }
-        const overlay = cardOn && status.hud_state === 'showing' && status.nav_live === 1;
+        const overlay = !this._none && cardOn && status.hud_state === 'showing' && status.nav_live === 1;
         this._setOverlay(overlay);
         if (!overlay) {
             this._sent = null;
             this._said(false);
         }
-        if (!inUse || this._none || (!overlay && !diagnostics)) {
+        if (!inUse || (!overlay && !diagnostics)) {
             return null;
         }
         return { send, name: page ? 'page' : 'link', diagnostics, overlay, epoch: this._overlayEpoch };
@@ -521,6 +523,8 @@ class TurnGuideSync {
             this._notes(now);
             if (stillShowing(now)) {
                 this._tell(now, card);
+            } else if (channel.overlay && this._overlayEpoch !== channel.epoch && typeof this._reader.reset === 'function') {
+                this._reader.reset();
             }
         }, (e) => {
             const now = this._stopped ? null : this._channel();
