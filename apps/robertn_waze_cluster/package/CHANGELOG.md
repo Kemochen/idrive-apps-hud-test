@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+Add an adaptive HUD prototype with read-only shadow diagnostics and OEM HUD
+pass-through while warning priority and junction inputs are unverified.
+
 Gate the HUD card on active projected guidance and a live map stream. Clear
 missing lane metadata and guard against replaying a previous maneuver's
 lane row. Add opt-in diagnostics for BMW's turn and lane interfaces.

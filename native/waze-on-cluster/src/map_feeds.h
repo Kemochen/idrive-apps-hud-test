@@ -122,7 +122,7 @@ private:
     /* The HUD's feed made or dropped to match the setting and the target. */
     void follow();
     /* The HUD's map is wanted: on, and not hidden for a Sport mode. */
-    bool hud_wanted() const { return hud_on_ && !hidden_for_sport(); }
+    bool hud_wanted() const { return hud_on_ && !base_.adaptive_hud && !hidden_for_sport(); }
     bool hidden_for_sport() const { return hud_hide_sport_ && sport_; }
     /* The HUD's copy of the newest picture, when it is due. */
     void feed_hud(int64_t now_ms);

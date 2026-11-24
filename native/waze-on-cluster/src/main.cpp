@@ -81,7 +81,7 @@ std::vector<std::string> g_local_conf_warnings;
 volatile sig_atomic_t g_stop;
 void on_signal(int) { g_stop = 1; }
 
-std::string status_line(const FeedStatus &s, bool nav_live, bool nav_diagnostics)
+std::string status_line(const FeedStatus &s, bool nav_live, bool nav_diagnostics, bool adaptive_hud)
 {
     return "{\"ev\":\"status\",\"state\":" + json_escape(s.state) + ",\"target\":" + json_escape(s.target) +
            ",\"page\":" + json_escape(s.page) + ",\"reason\":" + json_escape(s.reason) +
@@ -100,6 +100,7 @@ std::string status_line(const FeedStatus &s, bool nav_live, bool nav_diagnostics
            ",\"hud_card_crop\":" + std::to_string(s.hud_card_crop) +
            ",\"nav_live\":" + (nav_live ? "1" : "0") +
            ",\"nav_diagnostics\":" + (nav_diagnostics ? "1" : "0") +
+           ",\"adaptive_hud\":" + (adaptive_hud ? "1" : "0") +
            /* only while hosted: otherwise the line is as it always was */
            (s.hosted ? ",\"hosted\":1" : "") + "}";
 }
@@ -340,6 +341,7 @@ int serve(Config cfg)
         {"hud_scale_down", 0, 1},   {"hud_round_corners", 0, 1},     {"hud_black_background", 0, 1},
         {"hud_keep_shown", 0, 1},   {"hud_hide_sport", 0, 1},
         {"hud_card", 0, 1},         {"hud_card_pct", 50, 150},        {"nav_diagnostics", 0, 1},
+        {"adaptive_hud", 0, 1},
         {"hud_card_x", -800, 800},  {"hud_card_y", -800, 800},  {"hud_card_crop", 0, 40},
         {"freeze_ms", 0, 600000},   {"freeze_min_fps", 1, 60},       {"alt_screen_port", 0, 65535},
         {"idle_ms", 1000, 600000},  {"blank_ms", 1000, 600000},
@@ -385,6 +387,7 @@ int serve(Config cfg)
     fc.hud_offset_x = (int)cfg.num("hud_offset_x");
     fc.hud_offset_y = (int)cfg.num("hud_offset_y");
     fc.hud_keep_shown = cfg.num("hud_keep_shown") != 0;
+    fc.adaptive_hud = cfg.num("adaptive_hud") == 1;
     fc.card.on = cfg.num("hud_card") == 1;
     fc.card.pct = (unsigned)cfg.num("hud_card_pct");
     fc.card.dx = (int)cfg.num("hud_card_x");
@@ -493,7 +496,7 @@ int serve(Config cfg)
             producer.set_part(feed.part());
         producer.retry_sources(now);
         const FeedStatus fs = feed.status(producer.decode_status(), producer.stream_reason());
-        const std::string status = status_line(fs, live, nav_diagnostics);
+        const std::string status = status_line(fs, live, nav_diagnostics, fc.adaptive_hud);
         /* The frame rate changes the status every second; the log keeps
          * to its state, reason and target, so the app's last lines are not
          * all status. */
@@ -677,6 +680,7 @@ void define_keys(Config *cfg)
     cfg->define("hud_hide_sport", "0");
     cfg->define("hud_card", "0");
     cfg->define("nav_diagnostics", "0");
+    cfg->define("adaptive_hud", "1");
     cfg->define("hud_card_pct", "100");
     cfg->define("hud_card_x", "0");
     cfg->define("hud_card_y", "0");

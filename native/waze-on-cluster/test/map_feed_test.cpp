@@ -1404,6 +1404,21 @@ int main()
 {
     signal(SIGPIPE, SIG_IGN);
     setvbuf(stdout, nullptr, _IONBF, 0);
+    {
+        FeedConfig config;
+        config.adaptive_hud = true;
+        config.hud_keep_shown = true;
+        config.card.on = true;
+        MapFeeds adaptive(config, true, true, 10);
+        adaptive.set_hud(false);
+        adaptive.set_hud(true);
+        adaptive.set_stream(true, false, Picture::None);
+        Turn turn;
+        turn.arrow = "right";
+        adaptive.set_turn(turn, 1);
+        ok("unverified adaptive HUD reserves no slot and leaves the cluster feed intact",
+           adaptive.cluster() && !adaptive.hud_feed() && adaptive.status("decode").hud_state == "adaptive_oem");
+    }
     hosting();
     vpp_hosting();
     always_packed_map();

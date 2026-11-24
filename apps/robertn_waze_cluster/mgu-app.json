@@ -16,7 +16,8 @@
     "src/render_link.js",
     "src/turn_decode.js",
     "src/lane_reader.js",
-    "src/turn_guide.js"
+    "src/turn_guide.js",
+    "src/adaptive_hud.js"
   ],
   "sdk": [
     "oap-sdk/src/core/OnlineApp.js",

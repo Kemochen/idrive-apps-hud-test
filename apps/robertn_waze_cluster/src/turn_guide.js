@@ -38,6 +38,7 @@
 const { within } = require('./profile_sync.js');
 const { nextManeuver, eventsOf, lanesOf, laneItem } = require('./turn_decode.js');
 const { laneSource, LANES_WAIT_MS } = require('./lane_reader.js');
+const { AdaptiveHUDController } = require('./adaptive_hud.js');
 
 const EVENTS_IFACE = 'de.bmw.infotainment.navigation.guiding.GuidanceEventList';
 const LANES_IFACE = 'de.bmw.infotainment.navigation.guiding.Guidance';
@@ -253,7 +254,7 @@ function turnReader(someipBuilders, log, options) {
         report('ProjectedModeGuiding', laneReport(projected));
         notes = notes.slice(-24);
     };
-    const read = (diagnostics) => events().then((p) => {
+    const read = (diagnostics, adaptive) => events().then((p) => {
         if (!p && !diagnostics) {
             return { none: true };
         }
@@ -286,7 +287,13 @@ function turnReader(someipBuilders, log, options) {
                 if (query.error) {
                     throw query.error;
                 }
-                return { card };
+                if (!adaptive) return { card };
+                const row = laneReport(lanes);
+                const complete = row.status === 'available' && row.count > 0 && row.count <= 6 && row.unreliable !== true &&
+                    row.arrows && row.arrows.every((arrow) => arrow !== '-') && row.recommended.some(Boolean);
+                const turn = card && Object.assign({}, card, { key: maneuver.id, kind: maneuver.kind });
+                return { card, sample: { connected: source === 'CAR_PLAY', active: source === 'CAR_PLAY',
+                    at: Date.now(), turn, lanesVerified: Boolean(complete) } };
             };
             if (!report) {
                 return result();
@@ -343,6 +350,8 @@ class TurnGuideSync {
         this._overlayEpoch = 0;
         this._timer = null;
         this._stopped = true;
+        this._adaptive = new AdaptiveHUDController(o.adaptiveSettings);
+        this._adaptiveState = null;
         this._onStatus = () => this.follow();
     }
 
@@ -455,7 +464,8 @@ class TurnGuideSync {
         if (!inUse || (!overlay && !diagnostics)) {
             return null;
         }
-        return { send, name: page ? 'page' : 'link', diagnostics, overlay, epoch: this._overlayEpoch };
+        return { send, name: page ? 'page' : 'link', diagnostics, overlay, epoch: this._overlayEpoch,
+            adaptive: diagnostics && status.adaptive_hud === 1 && status.hud === 1 };
     }
 
     _setOverlay(visible) {
@@ -504,11 +514,27 @@ class TurnGuideSync {
         }
     }
 
+    _observeAdaptive(channel, sample) {
+        if (!channel || !channel.adaptive) {
+            this._adaptive.reset('IDLE');
+            this._adaptiveState = null;
+            return;
+        }
+        // Compute an offline prediction from a real read. The native service never
+        // creates a HUD layer in this mode, even if the prediction asks for one.
+        const decision = this._adaptive.update(Date.now(), sample ? Object.assign({}, sample,
+            { warning: false, priorityVerified: true }) : null);
+        if (decision.state !== this._adaptiveState) {
+            this._adaptiveState = decision.state;
+            channel.send({ cmd: 'note', text: `adaptive HUD shadow ${decision.state}; OEM output only` });
+        }
+    }
+
     _read(channel) {
         this._reading = true;
         const stillShowing = (now) => channel.overlay && now && now.overlay &&
             now.epoch === channel.epoch && now.name === channel.name;
-        return Promise.resolve().then(() => this._reader.read(channel.diagnostics)).then((r) => {
+        return Promise.resolve().then(() => this._reader.read(channel.diagnostics, channel.adaptive)).then((r) => {
             this._fails = 0;
             if (r && r.none) {
                 this._none = true;
@@ -521,6 +547,7 @@ class TurnGuideSync {
             /* the connection as it is now: the page may have opened meanwhile */
             const now = this._stopped ? null : this._channel();
             this._notes(now);
+            this._observeAdaptive(now, channel.adaptive && now && now.name === channel.name && r ? r.sample : null);
             if (stillShowing(now)) {
                 this._tell(now, card);
             } else if (channel.overlay && this._overlayEpoch !== channel.epoch && typeof this._reader.reset === 'function') {
@@ -529,6 +556,7 @@ class TurnGuideSync {
         }, (e) => {
             const now = this._stopped ? null : this._channel();
             this._notes(now);
+            this._observeAdaptive(now, null);
             if (stillShowing(now)) {
                 this._tell(now, null);
             }

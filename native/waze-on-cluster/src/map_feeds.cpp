@@ -266,7 +266,7 @@ FeedStatus MapFeeds::status(const std::string &decode, const std::string &stream
     s.cluster = cluster_on_;
     s.hud = hud_on_;
     if (!hud_) {
-        s.hud_state = hud_on_ && hidden_for_sport() ? "sport" : "off";
+        s.hud_state = !hud_on_ ? "off" : base_.adaptive_hud ? "adaptive_oem" : hidden_for_sport() ? "sport" : "off";
     } else {
         const FeedStatus h = hud_->status(decode, stream);
         s.hud_state = h.disabled ? "disabled" : h.state;

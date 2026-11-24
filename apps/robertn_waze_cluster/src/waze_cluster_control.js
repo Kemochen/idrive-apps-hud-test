@@ -479,6 +479,7 @@ class WazeClusterControl extends EventEmitter {
         case 'frozen':
             return t('Frozen');
         case 'off':
+        case 'adaptive_oem':
             return t('Off');
         case 'sport':
             return t('Hidden in Sport mode');
