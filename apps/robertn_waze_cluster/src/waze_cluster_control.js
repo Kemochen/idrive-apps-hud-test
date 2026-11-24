@@ -479,8 +479,9 @@ class WazeClusterControl extends EventEmitter {
         case 'frozen':
             return t('Frozen');
         case 'off':
-        case 'adaptive_oem':
             return t('Off');
+        case 'adaptive_oem':
+            return t('BMW HUD (diagnostics)');
         case 'sport':
             return t('Hidden in Sport mode');
         default:
@@ -621,6 +622,23 @@ class WazeClusterControl extends EventEmitter {
             const hide = !this.hudHideSport();
             this.render.send({ cmd: 'hud', hud_hide_sport: hide ? '1' : '0' });
             this.patch.send({ cmd: 'hud-hide-sport', on: hide ? 1 : 0 });
+        }
+    }
+
+    hudAdaptive() {
+        const value = this.renderStatus && this.renderStatus.adaptive_hud;
+        return value === 0 || value === 1 ? value === 1 : null;
+    }
+
+    canToggleHudAdaptive() {
+        return this.canChangeHudSize() && this.connectedPatch() && this.hudAdaptive() !== null;
+    }
+
+    toggleHudAdaptive() {
+        if (this.canToggleHudAdaptive()) {
+            const on = this.hudAdaptive() ? 0 : 1;
+            this.render.send({ cmd: 'hud', adaptive_hud: String(on) });
+            this.patch.send({ cmd: 'hud-adaptive', on });
         }
     }
 
@@ -1262,7 +1280,7 @@ class WazeClusterControl extends EventEmitter {
             this._noteCardAsked(msg);
             this._wake();
             this.emit('change');
-        } else if (/^(cluster|hud|hud-size|hud-pos|hud-keep-shown|hud-hide-sport|hud-card|hud-card-size|hud-card-pos|hud-card-crop)-reply$/.test(msg.ev)) {
+        } else if (/^(cluster|hud|hud-size|hud-pos|hud-keep-shown|hud-hide-sport|hud-card|hud-card-size|hud-card-pos|hud-card-crop|hud-adaptive)-reply$/.test(msg.ev)) {
             if (!msg.ok) {
                 this._log.info(`patchd did not save the setting: ${msg.reason || 'refused'}`);
             }

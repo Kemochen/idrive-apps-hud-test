@@ -1418,6 +1418,10 @@ int main()
         adaptive.set_turn(turn, 1);
         ok("unverified adaptive HUD reserves no slot and leaves the cluster feed intact",
            adaptive.cluster() && !adaptive.hud_feed() && adaptive.status("decode").hud_state == "adaptive_oem");
+        adaptive.set_adaptive_hud(false);
+        ok("returning to the existing mode recreates the HUD feed", adaptive.hud_feed() && !adaptive.adaptive_hud());
+        adaptive.set_adaptive_hud(true);
+        ok("selecting adaptive diagnostics drops the existing HUD feed", !adaptive.hud_feed() && adaptive.cluster());
     }
     hosting();
     vpp_hosting();

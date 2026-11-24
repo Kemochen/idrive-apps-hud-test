@@ -98,6 +98,8 @@
     "Own settings for this driver": "此駕駛的專屬設定",
     "Keep HUD map over BMW's pop-ups": "HUD 地圖保持在 BMW 彈出視窗之上",
     "Hide HUD map in Sport mode": "運動模式下隱藏 HUD 地圖",
+    "Adaptive diagnostics (BMW HUD)": "自適應診斷（原廠 HUD）",
+    "BMW HUD (diagnostics)": "原廠 HUD（診斷）",
     "Hidden in Sport mode": "運動模式下已隱藏",
     "Turn card on HUD": "HUD 轉向卡片",
     "Turn card size: {0}": "轉向卡片大小：{0}",

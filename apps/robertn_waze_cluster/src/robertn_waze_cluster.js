@@ -101,6 +101,7 @@ const HEAD_HUD_NAME = 'wocHeadHud';
 const HUD_NAME = 'wocHud';
 const HUD_KEEP_NAME = 'wocHudKeep';
 const HUD_SPORT_NAME = 'wocHudSport';
+const HUD_ADAPTIVE_NAME = 'wocHudAdaptive';
 const SHOW_ON_NAME = 'wocShowOn';
 const PROFILE_NAME = 'wocProfile';
 const HUD_SIZE_NAME = 'wocHudSize';
@@ -247,7 +248,7 @@ class WazeClusterApp extends OnlineApp {
         }
         const names = [STATUS_NAME, MAP_NAME, RESTART_STATUS_NAME, ENABLE_NAME, DISABLE_NAME, WIFI_NAME, WIFI_HINT_NAME, AA_STATUS_NAME,
             AA_ENABLE_NAME, AA_DISABLE_NAME, AA_ZOOM_NAME, AA_ZOOM_OUT_NAME, AA_ZOOM_IN_NAME, AA_CARD_NAME, RESTART_NAME, GUIDE_NAME,
-            HEAD_GENERAL_NAME, HEAD_HUD_NAME, SHOW_ON_NAME, PROFILE_NAME, HUD_NAME, HUD_KEEP_NAME, HUD_SPORT_NAME, HUD_SIZE_NAME, HUD_POS_NAME]
+            HEAD_GENERAL_NAME, HEAD_HUD_NAME, SHOW_ON_NAME, PROFILE_NAME, HUD_NAME, HUD_ADAPTIVE_NAME, HUD_KEEP_NAME, HUD_SPORT_NAME, HUD_SIZE_NAME, HUD_POS_NAME]
             .concat(Object.values(HUD_MOVE_NAMES), [HUD_CENTRE_NAME, HUD_CARD_NAME, HUD_CARD_SIZE_NAME, HUD_CARD_CROP_NAME, HUD_CARD_POS_NAME],
                 Object.values(HUD_CARD_MOVE_NAMES), [HUD_CARD_RESET_NAME, CAPTURE_NAME, CAPTURE_STATUS,
                 LOGS_NAME, LOGS_SAVE, LOGS_STATUS, LOGS_QR, LOGS_URL], LOGS_ROW_NAMES);
@@ -278,6 +279,11 @@ class WazeClusterApp extends OnlineApp {
             /* as for the turn box: the render's answer decides the tick */
             delete this._written[`selected:${HUD_KEEP_NAME}`];
             this._control.toggleHudKeep();
+            this._render();
+        });
+        this._bind(HUD_ADAPTIVE_NAME, () => {
+            this._control.toggleHudAdaptive();
+            delete this._written[`selected:${HUD_ADAPTIVE_NAME}`];
             this._render();
         });
         this._bind(HUD_SPORT_NAME, () => {
@@ -666,6 +672,9 @@ class WazeClusterApp extends OnlineApp {
         this._setSelected(HUD_KEEP_NAME, c.hudKeepShown() === true);
         this._setEnabled(HUD_KEEP_NAME, c.canKeepHud());
         this._write(HUD_SPORT_NAME, t('Hide HUD map in Sport mode'));
+        this._write(HUD_ADAPTIVE_NAME, t('Adaptive diagnostics (BMW HUD)'));
+        this._setSelected(HUD_ADAPTIVE_NAME, c.hudAdaptive() === true);
+        this._setEnabled(HUD_ADAPTIVE_NAME, c.canToggleHudAdaptive());
         this._setSelected(HUD_SPORT_NAME, c.hudHideSport() === true);
         /* greyed too on a head unit that has no driving mode to read */
         this._setEnabled(HUD_SPORT_NAME, c.canHideHudInSport() && this._drive.available());

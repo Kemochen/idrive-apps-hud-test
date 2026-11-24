@@ -258,9 +258,9 @@ var LOCAL_CONF = process.env.WOC_LOCAL_CONF || '/var/opt/waze-on-cluster/waze-on
  * start with any of MAP_KEYS in. */
 var MAP_STATE = path.join(STATE_DIR, 'map.state.conf');
 var MAP_KEYS = ['cluster', 'hud', 'hud_width_pct', 'hud_offset_x', 'hud_offset_y', 'hud_keep_shown', 'hud_hide_sport',
-    'hud_card', 'hud_card_pct', 'hud_card_x', 'hud_card_y', 'hud_card_crop'];
+    'hud_card', 'hud_card_pct', 'hud_card_x', 'hud_card_y', 'hud_card_crop', 'adaptive_hud'];
 /* Keys added after the first sets were saved: one missing from a saved set is its default. */
-var MAP_KEYS_ADDED = ['hud_keep_shown', 'hud_hide_sport', 'hud_card', 'hud_card_pct', 'hud_card_x', 'hud_card_y', 'hud_card_crop'];
+var MAP_KEYS_ADDED = ['hud_keep_shown', 'hud_hide_sport', 'hud_card', 'hud_card_pct', 'hud_card_x', 'hud_card_y', 'hud_card_crop', 'adaptive_hud'];
 var CARD_MIN_PCT = 50, CARD_MAX_PCT = 150;   /* the turn card's size, % of the drawn one */
 var CARD_CROP_MAX = 40;   /* the HUD map's height cut while the turn card is on, % */
 /* The opt-in settings: the render reads this file (its features_file) over
@@ -437,7 +437,7 @@ var PROFILES_FILE = path.join(STATE_DIR, 'profiles.json');
 var PROFILE_ID = /^[A-Za-z0-9][A-Za-z0-9._:@+={}-]{0,127}$/;
 var MAX_OWN = 16;
 var MAP_DEFAULTS = { cluster: 1, hud: 0, hud_width_pct: 0, hud_offset_x: 0, hud_offset_y: 0, hud_keep_shown: 0, hud_hide_sport: 0,
-    hud_card: 0, hud_card_pct: 100, hud_card_x: 0, hud_card_y: 0, hud_card_crop: 20 };
+    hud_card: 0, hud_card_pct: 100, hud_card_x: 0, hud_card_y: 0, hud_card_crop: 20, adaptive_hud: 0 };
 var profiles = null;          /* PROFILES_FILE as read at the start, and changed since */
 var currentProfile;           /* the profile the app last told (null: none; undefined: not told since the start) */
 var restored = false;         /* MAP_STATE written from PROFILES_FILE at the start, not yet told to the app */
@@ -1844,6 +1844,11 @@ function handle(line, sock) {
     if (msg.cmd === 'hud-hide-sport') {
         if (msg.on !== 0 && msg.on !== 1) { reply(sock, { ev: 'hud-hide-sport-reply', ok: false, reason: 'on must be 0 or 1' }); return; }
         saveMapSettings(sock, 'hud-hide-sport-reply', { hud_hide_sport: msg.on }, 'the HUD map in a Sport mode');
+        return;
+    }
+    if (msg.cmd === 'hud-adaptive') {
+        if (msg.on !== 0 && msg.on !== 1) { reply(sock, { ev: 'hud-adaptive-reply', ok: false, reason: 'on must be 0 or 1' }); return; }
+        saveMapSettings(sock, 'hud-adaptive-reply', { adaptive_hud: msg.on }, 'adaptive HUD diagnostics');
         return;
     }
     /* The HUD's turn card: on or off, its size, where it is. */

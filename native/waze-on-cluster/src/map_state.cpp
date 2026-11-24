@@ -13,9 +13,9 @@
 
 namespace woc {
 
-const char *const kMapStateKeys[12] = {"cluster",      "hud",            "hud_width_pct",  "hud_offset_x",
+const char *const kMapStateKeys[13] = {"cluster",      "hud",            "hud_width_pct",  "hud_offset_x",
                                        "hud_offset_y", "hud_keep_shown", "hud_hide_sport", "hud_card",
-                                       "hud_card_pct", "hud_card_x",     "hud_card_y",     "hud_card_crop"};
+                                       "hud_card_pct", "hud_card_x",     "hud_card_y",     "hud_card_crop", "adaptive_hud"};
 
 namespace {
 

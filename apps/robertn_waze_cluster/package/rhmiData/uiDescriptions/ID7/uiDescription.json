@@ -235,6 +235,32 @@
             }
           ]
         },
+        "74": {
+          "type": "checkBox",
+          "name": "wocHudAdaptive",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Adaptive diagnostics (BMW HUD)",
+                "type": "Text"
+              },
+              "eParam_RowSelected": {
+                "value": false,
+                "type": "Bool"
+              }
+            }
+          ]
+        },
         "61": {
           "type": "checkBox",
           "name": "wocHudKeep",

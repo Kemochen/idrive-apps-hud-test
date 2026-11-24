@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+Add an HUD switch for BMW HUD with adaptive diagnostics. The existing map
+and turn card remain the default. Each driver can save their preferred mode.
+
 Add an adaptive HUD prototype with read-only shadow diagnostics and OEM HUD
 pass-through while warning priority and junction inputs are unverified.
 

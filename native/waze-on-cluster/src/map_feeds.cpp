@@ -73,7 +73,7 @@ void MapFeeds::follow()
          * HUD's slot go */
         hud_.reset();
         copy_ = std::vector<uint8_t>();
-        log_info(hud_on_ ? "hud: hidden, the car is in a Sport mode" : "hud: off");
+        log_info(!hud_on_ ? "hud: off" : base_.adaptive_hud ? "hud: BMW HUD for adaptive diagnostics" : "hud: hidden, the car is in a Sport mode");
     }
 }
 
@@ -96,6 +96,15 @@ void MapFeeds::set_cluster(bool on)
 void MapFeeds::set_hud(bool on)
 {
     hud_on_ = on;
+    follow();
+}
+
+void MapFeeds::set_adaptive_hud(bool on)
+{
+    if (base_.adaptive_hud == on)
+        return;
+    base_.adaptive_hud = on;
+    set_turn(Turn(), 0);
     follow();
 }
 
@@ -151,7 +160,7 @@ void MapFeeds::set_card(const CardConfig &c)
 
 void MapFeeds::set_turn(const Turn &t, int64_t now_ms)
 {
-    if (!live_ && !t.empty())
+    if ((!live_ || base_.adaptive_hud) && !t.empty())
         return;
     turn_ = t;
     turn_at_ms_ = now_ms;

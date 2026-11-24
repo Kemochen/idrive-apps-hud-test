@@ -142,6 +142,7 @@ class FakeRender extends LineServer {
         this.hudState = null;
         this.navLive = 1;
         this.navDiagnostics = 0;
+        this.adaptiveHud = 0;
         /* the HUD map kept shown over BMW's pop-ups (null: a tool without the field) */
         this.hudKeep = 0;
         /* the HUD map hidden in a Sport mode (null: a tool without the field), and the mode as told */
@@ -180,10 +181,12 @@ class FakeRender extends LineServer {
         /* hud null: a tool without the HUD's fields (one refused by its head unit) */
         if (this.hud !== null) {
             const hidden = this.hudHideSport === 1 && this.sport === 1;
-            Object.assign(s, { cluster: this.cluster, hud: this.hud, hud_state: !this.hud ? 'off' : hidden ? 'sport' : this.hudState || this.state,
+            Object.assign(s, { cluster: this.cluster, hud: this.hud,
+                hud_state: !this.hud ? 'off' : this.adaptiveHud === 1 ? 'adaptive_oem' : hidden ? 'sport' : this.hudState || this.state,
                 nav_live: this.navLive, nav_diagnostics: this.navDiagnostics,
                 hud_width_pct: this.hudWidth || 0, hud_x: this.hudX || 0, hud_y: this.hudY || 0 });
             if (this.hudKeep !== null) s.hud_keep_shown = this.hudKeep;
+            if (this.adaptiveHud !== null) s.adaptive_hud = this.adaptiveHud;
             if (this.hudHideSport !== null) s.hud_hide_sport = this.hudHideSport;
             if (this.hudCard !== null) {
                 Object.assign(s, { hud_card: this.hudCard, hud_card_pct: this.hudCardPct, hud_card_x: this.hudCardX, hud_card_y: this.hudCardY });
@@ -240,6 +243,7 @@ class FakeRender extends LineServer {
             if (msg.hud_x !== undefined) this.hudX = lim(Number(msg.hud_x));
             if (msg.hud_y !== undefined) this.hudY = Number(msg.hud_y);
             if (msg.hud_keep_shown !== undefined && this.hudKeep !== null) this.hudKeep = Number(msg.hud_keep_shown);
+            if (msg.adaptive_hud !== undefined && this.adaptiveHud !== null) this.adaptiveHud = Number(msg.adaptive_hud);
             if (msg.hud_hide_sport !== undefined && this.hudHideSport !== null) this.hudHideSport = Number(msg.hud_hide_sport);
             if (this.hudCard !== null) {
                 const held = (v) => (this.cardMaxX ? Math.max(-this.cardMaxX, Math.min(this.cardMaxX, v)) : v);
@@ -365,7 +369,7 @@ class FakePatch extends LineServer {
             return;
         }
         const MAP = { cluster: ['cluster'], hud: ['hud'], 'hud-size': ['hud_width_pct'], 'hud-pos': ['hud_offset_x', 'hud_offset_y'],
-            'hud-keep-shown': ['hud_keep_shown'], 'hud-hide-sport': ['hud_hide_sport'], 'hud-card': ['hud_card'],
+            'hud-keep-shown': ['hud_keep_shown'], 'hud-hide-sport': ['hud_hide_sport'], 'hud-adaptive': ['adaptive_hud'], 'hud-card': ['hud_card'],
             'hud-card-size': ['hud_card_pct'], 'hud-card-pos': ['hud_card_x', 'hud_card_y'], 'hud-card-crop': ['hud_card_crop'] };
         if (MAP[msg.cmd]) {
             const v = msg.cmd === 'hud-pos' ? [msg.hud_x, msg.hud_y] : msg.cmd === 'hud-card-pos' ? [msg.hud_card_x, msg.hud_card_y]

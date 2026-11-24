@@ -333,6 +333,9 @@ class ProfileSync extends EventEmitter {
         if (s.hud_hide_sport === 0 || s.hud_hide_sport === 1) {
             hud.hud_hide_sport = on(s.hud_hide_sport);
         }
+        if (s.adaptive_hud === 0 || s.adaptive_hud === 1) {
+            hud.adaptive_hud = on(s.adaptive_hud);
+        }
         if (s.hud_card === 0 || s.hud_card === 1) {
             Object.assign(hud, { hud_card: on(s.hud_card), hud_card_pct: String(s.hud_card_pct), hud_card_x: String(s.hud_card_x),
                 hud_card_y: String(s.hud_card_y) });

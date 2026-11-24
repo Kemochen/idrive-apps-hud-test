@@ -129,6 +129,7 @@ public:
         auto hx = msg.find("hud_x"), hy = msg.find("hud_y"), on = msg.find("on");
         auto keep = msg.find("hud_keep_shown");
         auto hide_sport = msg.find("hud_hide_sport"), sport = msg.find("sport");
+        auto adaptive = msg.find("adaptive_hud");
         const bool card = msg.count("hud_card") || msg.count("hud_card_pct") || msg.count("hud_card_x") || msg.count("hud_card_y") ||
                           msg.count("hud_card_crop");
         if (cmd == "start" && it != msg.end()) {
@@ -151,7 +152,9 @@ public:
         } else if (cmd == "note" && nav_diagnostics_ && msg.count("text")) {
             on_note(msg.at("text"));
         } else if (cmd == "hud" && (on != msg.end() || pct != msg.end() || hx != msg.end() || hy != msg.end() ||
-                                    keep != msg.end() || hide_sport != msg.end() || card)) {
+                                    keep != msg.end() || hide_sport != msg.end() || adaptive != msg.end() || card)) {
+            if (adaptive != msg.end() && (adaptive->second == "0" || adaptive->second == "1"))
+                feeds_->set_adaptive_hud(adaptive->second == "1");
             if (on != msg.end()) {
                 if (on->second == "0" || on->second == "1")
                     feeds_->set_hud(on->second == "1");
@@ -496,7 +499,7 @@ int serve(Config cfg)
             producer.set_part(feed.part());
         producer.retry_sources(now);
         const FeedStatus fs = feed.status(producer.decode_status(), producer.stream_reason());
-        const std::string status = status_line(fs, live, nav_diagnostics, fc.adaptive_hud);
+        const std::string status = status_line(fs, live, nav_diagnostics, feed.adaptive_hud());
         /* The frame rate changes the status every second; the log keeps
          * to its state, reason and target, so the app's last lines are not
          * all status. */
@@ -680,7 +683,7 @@ void define_keys(Config *cfg)
     cfg->define("hud_hide_sport", "0");
     cfg->define("hud_card", "0");
     cfg->define("nav_diagnostics", "0");
-    cfg->define("adaptive_hud", "1");
+    cfg->define("adaptive_hud", "0");
     cfg->define("hud_card_pct", "100");
     cfg->define("hud_card_x", "0");
     cfg->define("hud_card_y", "0");

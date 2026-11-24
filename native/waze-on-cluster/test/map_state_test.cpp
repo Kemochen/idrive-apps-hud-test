@@ -42,6 +42,7 @@ static cld::Config conf()
     c.define("hud_card_x", "0");
     c.define("hud_card_y", "0");
     c.define("hud_card_crop", "20");
+    c.define("adaptive_hud", "0");
     return c;
 }
 
@@ -59,26 +60,26 @@ int main()
     unlink(path.c_str());
     cld::Config c = conf();
     load_map_state(&c, path);
-    ok("no state file: the configuration's", settings(c) == "1 0 60 0 0 0 0 0 100 0 0 20");
+    ok("no state file: the configuration's", settings(c) == "1 0 60 0 0 0 0 0 100 0 0 20 0");
     std::ofstream(path) << "hud = 1\ncluster = 0\nhud_width_pct = 85\nhud_offset_x = -40\nhud_offset_y = 800\n"
                            "hud_keep_shown = 1\nhud_hide_sport = 1\nhud_card = 1\nhud_card_pct = 150\nhud_card_x = -30\n"
-                           "hud_card_y = 800\nhud_card_crop = 40\n";
+                           "hud_card_y = 800\nhud_card_crop = 40\nadaptive_hud = 1\n";
     c = conf();
     load_map_state(&c, path);
-    ok("the state file's, over the configuration's", settings(c) == "0 1 85 -40 800 1 1 1 150 -30 800 40");
+    ok("the state file's, over the configuration's", settings(c) == "0 1 85 -40 800 1 1 1 150 -30 800 40 1");
     std::ofstream(path) << "cluster = 2\nhud = 1\nhud_width_pct = 10\n\nhud_offset_x = 900\nhud_offset_y = -20\n"
                            "hud_fps = 30\ntarget = panel\ngarbage\nhud = yes\nhud_keep_shown = 2\nhud_hide_sport = 2\n"
-                           "hud_card = 2\nhud_card_pct = 40\nhud_card_x = 801\nhud_card_y = -7\nhud_card_crop = 45\n";
+                           "hud_card = 2\nhud_card_pct = 40\nhud_card_x = 801\nhud_card_y = -7\nhud_card_crop = 45\nadaptive_hud = 2\n";
     c = conf();
     c.define("hud_fps", "10");
     c.define("target", "map");
     load_map_state(&c, path);
     ok("out of range, another key or a line that does not read: left out, the rest taken",
-       settings(c) == "1 1 60 0 -20 0 0 0 100 0 -7 20" && c.str("hud_fps") == "10" && c.str("target") == "map");
+       settings(c) == "1 1 60 0 -20 0 0 0 100 0 -7 20 0" && c.str("hud_fps") == "10" && c.str("target") == "map");
     std::ofstream(path) << "hud_width_pct = 0\nhud_offset_x = 1x\nhud_offset_y = \ncluster =1\n";
     c = conf();
     load_map_state(&c, path);
-    ok("Standard (0) taken; a number with more after it, or none, left out", settings(c) == "1 0 0 0 0 0 0 0 100 0 0 20");
+    ok("Standard (0) taken; a number with more after it, or none, left out", settings(c) == "1 0 0 0 0 0 0 0 100 0 0 20 0");
     std::ofstream(path) << "hud = 1\n";
     chmod(path.c_str(), 0);
     if (access(path.c_str(), R_OK) != 0) {   /* root reads it anyway */

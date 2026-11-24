@@ -2,9 +2,11 @@
 
 ## Status
 
-This branch implements an offline adaptive display and a head-unit observer. The observer reads BMW's navigation metadata through the existing OAP SDK and can log what the controller would show. `adaptive_hud = 1` is the native service default. In that mode it creates no custom HUD layer and leaves the factory HUD, including any stock Google Maps guidance that BMW displays, in control. The instrument-cluster map has its own settings. The branch does not establish real-car alert precedence or a Google Maps junction-geometry feed.
+This branch implements an offline adaptive display and a head-unit observer. The observer reads BMW's navigation metadata through the existing OAP SDK and can log what the controller would show. **HUD → Adaptive diagnostics (BMW HUD)** selects `adaptive_hud = 1`. In that mode it creates no custom HUD layer and leaves the factory HUD, including any stock Google Maps guidance that BMW displays, in control. Clearing the switch restores the existing HUD map and card. The switch defaults to off and is saved with the active profile's map settings. The instrument-cluster map has its own settings. The branch does not establish real-car alert precedence or a Google Maps junction-geometry feed.
 
 The baseline is the already tested Store experiment, `d6555d2`, descended from minakoto00's `79a4f20`. This keeps its existing app packaging, CarPlay compatibility gates, renderer integration, and logging. The separate branch leaves upstream and the previous release intact. Merging a newer renderer and patcher is a separate compatibility change.
+
+On the owner's 2021 G05, resizing the turn card also resized the HUD lane arrows while navigating with Google Maps over CarPlay. Recommended lanes matched the center display and cleared after the maneuver. This is observational evidence for the existing `Guidance.currentLaneGuiding` render path on that car. It does not establish packet contents, road geometry or warning precedence.
 
 ## Source comparison and evidence
 
@@ -35,7 +37,7 @@ The on-unit typed proxy uses the SOME/IP catalog (`/etc/oap/someip/someip-interf
 
 BMW's own [ID7 training manual §4.1.6](https://bmwtechinfo.bmwgroup.com/tech_training_manual/ST1855%20Displays%20and%20Controls%202018.pdf) documents High Guiding before maneuvers for instrument navigation. Its older [High Guiding technical description](https://www.press.bmwgroup.com/united-kingdom/article/attachment/T0128440EN_GB/192922) describes the short-range arrow-to-map transition and recommended lanes. That source's 150 m / 300 m examples predate ID7. It does not establish the 2021 G05 HUD's transition distances or all of its display priorities.
 
-Apple documents maneuver, junction and lane metadata as separate application-provided capabilities in the [CarPlay Developer Guide](https://developer.apple.com/download/files/CarPlay-Developer-Guide.pdf). No Google Maps capture from this G05 was supplied. Confirmed on this project are the OAP read path and the format it understands. Current road, separate highway exit number/destination, route distinction, trustworthy speed/position, precise map scale, ID stability, ordered maneuvers, lane availability and map-scene identity require on-unit checks. A lane banner on the center screen alone cannot distinguish between metadata present elsewhere, metadata never sent, and lanes drawn into the screen image.
+Apple documents maneuver, junction and lane metadata as separate application-provided capabilities in the [CarPlay Developer Guide](https://developer.apple.com/download/files/CarPlay-Developer-Guide.pdf). A raw Google Maps capture from this G05 is still pending. Current road, separate highway exit number/destination, route distinction, trustworthy speed/position, map scale, ID stability, and ordered maneuvers require on-unit checks. The HUD's existing map is the CarPlay second-screen video. It can serve as the junction preview if comparable frames prove it actually zooms and centers on the upcoming maneuver. Timing its visibility alone leaves the picture and camera unchanged.
 
 ## Architecture and configuration
 

@@ -64,6 +64,8 @@ public:
     /* The cluster and the HUD on or off, each at once. */
     void set_cluster(bool on);
     void set_hud(bool on);
+    void set_adaptive_hud(bool on);
+    bool adaptive_hud() const { return base_.adaptive_hud; }
     /* A feed takes frames: the cluster's, or the HUD's with its layer made
      * and not disabled. */
     bool wants_frames() const;
