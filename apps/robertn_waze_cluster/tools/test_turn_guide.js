@@ -180,6 +180,18 @@ async function main() {
         assert.deepStrictEqual(await r.read(), { card: card('right') });
         assert.strictEqual(fails.laneReads, 3, 'lanes failing three times in a row are left alone for a while');
     });
+    await check('adaptive observer accepts complete lane rows and preserves the maneuver UID', async () => {
+        const value = reply('STRAIGHT_ON');
+        value.viewContent[0].eventsInView[0].intersection.uid = '29';
+        let lanes = LANES;
+        const reader = turnReader(builders({ reply: () => value, lanes: () => lanes }), quiet(), { readMs: 200 });
+        const accepted = (await reader.read(true, true)).sample;
+        assert.strictEqual(accepted.turn.key, '29');
+        assert.strictEqual(accepted.turn.lanes, 's*,r');
+        assert.strictEqual(accepted.lanesVerified, true);
+        lanes = { rows: [{ lanes: Array(7).fill(LANES.rows[0].lanes[0]) }] };
+        assert.strictEqual((await reader.read(true, true)).sample.lanesVerified, false);
+    });
     await check('the reader: the lanes read as the other fields are: once Guidance is available, given twice readMs', async () => {
         const b = builders({ reply: () => reply('STRAIGHT_ON'), lanes: () => LANES, lanesDelayMs: 300 });
         assert.deepStrictEqual(await turnReader(b, quiet(), { readMs: 200 }).read(), { card: card('straight', '200 m', 's*,r') });
