@@ -412,8 +412,8 @@ async function main() {
         assert(!logs.some((l) => /^error/.test(l)), logs.filter((l) => /^error/.test(l)).join('\n'));
         const bound = logs.filter((l) => l.startsWith('info: BIND OK: ')).map((l) => l.split(' ')[3]).sort();
         assert.deepStrictEqual(bound, ['wocAaCard', 'wocAaDisable', 'wocAaEnable', 'wocAaZoomIn', 'wocAaZoomOut', 'wocCapture', 'wocDisable', 'wocEnable',
-            'wocGuide', 'wocHudCard', 'wocHudCardDown', 'wocHudCardLeft', 'wocHudCardReset', 'wocHudCardRight', 'wocHudCardUp', 'wocHudCentre', 'wocHudDown',
-            'wocHudAdaptive', 'wocHudKeep', 'wocHudLeft', 'wocHudRight', 'wocHudSport', 'wocHudUp', 'wocLogs', 'wocLogsSave', 'wocProfile',
+            'wocGuide', 'wocHudAdaptive', 'wocHudCard', 'wocHudCardDown', 'wocHudCardLeft', 'wocHudCardReset', 'wocHudCardRight', 'wocHudCardUp',
+            'wocHudCentre', 'wocHudDown', 'wocHudKeep', 'wocHudLeft', 'wocHudRight', 'wocHudSport', 'wocHudUp', 'wocLogs', 'wocLogsSave', 'wocProfile',
             'wocRestart'],
             'bound buttons and checkbox');
         assert.strictEqual(byName.wocRestart.visible, false, 'restart button hidden while the map shows');
@@ -553,6 +553,7 @@ async function main() {
         adaptive.press();
         await until('adaptive diagnostics enabled and saved', () => adaptive.selected && patch.map.adaptive_hud === 1 &&
             byName.wocHud.text === 'HUD map: BMW HUD (diagnostics)');
+        await sleep(450);
         adaptive.press();
         await until('the previous HUD map mode restored', () => !adaptive.selected && patch.map.adaptive_hud === 0 &&
             byName.wocHud.text === 'HUD map: Showing');
