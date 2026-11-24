@@ -8,8 +8,9 @@ const child = require('child_process');
 const fields = {
     GuidanceEventList: ['queryContent', 'getViewConfig'],
     Guidance: ['currentLaneGuiding', 'guidanceState', 'guidingProvider', 'conclusiveDart', 'nextIntersection'],
-    ProjectedModeGuiding: ['currentLaneGuiding', 'setGuidanceState', 'updateEventsOnRoute'],
+    ProjectedModeGuiding: ['currentLaneGuiding', 'setGuidanceState', 'updateEventsOnRoute', 'waypoints', 'currentRoad', 'streamCommandChanged'],
     CarPlayManager: ['projectedGuidanceActive', 'projectedGuidanceMetadataAvailable', 'onScreenChange'],
+    Positioning: ['rawPositionData', 'currentLocation'],
     Vehicle2: ['statusCarSpeed2']
 };
 
