@@ -190,12 +190,6 @@ function ok(name, cond) {
         refused = refused && !r.ok && typeof r.reason === 'string' && fs.readFileSync(STATE, 'utf8') === state;
     }
     ok('a card setting that is not a whole number in its range is refused, nothing written', refused);
-    r = await ask({ cmd: 'hud-adaptive', on: 1 });
-    ok('the BMW HUD diagnostics choice is saved', r.ok && r.adaptive_hud === 1 && /adaptive_hud = 1\n/.test(fs.readFileSync(STATE, 'utf8')));
-    r = await ask({ cmd: 'hud-adaptive', on: '0' });
-    ok('a string input cannot change adaptive diagnostics', !r.ok && /adaptive_hud = 1\n/.test(fs.readFileSync(STATE, 'utf8')));
-    r = await ask({ cmd: 'hud-adaptive', on: 0 });
-    ok('the existing HUD mode can be saved again', r.ok && r.adaptive_hud === 0 && /adaptive_hud = 0\n/.test(fs.readFileSync(STATE, 'utf8')));
     ok('the local conf untouched by every setting', fs.readFileSync(CONF, 'utf8') === conf);
     /* A burst: one write SAVE_MS after the last change, every reply after it. */
     var saves = function () { return out.split('(saved for the next start)').length - 1; };
@@ -212,6 +206,12 @@ function ok(name, cond) {
         ['hud_width_pct = 60', 'hud_offset_x = 20', 'hud_offset_y = 0'].every(function (l) { return saved.indexOf(l + '\n') >= 0; }));
     ok('a burst: every reply after the write, ok, with the values saved for its keys',
         r3.every(function (x) { return x.ok; }) && r3[0].hud_offset_x === 20 && r3[1].hud_offset_x === 20 && r3[2].hud_width_pct === 60);
+    r = await ask({ cmd: 'hud-adaptive', on: 1 });
+    ok('the BMW HUD diagnostics choice is saved', r.ok && r.adaptive_hud === 1 && /adaptive_hud = 1\n/.test(fs.readFileSync(STATE, 'utf8')));
+    r = await ask({ cmd: 'hud-adaptive', on: '0' });
+    ok('a string input cannot change adaptive diagnostics', !r.ok && /adaptive_hud = 1\n/.test(fs.readFileSync(STATE, 'utf8')));
+    r = await ask({ cmd: 'hud-adaptive', on: 0 });
+    ok('the existing HUD mode can be saved again', r.ok && r.adaptive_hud === 0 && /adaptive_hud = 0\n/.test(fs.readFileSync(STATE, 'utf8')));
     /* A write that fails: its replies say why, the file as it was. */
     fs.mkdirSync(STATE + '.tmp');
     before = fs.readFileSync(STATE, 'utf8');
