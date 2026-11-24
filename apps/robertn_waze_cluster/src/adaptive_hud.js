@@ -39,6 +39,13 @@ function fresh(now, time, max) {
     return Number.isFinite(time) && now >= time && now - time < max;
 }
 
+function validScene(map) {
+    const point = (p) => Array.isArray(p) && p.length === 2 && p.every((v) => Number.isFinite(v) && Math.abs(v) <= 2000);
+    const line = (p) => Array.isArray(p) && p.length >= 2 && p.length <= 256 && p.every(point);
+    return point(map.vehicle) && line(map.route) && Array.isArray(map.roads) && map.roads.length > 0 &&
+        map.roads.length <= 24 && map.roads.every(line);
+}
+
 class AdaptiveHUDController {
     constructor(config) {
         this.config = settings(config);
@@ -89,7 +96,7 @@ class AdaptiveHUDController {
         const map = s.map;
         const eligibleMap = Boolean(cfg.junction && (!highway || cfg.highwayJunction) && key && complex &&
             s.positionValid === true && map && map.kind === 'localized' && map.maneuver === key &&
-            map.routeVerified === true && fresh(now, map.at, cfg.expiryMs));
+            map.routeVerified === true && fresh(now, map.at, cfg.expiryMs) && validScene(map));
         const previewOpen = this.state === 'JUNCTION_PREVIEW';
         const lanesOpen = previewOpen || this.state === 'LANE_GUIDANCE';
         const showMap = eligibleMap && distance !== null && (distance <= mapRange + (previewOpen ? cfg.hysteresisMeters : 0) ||

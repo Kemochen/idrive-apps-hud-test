@@ -3,6 +3,12 @@
 Apps for the iDrive 7 head unit of a BMW, installed from the
 [mgu Store](https://github.com/robertnisipeanu/mgu-store).
 
+## Adaptive Google Maps HUD
+
+See the [adaptive HUD research and lab guide](docs/adaptive-google-maps-hud.md)
+for the desktop simulator, operating limits, and stationary validation steps.
+The lab observer preserves factory HUD output while it logs adaptive decisions.
+
 ## HUD guidance experiment
 
 This repository builds on Robert Nisipeanu's Maps on Cluster. The starting

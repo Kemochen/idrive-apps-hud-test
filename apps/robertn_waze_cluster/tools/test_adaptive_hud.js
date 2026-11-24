@@ -36,7 +36,7 @@ Object.keys(scenarios).forEach((name, index) => {
 });
 
 const controller = new AdaptiveHUDController({debounceMs: 0});
-const exit = {map: true, turn: {kind: 'branch', arrow: 'offramp_r', dist: '80 m', lanes: 's,r*'}};
+const exit = {map: true, turn: {kind: 'branch', arrow: 'offramp_right', dist: '80 m', lanes: 's,r*'}};
 const apply = (now, options) => controller.update(now, sample(now, options));
 assert.strictEqual(apply(6000, exit).state, 'JUNCTION_PREVIEW');
 assert.strictEqual(apply(6500, Object.assign({}, exit, {turn: Object.assign({}, exit.turn, {dist: '174 m'})})).showMap, true);
@@ -49,6 +49,9 @@ invalidMap.map.maneuver = 'old';
 assert.strictEqual(controller.update(7300, invalidMap).showMap, false);
 invalidMap.map.maneuver = '1';
 invalidMap.map.kind = 'secondary-display';
+assert.strictEqual(controller.update(7300, invalidMap).showMap, false);
+invalidMap.map.kind = 'localized';
+invalidMap.map.route = [[0, 5], [25, NaN]];
 assert.strictEqual(controller.update(7300, invalidMap).showMap, false);
 assert.strictEqual(apply(7400, Object.assign({}, exit, {sample: {ended: true}})).state, 'IDLE');
 assert.strictEqual(distanceMeters('1,2 km'), 1200);

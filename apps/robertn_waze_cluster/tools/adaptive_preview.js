@@ -4,8 +4,8 @@
 const ui = (id) => document.getElementById(id);
 const select = ui('scenario');
 const cfg = adaptive.settings(config);
-const arrows = {right: '↱', left: '↰', straight: '↑', offramp_r: '↗', offramp_l: '↖', roundabout: '⟳'};
-const laneArrows = {s: '↑', r: '↱', l: '↰', q: '↖', t: '↗', u: '↶', v: '↷'};
+const arrows = {right: '↱', left: '↰', straight: '↑', offramp_right: '↗', offramp_left: '↖', roundabout: '⟳'};
+const laneArrows = {s: '↑', r: '↱', l: '↰', sl: '↖', sr: '↗', hl: '↰', hr: '↱', ul: '↶', ur: '↷'};
 const ns = 'http://www.w3.org/2000/svg';
 let index = 0;
 let timer = null;
@@ -55,7 +55,7 @@ function drawLanes(lanes) {
         for (const token of lane.split('+')) {
             if (token === '!') continue;
             const direction = document.createElement('span');
-            direction.textContent = laneArrows[token.charAt(0)] || '•';
+            direction.textContent = laneArrows[token.replace('*', '')] || '•';
             if (token.includes('*')) direction.className = 'take';
             el.appendChild(direction);
         }

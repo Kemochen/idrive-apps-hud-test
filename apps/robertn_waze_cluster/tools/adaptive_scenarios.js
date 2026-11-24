@@ -23,7 +23,7 @@ function sample(at, options) {
 }
 
 const laneTurn = {dist: '230 m', lanes: 's,s+r*,r*'};
-const exitTurn = {arrow: 'offramp_r', kind: 'branch', dist: '105 m', road: 'Exit 36 · Burnaby', lanes: 's,s,r*'};
+const exitTurn = {arrow: 'offramp_right', kind: 'branch', dist: '105 m', road: 'Exit 36 · Burnaby', lanes: 's,s,r*'};
 const complex = {sample: {complex: true}, map: true, turn: laneTurn};
 const exit = {map: true, turn: exitTurn};
 const near = {map: true, sample: {complex: true}, turn: Object.assign({}, laneTurn, {dist: '100 m'})};
@@ -32,7 +32,7 @@ const scenarios = {
     'Left and right turns': [{turn: {arrow: 'left'}}, {turn: {arrow: 'right', key: '2'}}],
     'Multi-lane intersection': [{}, {turn: laneTurn}, {turn: laneTurn}],
     'Two recommended lanes': [{turn: {dist: '220 m', lanes: 's,s*,s*,r'}}, {turn: {dist: '200 m', lanes: 's,s*,s*,r'}}],
-    'Highway exit': [{turn: {arrow: 'offramp_r', dist: '870 m'}}, exit, exit],
+    'Highway exit': [{turn: {arrow: 'offramp_right', dist: '870 m'}}, exit, exit],
     'Complex interchange': [{}, complex, complex, near, near],
     'Roundabout': [{map: true, turn: {kind: 'roundabout', arrow: 'roundabout', dist: '92 m', road: 'Second exit'}},
         {map: true, turn: {kind: 'roundabout', arrow: 'roundabout', dist: '86 m', road: 'Second exit'}}],
