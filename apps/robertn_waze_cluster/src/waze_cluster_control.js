@@ -481,7 +481,7 @@ class WazeClusterControl extends EventEmitter {
         case 'off':
             return t('Off');
         case 'adaptive_oem':
-            return t('BMW HUD (diagnostics)');
+            return this.hudAdaptivePreviewVerified() ? t('Waiting for junction') : t('BMW HUD (diagnostics)');
         case 'sport':
             return t('Hidden in Sport mode');
         default:
@@ -595,7 +595,7 @@ class WazeClusterControl extends EventEmitter {
     }
     /* Changes as the size and place do. */
     canKeepHud() {
-        return this.canChangeHudSize() && this.hudKeepShown() !== null;
+        return this.hudAdaptive() !== true && this.canChangeHudSize() && this.hudKeepShown() !== null;
     }
     /* Flips it: the render at once, patchd saves it; the render's next status shows it. */
     toggleHudKeep() {
@@ -628,6 +628,10 @@ class WazeClusterControl extends EventEmitter {
     hudAdaptive() {
         const value = this.renderStatus && this.renderStatus.adaptive_hud;
         return value === 0 || value === 1 ? value === 1 : null;
+    }
+
+    hudAdaptivePreviewVerified() {
+        return !!this.renderStatus && this.renderStatus.adaptive_preview_verified === 1;
     }
 
     canToggleHudAdaptive() {

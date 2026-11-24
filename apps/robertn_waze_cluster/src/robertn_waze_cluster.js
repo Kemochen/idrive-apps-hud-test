@@ -672,7 +672,7 @@ class WazeClusterApp extends OnlineApp {
         this._setSelected(HUD_KEEP_NAME, c.hudKeepShown() === true);
         this._setEnabled(HUD_KEEP_NAME, c.canKeepHud());
         this._write(HUD_SPORT_NAME, t('Hide HUD map in Sport mode'));
-        this._write(HUD_ADAPTIVE_NAME, t('Adaptive diagnostics (BMW HUD)'));
+        this._write(HUD_ADAPTIVE_NAME, c.hudAdaptivePreviewVerified() ? t('Adaptive junction preview') : t('Adaptive diagnostics (BMW HUD)'));
         this._setSelected(HUD_ADAPTIVE_NAME, c.hudAdaptive() === true);
         this._setEnabled(HUD_ADAPTIVE_NAME, c.canToggleHudAdaptive());
         this._setSelected(HUD_SPORT_NAME, c.hudHideSport() === true);

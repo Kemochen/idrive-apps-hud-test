@@ -2,11 +2,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 set -euo pipefail
 
-if [[ $# != 1 || -e "$1" ]]; then
-    printf 'Usage: %s NEW_USB_ARCHIVE.zip\n' "$0" >&2
+if [[ $# -lt 1 || $# -gt 2 || -e "$1" || ( $# == 2 && -e "$2" ) ]]; then
+    printf 'Usage: %s NEW_USB_ARCHIVE.zip [NEW_BUILD_SOURCE.bundle]\n' "$0" >&2
     exit 2
 fi
 out=$(realpath -m "$1")
+bundle=
+if [[ $# == 2 ]]; then bundle=$(realpath -m "$2"); fi
 repo=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
 source=$(git -C "$repo" rev-parse HEAD)
 scratch=$(mktemp -d)
@@ -17,8 +19,8 @@ git -c advice.detachedHead=false checkout -q --detach "$source"
 node - <<'JS'
 const fs = require('fs');
 const app = 'apps/robertn_waze_cluster/';
-const appVersion = '0.6.26112401';
-const toolVersion = '0.14.26112401';
+const appVersion = '0.6.26112402';
+const toolVersion = '0.14.26112402';
 function edit(file, change) {
     const json = JSON.parse(fs.readFileSync(file, 'utf8'));
     change(json);
@@ -37,6 +39,10 @@ JS
 git add -- apps/robertn_waze_cluster native/waze-on-cluster/component.json
 git -c user.name='Local adaptive HUD build' -c user.email='adaptive-hud@localhost' commit -qm 'Stage local adaptive HUD package versions'
 node release/release.js build robertn_waze_cluster waze-on-cluster
+if [[ -n "$bundle" ]]; then
+    git branch adaptive-package HEAD
+    git bundle create "$bundle" refs/heads/adaptive-package
+fi
 mkdir -p "$scratch/usb/mgu-repo"
 mv release/out "$scratch/usb/mgu-repo/bmw-adaptive-hud"
 python3 - "$scratch/usb" "$out" <<'PY'

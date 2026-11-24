@@ -395,6 +395,33 @@ async function main() {
         assert.ok(!render.received.some((m) => m.cmd === 'turn'));
         assert.ok(!t.log.lines.some((line) => line.includes('lanes guidance')));
     });
+    await check('verified adaptive mode opens a HUD preview on a near exit and clears it when guidance ends', async () => {
+        await alone();
+        showing();
+        render.adaptiveHud = 1;
+        render.adaptivePreviewVerified = 1;
+        render.adaptivePreviewReady = 1;
+        render.hudCard = 0;
+        let active = true;
+        const turn = Object.assign(card('offramp_right', '100 m'), { key: '2', kind: 'branch' });
+        const t = make({}, {adaptiveSettings: {debounceMs: 0}, reader: {
+            read: () => Promise.resolve({ card: active ? turn : null,
+                sample: { connected: true, active, at: Date.now(), turn: active ? turn : null } })
+        }});
+        render.received.length = 0;
+        try {
+            t.sync.start();
+            await until('a preview requested', () => render.received.some((m) => m.cmd === 'adaptive-preview' && m.on === '1'));
+            active = false;
+            await until('preview cleared', () => render.received.some((m) => m.cmd === 'adaptive-preview' && m.on === '0'));
+            assert.ok(!render.received.some((m) => m.cmd === 'turn'), 'the card stays off');
+        } finally {
+            t.stop();
+            render.adaptiveHud = 0;
+            render.adaptivePreviewVerified = 0;
+            render.adaptivePreviewReady = 0;
+        }
+    });
     await check('the card off: nothing read or told, no connection kept; looked at again at recheck()', async () => {
         showing();
         render.hudCard = 0;

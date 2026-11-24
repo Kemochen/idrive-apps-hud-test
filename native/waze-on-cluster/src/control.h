@@ -24,6 +24,7 @@
  *                  {"cmd":"guide","hide":0|1}  BMW's turn box hidden or not (guide_setting.h)
  *                  {"cmd":"note","text":...}  a line for this tool's log, "app: <text>": one line,
  *                                   at most 400 bytes, 30 a minute (app_note.h)
+ *   owner -> tool  {"cmd":"adaptive-preview","on":"0"|"1"} (expires without renewal)
  *   tool -> owner  {"ev":"status",...,"hide_bmw_guidance":0|1,"guide_disabled":0|1,
  *                   "cluster":0|1,"hud":0|1,"hud_state":"off"|"disabled"|"sport"|"idle"|"starting"|"showing"|...,
  *                   "hud_width_pct":...,"hud_x":...,"hud_y":...,"hud_keep_shown":0|1,"hud_hide_sport":0|1,

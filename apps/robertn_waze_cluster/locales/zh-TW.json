@@ -100,6 +100,8 @@
     "Hide HUD map in Sport mode": "運動模式下隱藏 HUD 地圖",
     "Adaptive diagnostics (BMW HUD)": "自適應診斷（原廠 HUD）",
     "BMW HUD (diagnostics)": "原廠 HUD（診斷）",
+    "Adaptive junction preview": "臨近路口時顯示 HUD 地圖",
+    "Waiting for junction": "等候下一個路口",
     "Hidden in Sport mode": "運動模式下已隱藏",
     "Turn card on HUD": "HUD 轉向卡片",
     "Turn card size: {0}": "轉向卡片大小：{0}",

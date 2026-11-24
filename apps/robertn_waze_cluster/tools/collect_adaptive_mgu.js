@@ -50,7 +50,7 @@ function main(args) {
             buildId: ((run('readelf', ['-n', file]) || '').match(/Build ID:\s*([a-f0-9]+)/i) || [])[1] || null})),
         services: services.map((service) => ({service, status: run('systemctl', ['show', service, '-p', 'ActiveState',
             '-p', 'SubState', '-p', 'NRestarts', '-p', 'CPUUsageNSec', '-p', 'MemoryCurrent'])}))};
-    const allow = /app: (nav \S+ (route|Guidance|ProjectedModeGuiding) |adaptive HUD shadow )/;
+    const allow = /app: (nav \S+ (route|Guidance|ProjectedModeGuiding) |adaptive HUD (shadow|preview) )/;
     const saved = run('tail', ['-n', '500', '/var/opt/waze-on-cluster/log/waze-on-cluster.log']);
     const logs = saved || run('journalctl', ['-u', 'waze-on-cluster.service', '-n', '500', '--no-pager', '-o', 'cat']);
     result.navigation = logs === null ? null : logs.split('\n').filter((line) => allow.test(line) ||

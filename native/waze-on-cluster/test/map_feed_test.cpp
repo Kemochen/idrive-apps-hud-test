@@ -1422,6 +1422,27 @@ int main()
         ok("returning to the existing mode recreates the HUD feed", adaptive.hud_feed() && !adaptive.adaptive_hud());
         adaptive.set_adaptive_hud(true);
         ok("selecting adaptive diagnostics drops the existing HUD feed", !adaptive.hud_feed() && adaptive.cluster());
+        adaptive.set_adaptive_video_fresh(true);
+        adaptive.set_adaptive_preview(true, 10);
+        ok("an unverified unit cannot request a live junction preview", !adaptive.hud_feed());
+
+        config.adaptive_preview_verified = true;
+        MapFeeds preview(config, false, true, 10);
+        preview.set_stream(true, false, Picture::None);
+        ok("HUD-only preview keeps its decoder ready without acquiring a display", preview.wants_frames() && !preview.hud_feed());
+        preview.set_adaptive_preview(true, 10);
+        ok("a junction request without fresh video keeps the BMW HUD", !preview.hud_feed());
+        preview.set_adaptive_video_fresh(true);
+        preview.set_adaptive_preview(true, 20);
+        ok("an eligible request opens only a yielding HUD feed", preview.hud_feed() && !preview.cluster() &&
+           !preview.hud_feed()->status("decode").hud_keep_shown);
+        preview.set_hud_keep_shown(true);
+        ok("the legacy keep-shown preference cannot override preview yielding", !preview.hud_feed()->status("decode").hud_keep_shown);
+        preview.poll(20 + MapFeeds::kPreviewHoldMs);
+        ok("without renewal the preview releases the HUD", !preview.hud_feed());
+        preview.set_adaptive_preview(true, 3000);
+        preview.set_adaptive_video_fresh(false);
+        ok("stale video releases the HUD immediately", !preview.hud_feed());
     }
     hosting();
     vpp_hosting();

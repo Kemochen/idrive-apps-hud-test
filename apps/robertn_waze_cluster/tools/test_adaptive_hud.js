@@ -65,3 +65,14 @@ assert.strictEqual(result.card.arrow, '');
 assert.strictEqual(result.card.road, '');
 assert.strictEqual(result.card.lanes, 's,r*');
 console.log('ok hysteresis, minimum duration, unverified inputs, configuration and final destination');
+
+const live = new AdaptiveHUDController({debounceMs: 0});
+const nearExit = (now, update) => live.update(now, sample(now, {
+    turn: exit.turn, sample: Object.assign({videoPreview: true, videoAt: now}, update)
+}));
+assert.strictEqual(nearExit(9200).showMap, true);
+assert.strictEqual(nearExit(9250, {videoPreview: false}).showMap, false);
+assert.strictEqual(nearExit(9300, {videoAt: 0}).showMap, false);
+assert.strictEqual(nearExit(9350, {priorityVerified: false}).showMap, false);
+assert.strictEqual(live.update(9400, sample(9400, {turn: {dist: '50 m'}, sample: {videoPreview: true, videoAt: 9400}})).showMap, false);
+console.log('ok localized video, missing or stale video, unknown priority and ordinary turns');

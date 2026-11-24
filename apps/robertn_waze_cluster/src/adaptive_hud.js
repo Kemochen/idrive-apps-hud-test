@@ -94,9 +94,11 @@ class AdaptiveHUDController {
         const complex = s.complex === true || highway || turn.kind === 'roundabout' || turn.kind === 'branch';
         const eligibleLanes = Boolean(cfg.lanes && key && turn.lanes && s.lanesVerified === true);
         const map = s.map;
+        const sceneAvailable = s.positionValid === true && map && map.kind === 'localized' && map.maneuver === key &&
+            map.routeVerified === true && fresh(now, map.at, cfg.expiryMs) && validScene(map);
+        const videoAvailable = s.videoPreview === true && fresh(now, s.videoAt, cfg.expiryMs);
         const eligibleMap = Boolean(cfg.junction && (!highway || cfg.highwayJunction) && key && complex &&
-            s.positionValid === true && map && map.kind === 'localized' && map.maneuver === key &&
-            map.routeVerified === true && fresh(now, map.at, cfg.expiryMs) && validScene(map));
+            (sceneAvailable || videoAvailable));
         const previewOpen = this.state === 'JUNCTION_PREVIEW';
         const lanesOpen = previewOpen || this.state === 'LANE_GUIDANCE';
         const showMap = eligibleMap && distance !== null && (distance <= mapRange + (previewOpen ? cfg.hysteresisMeters : 0) ||

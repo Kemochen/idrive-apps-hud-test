@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+The HUD mode switch can show the existing CarPlay map briefly at eligible
+junctions on head units whose video framing and warning priority were
+verified. The off switch keeps the existing display. With verification
+disabled, adaptive mode still hands the HUD to BMW.
+
 Add an HUD switch for BMW HUD with adaptive diagnostics. The existing map
 and turn card remain the default. Each driver can save their preferred mode.
 

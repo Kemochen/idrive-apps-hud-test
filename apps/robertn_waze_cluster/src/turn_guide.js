@@ -352,6 +352,8 @@ class TurnGuideSync {
         this._stopped = true;
         this._adaptive = new AdaptiveHUDController(o.adaptiveSettings);
         this._adaptiveState = null;
+        this._previewReady = false;
+        this._previewEpoch = 0;
         this._onStatus = () => this.follow();
     }
 
@@ -442,12 +444,17 @@ class TurnGuideSync {
         }
         if (!status) {
             this._setOverlay(false);
+            this._setPreviewReady(false);
             return null;
         }
         const cardOn = status.hud === 1 && status.hud_card === 1;
         const diagnostics = status.nav_diagnostics === 1;
+        const adaptiveMode = status.adaptive_hud === 1 && status.hud === 1;
+        const previewEnabled = adaptiveMode && status.adaptive_preview_verified === 1;
+        const previewReady = previewEnabled && status.adaptive_preview_ready === 1;
+        this._setPreviewReady(previewReady);
         this._diagnostics = diagnostics;
-        const inUse = cardOn || diagnostics;
+        const inUse = cardOn || diagnostics || previewEnabled;
         if (inUse !== this._inUse) {
             this._inUse = inUse;
             this._sent = null;
@@ -455,17 +462,26 @@ class TurnGuideSync {
                 this._link.close();
             }
         }
-        const overlay = !this._none && cardOn && status.hud_state === 'showing' && status.nav_live === 1;
+        const overlay = !this._none && cardOn && !adaptiveMode && status.hud_state === 'showing' && status.nav_live === 1;
         this._setOverlay(overlay);
         if (!overlay) {
             this._sent = null;
             this._said(false);
         }
-        if (!inUse || (!overlay && !diagnostics)) {
+        if (!inUse || (!overlay && !diagnostics && !previewEnabled)) {
             return null;
         }
         return { send, name: page ? 'page' : 'link', diagnostics, overlay, epoch: this._overlayEpoch,
-            adaptive: diagnostics && status.adaptive_hud === 1 && status.hud === 1 };
+            adaptive: adaptiveMode && (diagnostics || previewEnabled), previewEnabled, previewReady,
+            previewEpoch: this._previewEpoch, cardOn };
+    }
+
+    _setPreviewReady(ready) {
+        if (this._previewReady !== ready) {
+            this._previewReady = ready;
+            this._previewEpoch++;
+            this._adaptive.reset('IDLE');
+        }
     }
 
     _setOverlay(visible) {
@@ -520,13 +536,21 @@ class TurnGuideSync {
             this._adaptiveState = null;
             return;
         }
-        // Compute an offline prediction from a real read. The native service never
-        // creates a HUD layer in this mode, even if the prediction asks for one.
-        const decision = this._adaptive.update(Date.now(), sample ? Object.assign({}, sample,
-            { warning: false, priorityVerified: true }) : null);
-        if (decision.state !== this._adaptiveState) {
+        const at = Date.now();
+        // The native service independently expires video and preview leases. Its
+        // local verification setting and renderer yielding guard any actual output.
+        const decision = this._adaptive.update(at, sample ? Object.assign({}, sample, {
+            warning: false, priorityVerified: true, videoPreview: channel.previewReady, videoAt: at
+        }) : null);
+        if (channel.previewEnabled) {
+            channel.send({ cmd: 'adaptive-preview', on: decision.showMap ? '1' : '0' });
+            if (decision.showMap && channel.cardOn && decision.card) {
+                this._tell(channel, decision.card);
+            }
+        }
+        if (channel.diagnostics && decision.state !== this._adaptiveState) {
             this._adaptiveState = decision.state;
-            channel.send({ cmd: 'note', text: `adaptive HUD shadow ${decision.state}; OEM output only` });
+            channel.send({ cmd: 'note', text: `adaptive HUD ${channel.previewEnabled ? 'preview' : 'shadow'} ${decision.state}` });
         }
     }
 
@@ -547,7 +571,8 @@ class TurnGuideSync {
             /* the connection as it is now: the page may have opened meanwhile */
             const now = this._stopped ? null : this._channel();
             this._notes(now);
-            this._observeAdaptive(now, channel.adaptive && now && now.name === channel.name && r ? r.sample : null);
+            const samePreview = now && now.name === channel.name && now.previewEpoch === channel.previewEpoch;
+            this._observeAdaptive(now, channel.adaptive && samePreview && r ? r.sample : null);
             if (stillShowing(now)) {
                 this._tell(now, card);
             } else if (channel.overlay && this._overlayEpoch !== channel.epoch && typeof this._reader.reset === 'function') {
@@ -571,7 +596,7 @@ class TurnGuideSync {
             return;
         }
         const channel = this._channel();
-        if ((!channel || !channel.overlay) && !this._reading && typeof this._reader.reset === 'function') {
+        if ((!channel || (!channel.overlay && !channel.adaptive)) && !this._reading && typeof this._reader.reset === 'function') {
             this._reader.reset();
         }
         const due = channel && !this._reading && Date.now() >= this._readAt;

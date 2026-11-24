@@ -187,6 +187,8 @@ class FakeRender extends LineServer {
                 hud_width_pct: this.hudWidth || 0, hud_x: this.hudX || 0, hud_y: this.hudY || 0 });
             if (this.hudKeep !== null) s.hud_keep_shown = this.hudKeep;
             if (this.adaptiveHud !== null) s.adaptive_hud = this.adaptiveHud;
+            if (this.adaptivePreviewVerified !== undefined) s.adaptive_preview_verified = this.adaptivePreviewVerified;
+            if (this.adaptivePreviewReady !== undefined) s.adaptive_preview_ready = this.adaptivePreviewReady;
             if (this.hudHideSport !== null) s.hud_hide_sport = this.hudHideSport;
             if (this.hudCard !== null) {
                 Object.assign(s, { hud_card: this.hudCard, hud_card_pct: this.hudCardPct, hud_card_x: this.hudCardX, hud_card_y: this.hudCardY });

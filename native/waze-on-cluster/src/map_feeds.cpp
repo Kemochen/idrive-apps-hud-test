@@ -8,6 +8,7 @@ namespace woc {
 
 constexpr int64_t MapFeeds::kSportHoldMs;
 constexpr int64_t MapFeeds::kTurnHoldMs;
+constexpr int64_t MapFeeds::kPreviewHoldMs;
 
 namespace {
 
@@ -47,6 +48,8 @@ void MapFeeds::follow()
         fc.video.pan_blocks = false;
         fc.vpp_scale = false;   /* the HUD scales whole frames */
         fc.always_packed = false;   /* and goes exact (cluster map only) */
+        if (fc.adaptive_hud)
+            fc.hud_keep_shown = false;
         hud_.reset(new MapFeed(fc));
         hud_->set_stream(live_, frozen_, picture_);
         hud_->changed(id_);
@@ -96,6 +99,8 @@ void MapFeeds::set_cluster(bool on)
 void MapFeeds::set_hud(bool on)
 {
     hud_on_ = on;
+    if (!on)
+        set_adaptive_preview(false, 0);
     follow();
 }
 
@@ -104,13 +109,39 @@ void MapFeeds::set_adaptive_hud(bool on)
     if (base_.adaptive_hud == on)
         return;
     base_.adaptive_hud = on;
+    preview_until_ms_ = 0;
     set_turn(Turn(), 0);
+    hud_.reset();  /* release the old map and its mode-specific options */
     follow();
+}
+
+void MapFeeds::set_adaptive_video_fresh(bool fresh)
+{
+    adaptive_video_fresh_ = fresh;
+    if (!fresh)
+        set_adaptive_preview(false, 0);
+}
+
+void MapFeeds::set_adaptive_preview(bool show, int64_t now_ms)
+{
+    const bool active = show && base_.adaptive_hud && base_.adaptive_preview_verified &&
+                        hud_on_ && !hidden_for_sport() && adaptive_preview_ready();
+    if (active) {
+        const bool opening = preview_until_ms_ == 0;
+        preview_until_ms_ = now_ms + kPreviewHoldMs;
+        if (opening)
+            follow();
+    } else if (preview_until_ms_) {
+        preview_until_ms_ = 0;
+        set_turn(Turn(), now_ms);
+        follow();
+    }
 }
 
 bool MapFeeds::wants_frames() const
 {
-    return cluster_ || (hud_ && hud_->takes_frames());
+    const bool monitoring = hud_on_ && base_.adaptive_hud && base_.adaptive_preview_verified && !hidden_for_sport();
+    return cluster_ || (hud_ && hud_->takes_frames()) || monitoring;
 }
 
 void MapFeeds::set_hud_width(unsigned pct)
@@ -135,12 +166,14 @@ void MapFeeds::set_hud_keep_shown(bool keep)
 {
     base_.hud_keep_shown = keep;
     if (hud_)
-        hud_->set_hud_keep_shown(keep);
+        hud_->set_hud_keep_shown(keep && !base_.adaptive_hud);
 }
 
 void MapFeeds::set_hud_hide_sport(bool hide)
 {
     hud_hide_sport_ = hide;
+    if (hidden_for_sport())
+        set_adaptive_preview(false, 0);
     follow();
 }
 
@@ -148,6 +181,8 @@ void MapFeeds::set_sport(bool sport, int64_t now_ms)
 {
     sport_ = sport;
     sport_at_ms_ = now_ms;
+    if (hidden_for_sport())
+        set_adaptive_preview(false, now_ms);
     follow();
 }
 
@@ -160,7 +195,7 @@ void MapFeeds::set_card(const CardConfig &c)
 
 void MapFeeds::set_turn(const Turn &t, int64_t now_ms)
 {
-    if ((!live_ || base_.adaptive_hud) && !t.empty())
+    if ((!live_ || (base_.adaptive_hud && !preview_until_ms_)) && !t.empty())
         return;
     turn_ = t;
     turn_at_ms_ = now_ms;
@@ -186,6 +221,8 @@ size_t MapFeeds::poll_fds(std::vector<pollfd> *fds) const
 
 void MapFeeds::poll(int64_t now_ms)
 {
+    if (preview_until_ms_ && (now_ms >= preview_until_ms_ || !adaptive_preview_ready()))
+        set_adaptive_preview(false, now_ms);
     if (sport_ && now_ms - sport_at_ms_ >= kSportHoldMs) {
         log_info("hud: the Sport mode was not reported again for %lld s; it counts no longer", (long long)(kSportHoldMs / 1000));
         sport_ = false;
@@ -285,7 +322,7 @@ FeedStatus MapFeeds::status(const std::string &decode, const std::string &stream
         }
     }
     s.hud_width_pct = base_.hud_width_pct;
-    s.hud_keep_shown = base_.hud_keep_shown;
+    s.hud_keep_shown = base_.hud_keep_shown && !base_.adaptive_hud;
     s.hud_hide_sport = hud_hide_sport_;
     s.hud_offset_x = hud_ ? hud_->hud_offset_x() : base_.hud_offset_x;
     s.hud_offset_y = hud_ ? hud_->hud_offset_y() : base_.hud_offset_y;
