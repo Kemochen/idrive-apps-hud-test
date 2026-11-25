@@ -481,7 +481,8 @@ class WazeClusterControl extends EventEmitter {
         case 'off':
             return t('Off');
         case 'adaptive_oem':
-            return this.hudAdaptivePreviewVerified() ? t('Waiting for junction') : t('BMW HUD (diagnostics)');
+            if (!this.hudAdaptivePreviewSupported()) return t('Unavailable');
+            return this.renderStatus.adaptive_preview_ready === 1 ? t('Waiting for junction') : t('Waiting for the phone');
         case 'sport':
             return t('Hidden in Sport mode');
         default:
@@ -630,12 +631,12 @@ class WazeClusterControl extends EventEmitter {
         return value === 0 || value === 1 ? value === 1 : null;
     }
 
-    hudAdaptivePreviewVerified() {
-        return !!this.renderStatus && this.renderStatus.adaptive_preview_verified === 1;
+    hudAdaptivePreviewSupported() {
+        return !!this.renderStatus && this.renderStatus.adaptive_preview_supported === 1;
     }
 
     canToggleHudAdaptive() {
-        return this.canChangeHudSize() && this.connectedPatch() && this.hudAdaptive() !== null;
+        return this.canChangeHudSize() && this.connectedPatch() && this.hudAdaptivePreviewSupported() && this.hudAdaptive() !== null;
     }
 
     toggleHudAdaptive() {

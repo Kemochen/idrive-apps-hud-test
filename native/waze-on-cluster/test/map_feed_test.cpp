@@ -1416,17 +1416,13 @@ int main()
         Turn turn;
         turn.arrow = "right";
         adaptive.set_turn(turn, 1);
-        ok("unverified adaptive HUD reserves no slot and leaves the cluster feed intact",
+        ok("adaptive HUD in standby reserves no slot and leaves the cluster feed intact",
            adaptive.cluster() && !adaptive.hud_feed() && adaptive.status("decode").hud_state == "adaptive_oem");
         adaptive.set_adaptive_hud(false);
         ok("returning to the existing mode recreates the HUD feed", adaptive.hud_feed() && !adaptive.adaptive_hud());
         adaptive.set_adaptive_hud(true);
-        ok("selecting adaptive diagnostics drops the existing HUD feed", !adaptive.hud_feed() && adaptive.cluster());
-        adaptive.set_adaptive_video_fresh(true);
-        adaptive.set_adaptive_preview(true, 10);
-        ok("an unverified unit cannot request a live junction preview", !adaptive.hud_feed());
+        ok("selecting adaptive mode releases the previous HUD feed", !adaptive.hud_feed() && adaptive.cluster());
 
-        config.adaptive_preview_verified = true;
         MapFeeds preview(config, false, true, 10);
         preview.set_stream(true, false, Picture::None);
         ok("HUD-only preview keeps its decoder ready without acquiring a display", preview.wants_frames() && !preview.hud_feed());
@@ -1434,7 +1430,7 @@ int main()
         ok("a junction request without fresh video keeps the BMW HUD", !preview.hud_feed());
         preview.set_adaptive_video_fresh(true);
         preview.set_adaptive_preview(true, 20);
-        ok("an eligible request opens only a yielding HUD feed", preview.hud_feed() && !preview.cluster() &&
+        ok("an adaptive request with fresh video opens only a yielding HUD feed", preview.hud_feed() && !preview.cluster() &&
            !preview.hud_feed()->status("decode").hud_keep_shown);
         preview.set_hud_keep_shown(true);
         ok("the legacy keep-shown preference cannot override preview yielding", !preview.hud_feed()->status("decode").hud_keep_shown);

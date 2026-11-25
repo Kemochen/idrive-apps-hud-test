@@ -6,16 +6,8 @@ With adaptive HUD enabled, display the CarPlay map whenever the next maneuver
 is within 2 km, including ordinary turns and lane changes. Keep it visible
 between consecutive maneuvers that are both within range.
 
-The HUD mode switch can show the existing CarPlay map briefly at eligible
-junctions on head units whose video framing and warning priority were
-verified. The off switch keeps the existing display. With verification
-disabled, adaptive mode still hands the HUD to BMW.
-
-Add an HUD switch for BMW HUD with adaptive diagnostics. The existing map
-and turn card remain the default. Each driver can save their preferred mode.
-
-Add an adaptive HUD prototype with read-only shadow diagnostics and OEM HUD
-pass-through while warning priority and junction inputs are unverified.
+Enable adaptive previews directly from the HUD switch. The off switch uses
+the regular map and turn card. Each driver can save their preferred mode.
 
 Gate the HUD card on active projected guidance and a live map stream. Clear
 missing lane metadata and guard against replaying a previous maneuver's

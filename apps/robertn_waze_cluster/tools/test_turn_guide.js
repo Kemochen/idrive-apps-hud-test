@@ -395,11 +395,10 @@ async function main() {
         assert.ok(!render.received.some((m) => m.cmd === 'turn'));
         assert.ok(!t.log.lines.some((line) => line.includes('lanes guidance')));
     });
-    await check('verified adaptive mode requests a HUD preview at 2 km for a regular turn without a UID, then clears it when guidance ends', async () => {
+    await check('the adaptive switch requests a HUD preview at 2 km without a verification flag or maneuver UID, then clears it when guidance ends', async () => {
         await alone();
         showing();
         render.adaptiveHud = 1;
-        render.adaptivePreviewVerified = 1;
         render.adaptivePreviewReady = 1;
         render.hudCard = 0;
         let active = true;
@@ -418,7 +417,6 @@ async function main() {
         } finally {
             t.stop();
             render.adaptiveHud = 0;
-            render.adaptivePreviewVerified = 0;
             render.adaptivePreviewReady = 0;
         }
     });

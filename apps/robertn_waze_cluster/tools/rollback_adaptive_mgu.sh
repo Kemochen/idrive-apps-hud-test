@@ -6,8 +6,8 @@ set -eu
 deploy=/var/opt/mgu-deploy/mgu-deploy.sh
 app=robertn_waze_cluster
 tool=waze-on-cluster
-app_version=0.6.26112402
-tool_version=0.14.26112402
+app_version=0.6.26112404
+tool_version=0.14.26112403
 
 version() {
     "$deploy" status --read-only --json | node -e '

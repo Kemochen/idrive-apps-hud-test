@@ -143,6 +143,8 @@ class FakeRender extends LineServer {
         this.navLive = 1;
         this.navDiagnostics = 0;
         this.adaptiveHud = 0;
+        this.adaptivePreviewSupported = 1;
+        this.adaptivePreviewReady = 0;
         /* the HUD map kept shown over BMW's pop-ups (null: a tool without the field) */
         this.hudKeep = 0;
         /* the HUD map hidden in a Sport mode (null: a tool without the field), and the mode as told */
@@ -182,12 +184,12 @@ class FakeRender extends LineServer {
         if (this.hud !== null) {
             const hidden = this.hudHideSport === 1 && this.sport === 1;
             Object.assign(s, { cluster: this.cluster, hud: this.hud,
-                hud_state: !this.hud ? 'off' : this.adaptiveHud === 1 ? 'adaptive_oem' : hidden ? 'sport' : this.hudState || this.state,
+                hud_state: !this.hud ? 'off' : hidden ? 'sport' : this.adaptiveHud === 1 ? 'adaptive_oem' : this.hudState || this.state,
                 nav_live: this.navLive, nav_diagnostics: this.navDiagnostics,
                 hud_width_pct: this.hudWidth || 0, hud_x: this.hudX || 0, hud_y: this.hudY || 0 });
             if (this.hudKeep !== null) s.hud_keep_shown = this.hudKeep;
             if (this.adaptiveHud !== null) s.adaptive_hud = this.adaptiveHud;
-            if (this.adaptivePreviewVerified !== undefined) s.adaptive_preview_verified = this.adaptivePreviewVerified;
+            if (this.adaptivePreviewSupported !== undefined) s.adaptive_preview_supported = this.adaptivePreviewSupported;
             if (this.adaptivePreviewReady !== undefined) s.adaptive_preview_ready = this.adaptivePreviewReady;
             if (this.hudHideSport !== null) s.hud_hide_sport = this.hudHideSport;
             if (this.hudCard !== null) {

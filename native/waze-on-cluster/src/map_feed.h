@@ -98,7 +98,6 @@ struct FeedConfig {
      * yield 0); else it gives way to them (cluster-render's hud_yield_slots). */
     bool hud_keep_shown = false;
     bool adaptive_hud = false;
-    bool adaptive_preview_verified = false;  /* specific unit and video source reviewed */
     /* A target shown smaller than the decoded frame (the HUD) gets the frame
      * scaled on the head unit to the size it is shown at (atlas_scale.h), on
      * a worker thread, at most video.fps a second, rounded to these level

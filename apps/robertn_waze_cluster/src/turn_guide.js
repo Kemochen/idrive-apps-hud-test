@@ -450,7 +450,7 @@ class TurnGuideSync {
         const cardOn = status.hud === 1 && status.hud_card === 1;
         const diagnostics = status.nav_diagnostics === 1;
         const adaptiveMode = status.adaptive_hud === 1 && status.hud === 1;
-        const previewEnabled = adaptiveMode && status.adaptive_preview_verified === 1;
+        const previewEnabled = adaptiveMode && status.adaptive_preview_supported === 1;
         const previewReady = previewEnabled && status.adaptive_preview_ready === 1;
         this._setPreviewReady(previewReady);
         this._diagnostics = diagnostics;
@@ -537,8 +537,7 @@ class TurnGuideSync {
             return;
         }
         const at = Date.now();
-        // The native service independently expires video and preview leases. Its
-        // local verification setting and renderer yielding guard any actual output.
+        // The native service expires preview leases and handles renderer yielding.
         const decision = this._adaptive.update(at, sample ? Object.assign({}, sample, {
             warning: false, priorityVerified: true, videoPreview: channel.previewReady, videoAt: at
         }) : null);

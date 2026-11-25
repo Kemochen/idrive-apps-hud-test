@@ -251,7 +251,7 @@
           "rows": [
             {
               "Text": {
-                "value": "Adaptive diagnostics (BMW HUD)",
+                "value": "Adaptive junction preview",
                 "type": "Text"
               },
               "eParam_RowSelected": {

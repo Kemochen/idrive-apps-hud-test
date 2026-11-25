@@ -327,7 +327,7 @@ async function main() {
     assert.deepStrictEqual(main.map(([id, type, name, text]) => (type === 'title' ? name : `${name} ${text}`)), [
         'wocTitle',
         'wocHeadGeneral General', 'wocShowOn Show on: Cluster', 'wocProfile Own settings for this driver', 'wocMap Cluster map: Off', "wocGuide Hide BMW's turn box", 'wocLogs Logs',
-        'wocHeadHud HUD', 'wocHud HUD map: \u2014', 'wocHudAdaptive Adaptive diagnostics (BMW HUD)',
+        'wocHeadHud HUD', 'wocHud HUD map: \u2014', 'wocHudAdaptive Adaptive junction preview',
         "wocHudKeep Keep HUD map over BMW's pop-ups", 'wocHudSport Hide HUD map in Sport mode', 'wocHudSize Size: \u2014', 'wocHudPos Position: \u2014', 'wocHudLeft Move left',
         'wocHudRight Move right', 'wocHudUp Move up', 'wocHudDown Move down', 'wocHudCentre Centre',
         'wocHudCard Turn card on HUD', 'wocHudCardSize Turn card size: \u2014', 'wocHudCardCrop Map height with turn card: \u2014',
@@ -549,10 +549,14 @@ async function main() {
         render.announce(render.state, render.reason);
         await until('enabled again', () => keep.enabled === true);
         const adaptive = byName.wocHudAdaptive;
-        assert(adaptive.enabled && !adaptive.selected);
+        assert(adaptive.enabled && !adaptive.selected && adaptive.text === 'Adaptive junction preview');
         adaptive.press();
-        await until('adaptive diagnostics enabled and saved', () => adaptive.selected && patch.map.adaptive_hud === 1 &&
-            byName.wocHud.text === 'HUD map: BMW HUD (diagnostics)');
+        await until('adaptive mode saved; waiting for the video', () => adaptive.selected && patch.map.adaptive_hud === 1 &&
+            byName.wocHud.text === 'HUD map: Waiting for the phone');
+        render.adaptivePreviewReady = 1;
+        render.announce(render.state, render.reason);
+        await until('video ready; waiting for the next maneuver', () => byName.wocHud.text === 'HUD map: Waiting for junction');
+        render.adaptivePreviewReady = 0;
         await sleep(450);
         adaptive.press();
         await until('the previous HUD map mode restored', () => !adaptive.selected && patch.map.adaptive_hud === 0 &&

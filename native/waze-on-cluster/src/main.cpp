@@ -67,13 +67,11 @@ using crk::texture_size_error;
 
 namespace {
 
-/* Accepted and ignored, so a local_conf that sets them still starts the
- * service: the map is drawn by the shared renderer, whose own configuration
- * owns the slots, scene ids and the upload budget. */
+/* Accept obsolete settings so local configurations from earlier versions still load. */
 const char *const kIgnoredKeys[] = {"tex_format",         "upload",          "dirty_tiles",
                                     "max_frame_textures", "resource_linger_ms", "resource_fetch_log",
                                     "texture_replay",     "texture_replay_frames", "mutable_r8",
-                                    "upload_kb_per_s",    "upload_burst_ms"};
+                                    "upload_kb_per_s",    "upload_burst_ms", "adaptive_preview_verified"};
 
 /* What load_local_conf left out, logged once the log file is open. */
 std::vector<std::string> g_local_conf_warnings;
@@ -101,7 +99,8 @@ std::string status_line(const FeedStatus &s, bool nav_live, bool nav_diagnostics
            ",\"nav_live\":" + (nav_live ? "1" : "0") +
            ",\"nav_diagnostics\":" + (nav_diagnostics ? "1" : "0") +
            ",\"adaptive_hud\":" + (feeds.adaptive_hud() ? "1" : "0") +
-           ",\"adaptive_preview_verified\":" + (feeds.adaptive_preview_verified() ? "1" : "0") +
+           /* Older Maps on Cluster versions use the former field to detect availability. */
+           ",\"adaptive_preview_supported\":1,\"adaptive_preview_verified\":1" +
            ",\"adaptive_preview_ready\":" + (feeds.adaptive_preview_ready() ? "1" : "0") +
            /* only while hosted: otherwise the line is as it always was */
            (s.hosted ? ",\"hosted\":1" : "") + "}";
@@ -348,7 +347,7 @@ int serve(Config cfg)
         {"hud_scale_down", 0, 1},   {"hud_round_corners", 0, 1},     {"hud_black_background", 0, 1},
         {"hud_keep_shown", 0, 1},   {"hud_hide_sport", 0, 1},
         {"hud_card", 0, 1},         {"hud_card_pct", 50, 150},        {"nav_diagnostics", 0, 1},
-        {"adaptive_hud", 0, 1},     {"adaptive_preview_verified", 0, 1},
+        {"adaptive_hud", 0, 1},
         {"hud_card_x", -800, 800},  {"hud_card_y", -800, 800},  {"hud_card_crop", 0, 40},
         {"freeze_ms", 0, 600000},   {"freeze_min_fps", 1, 60},       {"alt_screen_port", 0, 65535},
         {"idle_ms", 1000, 600000},  {"blank_ms", 1000, 600000},
@@ -395,7 +394,6 @@ int serve(Config cfg)
     fc.hud_offset_y = (int)cfg.num("hud_offset_y");
     fc.hud_keep_shown = cfg.num("hud_keep_shown") != 0;
     fc.adaptive_hud = cfg.num("adaptive_hud") == 1;
-    fc.adaptive_preview_verified = cfg.num("adaptive_preview_verified") == 1;
     fc.card.on = cfg.num("hud_card") == 1;
     fc.card.pct = (unsigned)cfg.num("hud_card_pct");
     fc.card.dx = (int)cfg.num("hud_card_x");
@@ -693,7 +691,6 @@ void define_keys(Config *cfg)
     cfg->define("hud_card", "0");
     cfg->define("nav_diagnostics", "0");
     cfg->define("adaptive_hud", "0");
-    cfg->define("adaptive_preview_verified", "0");
     cfg->define("hud_card_pct", "100");
     cfg->define("hud_card_x", "0");
     cfg->define("hud_card_y", "0");

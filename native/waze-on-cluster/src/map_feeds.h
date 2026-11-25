@@ -66,7 +66,6 @@ public:
     void set_hud(bool on);
     void set_adaptive_hud(bool on);
     bool adaptive_hud() const { return base_.adaptive_hud; }
-    bool adaptive_preview_verified() const { return base_.adaptive_preview_verified; }
     bool adaptive_preview_ready() const { return live_ && !frozen_ && adaptive_video_fresh_; }
     void set_adaptive_video_fresh(bool fresh);
     void set_adaptive_preview(bool show, int64_t now_ms);

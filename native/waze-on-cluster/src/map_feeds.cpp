@@ -76,7 +76,7 @@ void MapFeeds::follow()
          * HUD's slot go */
         hud_.reset();
         copy_ = std::vector<uint8_t>();
-        log_info(!hud_on_ ? "hud: off" : base_.adaptive_hud ? "hud: BMW HUD for adaptive diagnostics" : "hud: hidden, the car is in a Sport mode");
+        log_info(!hud_on_ ? "hud: off" : hidden_for_sport() ? "hud: hidden, the car is in a Sport mode" : "hud: adaptive map hidden");
     }
 }
 
@@ -124,7 +124,7 @@ void MapFeeds::set_adaptive_video_fresh(bool fresh)
 
 void MapFeeds::set_adaptive_preview(bool show, int64_t now_ms)
 {
-    const bool active = show && base_.adaptive_hud && base_.adaptive_preview_verified &&
+    const bool active = show && base_.adaptive_hud &&
                         hud_on_ && !hidden_for_sport() && adaptive_preview_ready();
     if (active) {
         const bool opening = preview_until_ms_ == 0;
@@ -140,7 +140,7 @@ void MapFeeds::set_adaptive_preview(bool show, int64_t now_ms)
 
 bool MapFeeds::wants_frames() const
 {
-    const bool monitoring = hud_on_ && base_.adaptive_hud && base_.adaptive_preview_verified && !hidden_for_sport();
+    const bool monitoring = hud_on_ && base_.adaptive_hud && !hidden_for_sport();
     return cluster_ || (hud_ && hud_->takes_frames()) || monitoring;
 }
 
@@ -312,7 +312,7 @@ FeedStatus MapFeeds::status(const std::string &decode, const std::string &stream
     s.cluster = cluster_on_;
     s.hud = hud_on_;
     if (!hud_) {
-        s.hud_state = !hud_on_ ? "off" : base_.adaptive_hud ? "adaptive_oem" : hidden_for_sport() ? "sport" : "off";
+        s.hud_state = !hud_on_ ? "off" : hidden_for_sport() ? "sport" : base_.adaptive_hud ? "adaptive_oem" : "off";
     } else {
         const FeedStatus h = hud_->status(decode, stream);
         s.hud_state = h.disabled ? "disabled" : h.state;
