@@ -605,12 +605,14 @@ async function main() {
             cardCrop.text === 'Map height with turn card: 80 %' && cardCrop.cells['0:Value'] === 4);
         assert(cardRows().every((e) => e === false) && byName.wocHudCardReset.enabled === false, 'its size and position greyed while it is off');
         turnDirection = 'RIGHT';
+        const guidanceBeforeCard = guidanceCalls;
         render.received.length = 0;
         cardSize.turn(1);
         byName.wocHudCardLeft.emit('action');
         await until('a greyed slider turned: back where it was', () => cardSize.cells['0:Value'] === 5);
         await sleep(150);
-        assert.deepStrictEqual([guidanceCalls, render.received, render.turns], [0, [], []], 'the card off: BMW\'s guidance not asked, nothing told');
+        assert.deepStrictEqual([guidanceCalls, render.received, render.turns], [guidanceBeforeCard, [], []],
+            'with adaptive mode and the card off, no additional guidance reads or render commands');
         const connections = render.connections;
         await sleep(450);
         cardBox.press();
