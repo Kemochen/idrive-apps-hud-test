@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+Keep the HUD map steady if the same maneuver's reported distance jumps slightly
+above 2 km after the map opens.
+
 With adaptive HUD enabled, display the CarPlay map whenever the next maneuver
 is within 2 km, including ordinary turns and lane changes. Keep it visible
 between consecutive maneuvers that are both within range.

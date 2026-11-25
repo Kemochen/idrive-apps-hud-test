@@ -100,7 +100,7 @@ void MapFeeds::set_hud(bool on)
 {
     hud_on_ = on;
     if (!on)
-        set_adaptive_preview(false, 0);
+        set_adaptive_preview(false, 0, "HUD output disabled");
     follow();
 }
 
@@ -119,10 +119,10 @@ void MapFeeds::set_adaptive_video_fresh(bool fresh)
 {
     adaptive_video_fresh_ = fresh;
     if (!fresh)
-        set_adaptive_preview(false, 0);
+        set_adaptive_preview(false, 0, "video unavailable");
 }
 
-void MapFeeds::set_adaptive_preview(bool show, int64_t now_ms)
+void MapFeeds::set_adaptive_preview(bool show, int64_t now_ms, const char *close_reason)
 {
     const bool active = show && base_.adaptive_hud &&
                         hud_on_ && !hidden_for_sport() && adaptive_preview_ready();
@@ -132,6 +132,7 @@ void MapFeeds::set_adaptive_preview(bool show, int64_t now_ms)
         if (opening)
             follow();
     } else if (preview_until_ms_) {
+        log_info("hud: closing adaptive preview: %s", show ? "preview unavailable" : close_reason);
         preview_until_ms_ = 0;
         set_turn(Turn(), now_ms);
         follow();
@@ -173,7 +174,7 @@ void MapFeeds::set_hud_hide_sport(bool hide)
 {
     hud_hide_sport_ = hide;
     if (hidden_for_sport())
-        set_adaptive_preview(false, 0);
+        set_adaptive_preview(false, 0, "hidden in Sport mode");
     follow();
 }
 
@@ -182,7 +183,7 @@ void MapFeeds::set_sport(bool sport, int64_t now_ms)
     sport_ = sport;
     sport_at_ms_ = now_ms;
     if (hidden_for_sport())
-        set_adaptive_preview(false, now_ms);
+        set_adaptive_preview(false, now_ms, "hidden in Sport mode");
     follow();
 }
 
@@ -222,7 +223,7 @@ size_t MapFeeds::poll_fds(std::vector<pollfd> *fds) const
 void MapFeeds::poll(int64_t now_ms)
 {
     if (preview_until_ms_ && (now_ms >= preview_until_ms_ || !adaptive_preview_ready()))
-        set_adaptive_preview(false, now_ms);
+        set_adaptive_preview(false, now_ms, adaptive_preview_ready() ? "preview request expired" : "video unavailable");
     if (sport_ && now_ms - sport_at_ms_ >= kSportHoldMs) {
         log_info("hud: the Sport mode was not reported again for %lld s; it counts no longer", (long long)(kSportHoldMs / 1000));
         sport_ = false;

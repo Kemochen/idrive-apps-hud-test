@@ -68,7 +68,7 @@ public:
     bool adaptive_hud() const { return base_.adaptive_hud; }
     bool adaptive_preview_ready() const { return live_ && !frozen_ && adaptive_video_fresh_; }
     void set_adaptive_video_fresh(bool fresh);
-    void set_adaptive_preview(bool show, int64_t now_ms);
+    void set_adaptive_preview(bool show, int64_t now_ms, const char *close_reason = "guidance stopped requesting the map");
     static constexpr int64_t kPreviewHoldMs = 2800;
     /* A feed takes frames: the cluster's, or the HUD's with its layer made
      * and not disabled. */

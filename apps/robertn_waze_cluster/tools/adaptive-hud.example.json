@@ -9,6 +9,7 @@
   "laneMeters": 350,
   "junctionMeters": 150,
   "videoPreviewMeters": 2000,
+  "videoHysteresisMeters": 100,
   "laneSeconds": 18,
   "junctionSeconds": 8,
   "expiryMs": 3500,

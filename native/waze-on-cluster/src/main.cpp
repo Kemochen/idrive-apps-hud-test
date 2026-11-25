@@ -213,7 +213,7 @@ public:
     }
     /* The map does not depend on the app: it stays while CarPlay is on the
      * CID and the app's page is hidden. */
-    void on_owner_gone() override { feeds_->set_adaptive_preview(false, now_ms()); }
+    void on_owner_gone() override { feeds_->set_adaptive_preview(false, now_ms(), "controller disconnected"); }
 
     void report(const std::string &status)
     {
@@ -494,14 +494,16 @@ int serve(Config cfg)
             alt_read_ms = now;
         }
         const int64_t last_frame = producer.last_frame_ms();
-        const bool live = liveness.live(alt_state, last_frame, now);
-        producer.set_live(live, now);
+        // The decoder can publish a frame after the poll loop sampled now.
+        const int64_t video_now = now_ms();
+        const bool live = liveness.live(alt_state, last_frame, video_now);
+        producer.set_live(live, video_now);
         producer.set_pictures(feed.wants_frames());
-        const Picture picture = producer.picture(now);
-        feed.set_stream(live, producer.frozen(now), picture);
+        const Picture picture = producer.picture(video_now);
+        feed.set_stream(live, producer.frozen(video_now), picture);
         feed.set_adaptive_video_fresh(live && picture == Picture::Shown && !producer.stream_lost() &&
-                                      last_frame >= 0 && now >= last_frame && now - last_frame < 1500);
-        feed.poll(now);
+                                      last_frame >= 0 && video_now - last_frame < 1500);
+        feed.poll(video_now);
         if (fc.vpp_scale)
             producer.set_part(feed.part());
         producer.retry_sources(now);
