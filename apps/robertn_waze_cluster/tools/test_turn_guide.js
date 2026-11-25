@@ -395,7 +395,7 @@ async function main() {
         assert.ok(!render.received.some((m) => m.cmd === 'turn'));
         assert.ok(!t.log.lines.some((line) => line.includes('lanes guidance')));
     });
-    await check('verified adaptive mode opens a HUD preview on a near exit and clears it when guidance ends', async () => {
+    await check('verified adaptive mode requests a HUD preview at 2 km for a regular turn without a UID, then clears it when guidance ends', async () => {
         await alone();
         showing();
         render.adaptiveHud = 1;
@@ -403,8 +403,8 @@ async function main() {
         render.adaptivePreviewReady = 1;
         render.hudCard = 0;
         let active = true;
-        const turn = Object.assign(card('offramp_right', '100 m'), { key: '2', kind: 'branch' });
-        const t = make({}, {adaptiveSettings: {debounceMs: 0}, reader: {
+        const turn = Object.assign(card('right', '2 km'), { key: null, kind: 'intersection' });
+        const t = make({}, {reader: {
             read: () => Promise.resolve({ card: active ? turn : null,
                 sample: { connected: true, active, at: Date.now(), turn: active ? turn : null } })
         }});

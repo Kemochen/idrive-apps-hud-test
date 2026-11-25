@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+With adaptive HUD enabled, display the CarPlay map whenever the next maneuver
+is within 2 km, including ordinary turns and lane changes. Keep it visible
+between consecutive maneuvers that are both within range.
+
 The HUD mode switch can show the existing CarPlay map briefly at eligible
 junctions on head units whose video framing and warning priority were
 verified. The off switch keeps the existing display. With verification

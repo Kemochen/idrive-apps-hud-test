@@ -55,6 +55,10 @@ invalidMap.map.route = [[0, 5], [25, NaN]];
 assert.strictEqual(controller.update(7300, invalidMap).showMap, false);
 assert.strictEqual(apply(7400, Object.assign({}, exit, {sample: {ended: true}})).state, 'IDLE');
 assert.strictEqual(distanceMeters('1,2 km'), 1200);
+assert.strictEqual(distanceMeters('2,000 m'), 2000);
+assert.strictEqual(distanceMeters('2 010 m'), 2010);
+assert.strictEqual(distanceMeters("2'050 m"), 2050);
+assert.strictEqual(distanceMeters('2..1 km'), null);
 assert.strictEqual(distanceMeters('½ mi'), null);
 assert.strictEqual(settings({mapZoom: 30}).mapZoom, 1.5);
 assert.strictEqual(new AdaptiveHUDController({enabled: false}).update(9000, sample(9000, exit)).state, 'IDLE');
@@ -66,13 +70,21 @@ assert.strictEqual(result.card.road, '');
 assert.strictEqual(result.card.lanes, 's,r*');
 console.log('ok hysteresis, minimum duration, unverified inputs, configuration and final destination');
 
-const live = new AdaptiveHUDController({debounceMs: 0});
-const nearExit = (now, update) => live.update(now, sample(now, {
-    turn: exit.turn, sample: Object.assign({videoPreview: true, videoAt: now}, update)
+const live = new AdaptiveHUDController();
+const projected = (now, turn, update) => live.update(now, sample(now, {
+    turn, sample: Object.assign({videoPreview: true, videoAt: now}, update)
 }));
-assert.strictEqual(nearExit(9200).showMap, true);
-assert.strictEqual(nearExit(9250, {videoPreview: false}).showMap, false);
-assert.strictEqual(nearExit(9300, {videoAt: 0}).showMap, false);
-assert.strictEqual(nearExit(9350, {priorityVerified: false}).showMap, false);
-assert.strictEqual(live.update(9400, sample(9400, {turn: {dist: '50 m'}, sample: {videoPreview: true, videoAt: 9400}})).showMap, false);
-console.log('ok localized video, missing or stale video, unknown priority and ordinary turns');
+assert.strictEqual(projected(9200, {dist: '2.1 km'}).showMap, false);
+assert.strictEqual(projected(9250, {dist: '2,0 km'}).showMap, true);
+const laneChange = {key: '2', kind: 'laneChange', arrow: 'lane_change_left', dist: '1.2 mi'};
+assert.strictEqual(projected(9300, laneChange).showMap, true, 'consecutive maneuvers do not blank the map');
+assert.strictEqual(projected(9350, Object.assign({}, laneChange, {dist: '1.25 mi'})).showMap, false);
+assert.strictEqual(projected(9400, {key: null, arrow: 'follow', dist: '2 000 m'}).showMap, true);
+assert.strictEqual(projected(9450, {key: null, dist: ''}).showMap, false);
+assert.strictEqual(projected(9500, exit.turn).showMap, true);
+assert.strictEqual(projected(9550, exit.turn, {videoPreview: false}).showMap, false);
+assert.strictEqual(projected(9600, exit.turn, {videoAt: 0}).showMap, false);
+assert.strictEqual(projected(9650, exit.turn, {priorityVerified: false}).showMap, false);
+assert.strictEqual(projected(9700, exit.turn, {warning: true}).showMap, false);
+assert.strictEqual(projected(9750, exit.turn, {connected: false}).showMap, false);
+console.log('ok video within 2 km for any maneuver, consecutive turns and immediate fallback');

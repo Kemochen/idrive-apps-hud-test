@@ -4,14 +4,15 @@
 const DEFAULTS = Object.freeze({
     enabled: true, lanes: true, junction: true, highwayJunction: true, street: true,
     arrowDuringPreview: true, speedDependent: true,
-    laneMeters: 350, junctionMeters: 150, laneSeconds: 18, junctionSeconds: 8,
+    laneMeters: 350, junctionMeters: 150, videoPreviewMeters: 2000, laneSeconds: 18, junctionSeconds: 8,
     expiryMs: 3500, debounceMs: 350, transitionMs: 450, minimumPreviewMs: 800,
     hysteresisMeters: 35, mapBrightness: 0.9, mapOpacity: 0.85, mapSize: 1,
     mapX: 0, mapY: 0, mapZoom: 1
 });
 
 const LIMITS = {
-    laneMeters: [100, 800], junctionMeters: [40, 300], laneSeconds: [1, 35], junctionSeconds: [1, 20],
+    laneMeters: [100, 800], junctionMeters: [40, 300], videoPreviewMeters: [40, 2000],
+    laneSeconds: [1, 35], junctionSeconds: [1, 20],
     expiryMs: [1000, 5000], debounceMs: [0, 1000], transitionMs: [0, 1000], minimumPreviewMs: [0, 1500],
     hysteresisMeters: [0, 80], mapBrightness: [0.15, 1], mapOpacity: [0.15, 1], mapSize: [0.6, 1.2],
     mapX: [-40, 40], mapY: [-25, 25], mapZoom: [1, 1.5]
@@ -30,9 +31,16 @@ function settings(input) {
 }
 
 function distanceMeters(text) {
-    const match = /^([0-9]+(?:[.,][0-9]+)?)\s*(km|m|mi|ft|yd)$/.exec(text || '');
+    const match = /^(\d[\d.,' ]*?)\s*(km|m|mi|ft|yd)$/.exec(text || '');
     if (!match) return null;
-    return Number(match[1].replace(',', '.')) * {km: 1000, m: 1, mi: 1609.344, ft: 0.3048, yd: 0.9144}[match[2]];
+    const unit = match[2];
+    const value = match[1].trim();
+    const whole = unit === 'm' || unit === 'ft' || unit === 'yd';
+    const grouped = whole && /^\d{1,3}([.,' ])\d{3}(?:\1\d{3})*$/.test(value);
+    const number = grouped ? value.replace(/[.,' ]/g, '') : value.replace(',', '.');
+    if (!/^\d+(?:\.\d+)?$/.test(number)) return null;
+    const meters = Number(number) * {km: 1000, m: 1, mi: 1609.344, ft: 0.3048, yd: 0.9144}[unit];
+    return Number.isFinite(meters) ? meters : null;
 }
 
 function fresh(now, time, max) {
@@ -76,34 +84,39 @@ class AdaptiveHUDController {
         const key = String(turn.key || '');
         if (this.route !== null && s.route !== this.route) this.reset('FALLBACK');
         this.route = s.route === undefined ? null : s.route;
-        if (key && this.key !== null && key !== this.key) {
-            this.state = 'MANEUVER_TRANSITION';
-            this.since = now;
-            this.pending = null;
+
+        const distance = distanceMeters(turn.dist);
+        const highway = s.highway === true || /^offramp_/.test(turn.arrow);
+        const mapEnabled = cfg.junction && (!highway || cfg.highwayJunction);
+        // The existing video follows the route across maneuvers and needs no geometry or UID.
+        const showVideo = mapEnabled && distance !== null && distance <= cfg.videoPreviewMeters &&
+            s.videoPreview === true && fresh(now, s.videoAt, cfg.expiryMs);
+        if (!showVideo && key && this.key !== null && key !== this.key) {
+            this.switchTo('MANEUVER_TRANSITION', now);
         }
         this.key = key || null;
-        if (this.state === 'MANEUVER_TRANSITION' && now - this.since < cfg.transitionMs) {
+        if (!showVideo && this.state === 'MANEUVER_TRANSITION' && now - this.since < cfg.transitionMs) {
             return this.view('new-maneuver', turn);
         }
 
-        const distance = distanceMeters(turn.dist);
         const speed = cfg.speedDependent && Number.isFinite(s.speedKmh) && s.speedKmh >= 0 && s.speedKmh <= 250 ? s.speedKmh / 3.6 : 0;
         const laneRange = Math.min(800, Math.max(cfg.laneMeters, speed * cfg.laneSeconds));
         const mapRange = Math.min(300, Math.max(cfg.junctionMeters, speed * cfg.junctionSeconds));
-        const highway = s.highway === true || /^offramp_/.test(turn.arrow);
         const complex = s.complex === true || highway || turn.kind === 'roundabout' || turn.kind === 'branch';
         const eligibleLanes = Boolean(cfg.lanes && key && turn.lanes && s.lanesVerified === true);
         const map = s.map;
         const sceneAvailable = s.positionValid === true && map && map.kind === 'localized' && map.maneuver === key &&
             map.routeVerified === true && fresh(now, map.at, cfg.expiryMs) && validScene(map);
-        const videoAvailable = s.videoPreview === true && fresh(now, s.videoAt, cfg.expiryMs);
-        const eligibleMap = Boolean(cfg.junction && (!highway || cfg.highwayJunction) && key && complex &&
-            (sceneAvailable || videoAvailable));
+        const eligibleMap = mapEnabled && key && complex && sceneAvailable;
         const previewOpen = this.state === 'JUNCTION_PREVIEW';
         const lanesOpen = previewOpen || this.state === 'LANE_GUIDANCE';
         const showMap = eligibleMap && distance !== null && (distance <= mapRange + (previewOpen ? cfg.hysteresisMeters : 0) ||
             (previewOpen && now - this.since < cfg.minimumPreviewMs));
         const showLanes = eligibleLanes && distance !== null && distance <= laneRange + (lanesOpen ? cfg.hysteresisMeters : 0);
+        if (showVideo) {
+            if (!previewOpen) this.switchTo('JUNCTION_PREVIEW', now);
+            return this.view(null, turn, showLanes);
+        }
         const next = showMap ? 'JUNCTION_PREVIEW' : showLanes ? 'LANE_GUIDANCE' : 'STANDARD_GUIDANCE';
 
         // A lost preview or lane source clears on this update. Only entering an enhanced view is debounced.

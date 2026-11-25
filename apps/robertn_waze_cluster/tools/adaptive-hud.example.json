@@ -8,6 +8,7 @@
   "speedDependent": true,
   "laneMeters": 350,
   "junctionMeters": 150,
+  "videoPreviewMeters": 2000,
   "laneSeconds": 18,
   "junctionSeconds": 8,
   "expiryMs": 3500,
