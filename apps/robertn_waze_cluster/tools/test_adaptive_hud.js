@@ -94,3 +94,23 @@ assert.strictEqual(projected(9650, exit.turn, {priorityVerified: false}).showMap
 assert.strictEqual(projected(9700, exit.turn, {warning: true}).showMap, false);
 assert.strictEqual(projected(9750, exit.turn, {connected: false}).showMap, false);
 console.log('ok 2 km video threshold, distance hysteresis, consecutive turns and immediate fallback');
+
+const far = {key: 'after-turn', dist: '3 km'};
+const close = {key: 'before-turn', dist: '40 m'};
+assert.strictEqual(projected(10000, close).showMap, true);
+assert.strictEqual(projected(11000, far).showMap, true);
+assert.strictEqual(projected(15999, far).showMap, true);
+assert.strictEqual(projected(16000, far).showMap, false);
+assert.strictEqual(projected(17000, {key: 'before-turn', dist: '1 km'}).showMap, true);
+assert.strictEqual(projected(18000, far).showMap, false, 'a distant maneuver replaced before reaching it does not extend a preview');
+assert.strictEqual(projected(19000, close).showMap, true);
+assert.strictEqual(projected(20000, far).showMap, true);
+assert.strictEqual(projected(21000, far, {ended: true}).showMap, false);
+assert.strictEqual(projected(22000, close).showMap, true);
+assert.strictEqual(projected(23000, far).showMap, true);
+assert.strictEqual(projected(24000, far, {videoPreview: false}).showMap, false);
+assert.strictEqual(projected(24500, far).showMap, false, 'a lost video cancels the remaining hold');
+assert.strictEqual(projected(25000, {key: null, arrow: 'left', dist: '40 m'}).showMap, true);
+assert.strictEqual(projected(26000, {key: null, arrow: 'right', dist: '3 km'}).showMap, true);
+assert.strictEqual(projected(27000, far, {connected: false}).showMap, false);
+console.log('ok hold the existing video for five seconds after a completed maneuver and cancel on source loss');

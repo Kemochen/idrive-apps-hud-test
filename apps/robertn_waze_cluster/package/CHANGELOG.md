@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+Keep the HUD map visible for five seconds after a maneuver when the next
+step is outside the preview range.
+
 Keep the HUD map steady if the same maneuver's reported distance jumps slightly
 above 2 km after the map opens.
 

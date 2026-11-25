@@ -4,7 +4,7 @@
 const DEFAULTS = Object.freeze({
     enabled: true, lanes: true, junction: true, highwayJunction: true, street: true,
     arrowDuringPreview: true, speedDependent: true,
-    laneMeters: 350, junctionMeters: 150, videoPreviewMeters: 2000, videoHysteresisMeters: 100,
+    laneMeters: 350, junctionMeters: 150, videoPreviewMeters: 2000, videoHysteresisMeters: 100, postManeuverHoldMs: 5000,
     laneSeconds: 18, junctionSeconds: 8,
     expiryMs: 3500, debounceMs: 350, transitionMs: 450, minimumPreviewMs: 800,
     hysteresisMeters: 35, mapBrightness: 0.9, mapOpacity: 0.85, mapSize: 1,
@@ -13,11 +13,12 @@ const DEFAULTS = Object.freeze({
 
 const LIMITS = {
     laneMeters: [100, 800], junctionMeters: [40, 300], videoPreviewMeters: [40, 2000],
-    videoHysteresisMeters: [0, 200], laneSeconds: [1, 35], junctionSeconds: [1, 20],
+    videoHysteresisMeters: [0, 200], postManeuverHoldMs: [0, 10000], laneSeconds: [1, 35], junctionSeconds: [1, 20],
     expiryMs: [1000, 5000], debounceMs: [0, 1000], transitionMs: [0, 1000], minimumPreviewMs: [0, 1500],
     hysteresisMeters: [0, 80], mapBrightness: [0.15, 1], mapOpacity: [0.15, 1], mapSize: [0.6, 1.2],
     mapX: [-40, 40], mapY: [-25, 25], mapZoom: [1, 1.5]
 };
+const MANEUVER_COMPLETION_RANGE_METERS = 150;
 
 function settings(input) {
     const out = Object.assign({}, DEFAULTS);
@@ -68,6 +69,8 @@ class AdaptiveHUDController {
         this.pending = null;
         this.route = null;
         this.videoManeuver = null;
+        this.videoDistance = null;
+        this.videoHoldUntil = 0;
     }
 
     update(now, sample) {
@@ -93,9 +96,17 @@ class AdaptiveHUDController {
         // The existing video follows the route across maneuvers and needs no geometry or UID.
         const maneuver = key || JSON.stringify([turn.kind, turn.arrow, turn.road]);
         const videoRange = cfg.videoPreviewMeters + (maneuver === this.videoManeuver ? cfg.videoHysteresisMeters : 0);
-        const showVideo = mapEnabled && distance !== null && distance <= videoRange &&
-            s.videoPreview === true && fresh(now, s.videoAt, cfg.expiryMs);
-        this.videoManeuver = showVideo ? maneuver : null;
+        const videoReady = mapEnabled && s.videoPreview === true && fresh(now, s.videoAt, cfg.expiryMs);
+        const inRange = videoReady && distance !== null && distance <= videoRange;
+        if (!videoReady || inRange) {
+            this.videoHoldUntil = 0;
+        } else if (this.videoManeuver !== null && maneuver !== this.videoManeuver &&
+            this.videoDistance <= MANEUVER_COMPLETION_RANGE_METERS) {
+            this.videoHoldUntil = now + cfg.postManeuverHoldMs;
+        }
+        this.videoManeuver = inRange ? maneuver : null;
+        this.videoDistance = inRange ? distance : null;
+        const showVideo = inRange || now < this.videoHoldUntil;
         if (!showVideo && key && this.key !== null && key !== this.key) {
             this.switchTo('MANEUVER_TRANSITION', now);
         }
