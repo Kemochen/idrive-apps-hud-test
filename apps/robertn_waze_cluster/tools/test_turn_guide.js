@@ -494,8 +494,10 @@ async function main() {
         t.stop();
     });
     await check('failed reads clear the card once and are spaced out after two in a row', async () => {
+        await alone();
         showing();
         render.turns.length = 0;
+        render.turn = null;
         const state = { card: card('right'), fails: true };
         const t = make(state, { failWaitMs: 150 });
         t.sync.start();
