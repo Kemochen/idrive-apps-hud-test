@@ -110,7 +110,8 @@ function state() {
 function profiles() { var t = fs.readFileSync(PROFILES, 'utf8'); try { return JSON.parse(t); } catch (e) { throw new Error(e.message + ': ' + t); } }
 function settings(cluster, hud, pct, x, y, keep, hideSport) {
     return { cluster: cluster, hud: hud, hud_width_pct: pct, hud_offset_x: x, hud_offset_y: y, hud_keep_shown: keep || 0,
-             hud_hide_sport: hideSport || 0, hud_card: 0, hud_card_pct: 100, hud_card_x: 0, hud_card_y: 0, hud_card_crop: 20 };
+             hud_hide_sport: hideSport || 0, hud_card: 0, hud_card_pct: 100, hud_card_x: 0, hud_card_y: 0, hud_card_crop: 20, adaptive_hud: 0,
+             hud_map_crop: 0, hud_map_zoom: 100, hud_lanes_pct: 100, hud_lanes_x: 0, hud_lanes_y: 0 };
 }
 function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 /* For a check that nothing is written: past the save's delay. */
@@ -226,9 +227,9 @@ var A = 'a1b2c3d4-0000-4000-8000-000000000001', B = 'a1b2c3d4-0000-4000-8000-000
 
     /* The format a patchd and render without profiles read. */
     var lines = fs.readFileSync(STATE, 'utf8').split('\n').filter(Boolean);
-    ok('map.state.conf: only "key = whole number" lines of the twelve map keys (an earlier render reads them, leaving out the keys it has not)',
-        lines.length === 12 && lines.every(function (l) {
-            return /^(cluster|hud|hud_width_pct|hud_offset_x|hud_offset_y|hud_keep_shown|hud_hide_sport|hud_card|hud_card_pct|hud_card_x|hud_card_y|hud_card_crop) = -?\d+$/.test(l);
+    ok('map.state.conf contains one whole number for each supported key',
+        lines.length === Object.keys(settings(1, 1, 50, 0, 0)).length && lines.every(function (l) {
+            return /^(cluster|hud|hud_width_pct|hud_offset_[xy]|hud_keep_shown|hud_hide_sport|hud_card(?:_pct|_[xy]|_crop)?|adaptive_hud|hud_map_(?:crop|zoom)|hud_lanes_(?:pct|[xy])) = -?\d+$/.test(l);
         }), lines.join('|'));
 
     /* Untick: the shared settings back, the copy gone. */
@@ -423,7 +424,8 @@ var A = 'a1b2c3d4-0000-4000-8000-000000000001', B = 'a1b2c3d4-0000-4000-8000-000
     /* map.state.conf's settings, in whatever order its lines are */
     var sameKeys = function (a, b) { return Object.keys(b).length === Object.keys(a).length && Object.keys(b).every(function (k) { return a[k] === b[k]; }); };
     fs.writeFileSync(STATE, 'cluster = 1\nhud = 0\nhud_width_pct = 0\nhud_offset_x = 0\nhud_offset_y = 0\nhud_keep_shown = 0\nhud_hide_sport = 0\n' +
-        'hud_card = 0\nhud_card_pct = 100\nhud_card_x = 0\nhud_card_y = 0\nhud_card_crop = 20\n');
+        'hud_card = 0\nhud_card_pct = 100\nhud_card_x = 0\nhud_card_y = 0\nhud_card_crop = 20\nadaptive_hud = 0\n' +
+        'hud_map_crop = 0\nhud_map_zoom = 100\nhud_lanes_pct = 100\nhud_lanes_x = 0\nhud_lanes_y = 0\n');
     await start();
     await ask({ cmd: 'profile', id: A });
     await ask({ cmd: 'profile-own', id: A, on: 1 });
@@ -460,7 +462,7 @@ var A = 'a1b2c3d4-0000-4000-8000-000000000001', B = 'a1b2c3d4-0000-4000-8000-000
     lines = fs.readFileSync(STATE, 'utf8').split('\n').filter(Boolean);
     ok('started again: the shared Off kept, map.state.conf in the lines an earlier version reads', r.ok && !r.changed && same(r.settings, OFF) &&
         lines.indexOf('cluster = 0') >= 0 && lines.indexOf('hud = 0') >= 0 &&
-        lines.every(function (l) { return /^(cluster|hud|hud_width_pct|hud_offset_x|hud_offset_y|hud_keep_shown|hud_hide_sport|hud_card|hud_card_pct|hud_card_x|hud_card_y|hud_card_crop) = -?\d+$/.test(l); }),
+        lines.every(function (l) { return /^(cluster|hud|hud_width_pct|hud_offset_[xy]|hud_keep_shown|hud_hide_sport|hud_card(?:_pct|_[xy]|_crop)?|adaptive_hud|hud_map_(?:crop|zoom)|hud_lanes_(?:pct|[xy])) = -?\d+$/.test(l); }),
         lines.join('|'));
     r = await ask({ cmd: 'cluster', on: 1 });
     ok('the cluster again from Off: saved', r.ok && await when(function () { return sameKeys(state(), ON); }), JSON.stringify(state()));
@@ -518,6 +520,12 @@ var A = 'a1b2c3d4-0000-4000-8000-000000000001', B = 'a1b2c3d4-0000-4000-8000-000
     var r2 = await ask({ cmd: 'hud-card-size', hud_card_pct: 120 });
     var r3 = await ask({ cmd: 'hud-card-pos', hud_card_x: 30, hud_card_y: -20 });
     var r4 = await ask({ cmd: 'hud-card-crop', hud_card_crop: 30 });
+    var r5 = await ask({ cmd: 'hud-layout', hud_map_zoom: 140, hud_lanes_pct: 120, hud_lanes_x: 50, hud_lanes_y: -30 });
+    ok('the HUD layout is saved into this driver profile', r5.ok && await when(function () {
+        var active = profiles().own[A], s = state();
+        return active.hud_map_zoom === 140 && active.hud_lanes_pct === 120 && active.hud_lanes_y === -30 &&
+            s.hud_map_zoom === 140 && s.hud_lanes_x === 50 && s.hud_map_crop === 30;
+    }), JSON.stringify(r5));
     ok('the turn card as A\'s own: in A\'s copy and map.state.conf', r.ok && r2.ok && r3.ok && r4.ok && await when(function () {
         var s = state(), own = profiles().own[A];
         return s.hud_card === 1 && s.hud_card_pct === 120 && s.hud_card_x === 30 && s.hud_card_y === -20 && s.hud_card_crop === 30 &&
@@ -526,11 +534,11 @@ var A = 'a1b2c3d4-0000-4000-8000-000000000001', B = 'a1b2c3d4-0000-4000-8000-000
     r = await ask({ cmd: 'profile', id: B });
     ok('B without its own: the shared settings, no card at its drawn size and place, changed', r.ok && !r.own && r.changed &&
         r.settings.hud_card === 0 && r.settings.hud_card_pct === 100 && r.settings.hud_card_x === 0 && r.settings.hud_card_y === 0 &&
-        r.settings.hud_card_crop === 20 &&
+        r.settings.hud_card_crop === 20 && r.settings.hud_map_zoom === 100 && r.settings.hud_lanes_pct === 100 &&
         await when(function () { return state().hud_card === 0 && state().hud_card_pct === 100 && state().hud_card_crop === 20; }), JSON.stringify(r));
     r = await ask({ cmd: 'profile', id: A });
     ok('back to A: its card, changed', r.ok && r.own && r.changed && r.settings.hud_card === 1 && r.settings.hud_card_pct === 120 &&
-        r.settings.hud_card_crop === 30 &&
+        r.settings.hud_card_crop === 30 && r.settings.hud_map_zoom === 140 && r.settings.hud_lanes_y === -30 &&
         r.settings.hud_card_y === -20 && await when(function () { return state().hud_card === 1 && state().hud_card_x === 30; }), JSON.stringify(r));
 })().catch(function (e) {
     ok('no error: ' + e.message, false);

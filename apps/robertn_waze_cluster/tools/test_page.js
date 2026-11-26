@@ -418,7 +418,8 @@ async function main() {
         const bound = logs.filter((l) => l.startsWith('info: BIND OK: ')).map((l) => l.split(' ')[3]).sort();
         assert.deepStrictEqual(bound, ['wocAaCard', 'wocAaDisable', 'wocAaEnable', 'wocAaZoomIn', 'wocAaZoomOut', 'wocCapture', 'wocDisable', 'wocEnable',
             'wocGuide', 'wocHudAdaptive', 'wocHudCard', 'wocHudCardDown', 'wocHudCardLeft', 'wocHudCardReset', 'wocHudCardRight', 'wocHudCardUp',
-            'wocHudCentre', 'wocHudDown', 'wocHudKeep', 'wocHudLeft', 'wocHudRight', 'wocHudSport', 'wocHudUp', 'wocLogs', 'wocLogsSave', 'wocProfile',
+            'wocHudCentre', 'wocHudDown', 'wocHudKeep', 'wocHudLanesDown', 'wocHudLanesLeft', 'wocHudLanesReset', 'wocHudLanesRight',
+            'wocHudLanesUp', 'wocHudLeft', 'wocHudRight', 'wocHudSport', 'wocHudUp', 'wocLogs', 'wocLogsSave', 'wocProfile',
             'wocRestart'],
             'bound buttons and checkbox');
         assert.strictEqual(byName.wocRestart.visible, false, 'restart button hidden while the map shows');
@@ -656,7 +657,7 @@ async function main() {
         render.hudCard = null;   /* a render without the turn card */
         render.announce(render.state, render.reason);
         await until('a render without it: greyed, unticked', () => cardBox.enabled === false && cardBox.selected === false && cardRows().every((e) => e === false) &&
-            cardSize.text === 'Turn card size: \u2014' && cardCrop.text === 'Map height with turn card: \u2014');
+            cardSize.text === 'Turn card size: \u2014' && cardCrop.text === 'Map height: 85 %' && cardCrop.enabled);
         render.hudCard = 1;
         render.announce(render.state, render.reason);
         await until('ticked again', () => cardBox.enabled === true && cardBox.selected === true);
