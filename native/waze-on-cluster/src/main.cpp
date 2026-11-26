@@ -105,6 +105,7 @@ std::string status_line(const FeedStatus &s, bool nav_live, bool nav_diagnostics
            /* Older Maps on Cluster versions use the former field to detect availability. */
            ",\"adaptive_preview_supported\":1,\"adaptive_preview_verified\":1" +
            ",\"adaptive_preview_ready\":" + (feeds.adaptive_preview_ready() ? "1" : "0") +
+           ",\"adaptive_lanes_supported\":1,\"adaptive_lanes_active\":" + (feeds.adaptive_lanes_active() ? "1" : "0") +
            /* only while hosted: otherwise the line is as it always was */
            (s.hosted ? ",\"hosted\":1" : "") + "}";
 }
@@ -156,6 +157,8 @@ public:
             on_turn(msg);
         } else if (cmd == "adaptive-preview" && on != msg.end() && (on->second == "0" || on->second == "1")) {
             feeds_->set_adaptive_preview(on->second == "1", now_ms());
+        } else if (cmd == "adaptive-lanes" && msg.count("lanes")) {
+            feeds_->set_adaptive_lanes(msg.at("lanes").substr(0, 160), now_ms());
         } else if (cmd == "note" && nav_diagnostics_ && msg.count("text")) {
             on_note(msg.at("text"));
         } else if (cmd == "hud" && (on != msg.end() || pct != msg.end() || hx != msg.end() || hy != msg.end() ||
@@ -217,7 +220,12 @@ public:
     }
     /* The map does not depend on the app: it stays while CarPlay is on the
      * CID and the app's page is hidden. */
-    void on_owner_gone() override { feeds_->set_adaptive_preview(false, now_ms(), "controller disconnected"); }
+    void on_owner_gone() override
+    {
+        const int64_t now = now_ms();
+        feeds_->set_adaptive_lanes({}, now);
+        feeds_->set_adaptive_preview(false, now, "controller disconnected");
+    }
 
     void report(const std::string &status)
     {

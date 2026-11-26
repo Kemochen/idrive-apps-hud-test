@@ -114,3 +114,20 @@ assert.strictEqual(projected(25000, {key: null, arrow: 'left', dist: '40 m'}).sh
 assert.strictEqual(projected(26000, {key: null, arrow: 'right', dist: '3 km'}).showMap, true);
 assert.strictEqual(projected(27000, far, {connected: false}).showMap, false);
 console.log('ok hold the existing video for five seconds after a completed maneuver and cancel on source loss');
+
+live.reset('IDLE');
+const laneOnly = {key: 'exit', kind: 'branch', arrow: 'offramp_right', dist: '2300 m', lanes: 's,s,r*'};
+const earlySample = {earlyLanesSupported: true};
+let decision = projected(28000, laneOnly, earlySample);
+assert.strictEqual(decision.showMap, false);
+assert.strictEqual(decision.earlyLanes, 's,s,r*');
+decision = projected(29000, Object.assign({}, laneOnly, {dist: '1900 m'}), earlySample);
+assert.strictEqual(decision.showMap, true);
+assert.strictEqual(decision.earlyLanes, '');
+assert.strictEqual(decision.card.lanes, 's,s,r*');
+live.reset('IDLE');
+assert.strictEqual(projected(30000, laneOnly, {earlyLanesSupported: true, videoPreview: false}).earlyLanes, 's,s,r*');
+assert.strictEqual(projected(31000, laneOnly, {earlyLanesSupported: true, lanesVerified: false}).earlyLanes, '');
+assert.strictEqual(projected(32000, Object.assign({}, laneOnly, {key: null}), earlySample).earlyLanes, '');
+assert.strictEqual(projected(33000, laneOnly, {earlyLanesSupported: true, connected: false}).earlyLanes, '');
+console.log('ok early lanes require a verified recommendation and clear on missing metadata or disconnect');

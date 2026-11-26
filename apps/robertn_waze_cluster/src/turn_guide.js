@@ -452,6 +452,7 @@ class TurnGuideSync {
         const adaptiveMode = status.adaptive_hud === 1 && status.hud === 1;
         const previewEnabled = adaptiveMode && status.adaptive_preview_supported === 1;
         const previewReady = previewEnabled && status.adaptive_preview_ready === 1;
+        const earlyLanesSupported = previewEnabled && status.adaptive_lanes_supported === 1;
         this._setPreviewReady(previewReady);
         this._diagnostics = diagnostics;
         const inUse = cardOn || diagnostics || previewEnabled;
@@ -473,7 +474,7 @@ class TurnGuideSync {
         }
         return { send, name: page ? 'page' : 'link', diagnostics, overlay, epoch: this._overlayEpoch,
             adaptive: adaptiveMode && (diagnostics || previewEnabled), previewEnabled, previewReady,
-            previewEpoch: this._previewEpoch, cardOn };
+            previewEpoch: this._previewEpoch, cardOn, earlyLanesSupported };
     }
 
     _setPreviewReady(ready) {
@@ -539,13 +540,18 @@ class TurnGuideSync {
         const at = Date.now();
         // The native service expires preview leases and handles renderer yielding.
         const decision = this._adaptive.update(at, sample ? Object.assign({}, sample, {
-            warning: false, priorityVerified: true, videoPreview: channel.previewReady, videoAt: at
+            warning: false, priorityVerified: true, videoPreview: channel.previewReady, videoAt: at,
+            earlyLanesSupported: channel.earlyLanesSupported && channel.cardOn
         }) : null);
         if (channel.previewEnabled) {
+            if (channel.earlyLanesSupported && decision.earlyLanes)
+                channel.send({ cmd: 'adaptive-lanes', lanes: decision.earlyLanes });
             channel.send({ cmd: 'adaptive-preview', on: decision.showMap ? '1' : '0' });
             if (decision.showMap && channel.cardOn && decision.card) {
                 this._tell(channel, decision.card);
             }
+            if (channel.earlyLanesSupported && !decision.earlyLanes)
+                channel.send({ cmd: 'adaptive-lanes', lanes: '' });
         }
         if (channel.diagnostics && decision.state !== this._adaptiveState) {
             this._adaptiveState = decision.state;

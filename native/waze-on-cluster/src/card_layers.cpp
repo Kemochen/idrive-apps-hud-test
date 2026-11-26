@@ -65,7 +65,7 @@ void CardLayers::set_turn(const Turn &t)
     update();
 }
 
-void CardLayers::follow(unsigned tw, unsigned th, const CardRect &anchor, bool visible, bool yield)
+void CardLayers::follow(unsigned tw, unsigned th, const CardRect &anchor, bool visible, bool yield, bool lanes_only)
 {
     if (!tw)
         refused_ = false;
@@ -74,6 +74,7 @@ void CardLayers::follow(unsigned tw, unsigned th, const CardRect &anchor, bool v
     anchor_ = anchor;
     visible_ = visible;
     yield_ = yield;
+    lanes_only_ = lanes_only;
     update();
 }
 
@@ -93,15 +94,17 @@ void CardLayers::update()
         return;
     }
     layout_ = card_layout(tw_, th_, anchor_, cfg_);
-    place(&row_, layout_.top);
-    place(&lanes_, layout_.lanes);
+    if (lanes_only_) drop(&row_);
+    else place(&row_, layout_.top);
+    const std::string lanes = !lanes_only_ && turn_.empty() ? std::string() : turn_.lanes;
+    if (lanes_only_ && lanes.empty()) drop(&lanes_);
+    else place(&lanes_, layout_.lanes);
     const float scale = layout_.scale;
     if (stale(&row_, picture_key(layout_.top, scale, {turn_.arrow, turn_.angle, turn_.side, turn_.dist, turn_.road}))) {
         CardImage m;
         draw_card_row(turn_, scale, layout_.top.w, layout_.top.h, &m);
         show(&row_, std::move(m));
     }
-    const std::string lanes = turn_.empty() ? std::string() : turn_.lanes;
     if (stale(&lanes_, picture_key(layout_.lanes, layout_.lanes_scale, {lanes}))) {
         CardImage m;
         draw_card_lanes(lanes, layout_.lanes_scale, layout_.lanes.w, layout_.lanes.h, &m);
@@ -127,7 +130,7 @@ void CardLayers::place(Part *p, const CardRect &r)
     lo.target = "hud";
     lo.klass = "content";
     lo.z = 1;            /* over the map */
-    lo.contend = true;   /* as the map does */
+    lo.contend = !lanes_only_;
     lo.yield = yield_;
     lo.x = r.x;
     lo.y = r.y;
@@ -143,7 +146,8 @@ void CardLayers::place(Part *p, const CardRect &r)
         p->ref = client_->image(lo, io);
         p->shown = CardImage();
         log_info("render: turn card %s on the HUD, %ux%u at %d,%d", p->name, r.w, r.h, r.x, r.y);
-    } else if (lo.x != p->lo.x || lo.y != p->lo.y || lo.visible != p->lo.visible || lo.yield != p->lo.yield) {
+    } else if (lo.x != p->lo.x || lo.y != p->lo.y || lo.visible != p->lo.visible || lo.yield != p->lo.yield ||
+               lo.contend != p->lo.contend) {
         p->lo = lo;
         client_->set(p->ref, lo);
     }

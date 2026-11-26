@@ -313,6 +313,67 @@
             }
           ]
         },
+        "161": {
+          "type": "button",
+          "name": "wocHudPreviewToggle",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Preview HUD layout while parked",
+                "type": "Text"
+              }
+            }
+          ]
+        },
+        "162": {
+          "type": "button",
+          "name": "wocHudPreviewExample",
+          "properties": {
+            "Visible": {
+              "value": 0,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Example: Turn and three lanes",
+                "type": "Text"
+              }
+            }
+          ]
+        },
+        "163": {
+          "type": "label",
+          "name": "wocHudPreviewImage",
+          "properties": {
+            "Visible": {
+              "value": 0,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 0,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {}
+          ]
+        },
         "150": {
           "type": "label",
           "name": "wocHeadHudMap",

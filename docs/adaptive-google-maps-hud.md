@@ -6,6 +6,10 @@ Choose **Show on → HUD (experimental)** for windshield-only output. Turn on **
 
 The HUD settings group the map, the turn card (arrow, road and distance), and lane guidance separately. Each group has its own position and size. **Map height** controls the viewport's aspect ratio, and **Map zoom** crops the video around its center while keeping the viewport in place. The turn card and lane guidance use their own fixed HUD anchors. Earlier map height preferences are carried over from profiles that used the turn card.
 
+Use **Preview HUD layout while parked** on the iDrive settings page. The preview shows the map viewport, turn card and lanes together using the live layout settings, with example scenarios for a short or long road name and three or six lanes. The example is drawn in the app and sends no mock guidance to the windshield.
+
+With adaptive mode and **Turn card on HUD** enabled, the app can request a lane-only HUD layer within 2.5 km of a reported branch, turn, roundabout or lane change. It requires a stable maneuver ID, a complete lane row and at least one verified recommendation. The existing map remains eligible at 2 km. The lane-only layer yields to stock pop-ups, waits for a free HUD slot and expires when its lease stops. No vehicle observation has established how early Google Maps provides lane data on every route or firmware.
+
 The baseline is the already tested Store experiment, `d6555d2`, descended from minakoto00's `79a4f20`. This keeps its existing app packaging, CarPlay compatibility gates, renderer integration, and logging. The separate branch leaves upstream and the previous release intact. Merging a newer renderer and patcher is a separate compatibility change.
 
 On the owner's 2021 G05, resizing the turn card also resized the HUD lane arrows while navigating with Google Maps over CarPlay. Recommended lanes matched the center display and cleared after the maneuver. This is observational evidence for the existing `Guidance.currentLaneGuiding` render path on that car. It does not establish packet contents, road geometry or warning precedence.

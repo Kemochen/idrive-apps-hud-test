@@ -838,6 +838,12 @@ class WazeClusterControl extends EventEmitter {
         return t('Lane guidance position: {0}', x === null || y === null ? '—' : offsetText(x, y, t('Standard')));
     }
 
+    hudPreviewSettings() {
+        return {width: this.hudWidth(), crop: this._layoutValue('hud_map_crop'), zoom: this._layoutValue('hud_map_zoom'),
+            mapOffset: this.hudOffset(), turnSize: this.hudCardPct(), turnOffset: this.hudCardOffset(),
+            lanesSize: this._layoutValue('hud_lanes_pct'), lanesOffset: [this._layoutValue('hud_lanes_x'), this._layoutValue('hud_lanes_y')]};
+    }
+
     moveHudLanes(dir) {
         const move = MOVES[dir];
         if (!move || !this.canChangeHudLanes()) return;

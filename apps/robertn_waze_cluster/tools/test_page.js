@@ -322,13 +322,14 @@ async function main() {
         .matchAll(/<component id="(\d+)" type="(\w+)"(?: widget="(\w+)")?/g)].map((m) => [m[1], m[2], m[3]]);
     /* application.xml orders the rows; uiDescription holds them by id */
     const shipped = (d) => (d.type === 'dropDownMenu' ? `${d.cells.HeaderText.value}: ${d.rows[d.cells.SelectedItem.value].ItemText.value}`
-        : d.type === 'slider' ? d.rows[0].TextDescription.value : d.rows[0].Text.value);
+        : d.type === 'slider' ? d.rows[0].TextDescription.value : d.rows[0].Text ? d.rows[0].Text.value : '');
     const main = xmlIds('1').map(([id]) => [id, components[id].type, components[id].name, shipped(components[id])]);
     assert.deepStrictEqual(main.map(([id, type, name, text]) => (type === 'title' ? name : `${name} ${text}`)), [
         'wocTitle',
         'wocHeadGeneral General', 'wocShowOn Show on: Cluster', 'wocProfile Own settings for this driver', 'wocMap Cluster map: Off', "wocGuide Hide BMW's turn box", 'wocLogs Logs',
         'wocHeadHud HUD', 'wocHud HUD map: \u2014', 'wocHudAdaptive Adaptive junction preview',
         "wocHudKeep Keep HUD map over BMW's pop-ups", 'wocHudSport Hide HUD map in Sport mode',
+        'wocHudPreviewToggle Preview HUD layout while parked', 'wocHudPreviewExample Example: Turn and three lanes', 'wocHudPreviewImage ',
         'wocHeadHudMap HUD map layout', 'wocHudSize Size: \u2014', 'wocHudCardCrop Map height: \u2014', 'wocHudMapZoom Map zoom: \u2014',
         'wocHudPos Position: \u2014', 'wocHudLeft Move left',
         'wocHudRight Move right', 'wocHudUp Move up', 'wocHudDown Move down', 'wocHudCentre Centre',
@@ -419,7 +420,8 @@ async function main() {
         assert.deepStrictEqual(bound, ['wocAaCard', 'wocAaDisable', 'wocAaEnable', 'wocAaZoomIn', 'wocAaZoomOut', 'wocCapture', 'wocDisable', 'wocEnable',
             'wocGuide', 'wocHudAdaptive', 'wocHudCard', 'wocHudCardDown', 'wocHudCardLeft', 'wocHudCardReset', 'wocHudCardRight', 'wocHudCardUp',
             'wocHudCentre', 'wocHudDown', 'wocHudKeep', 'wocHudLanesDown', 'wocHudLanesLeft', 'wocHudLanesReset', 'wocHudLanesRight',
-            'wocHudLanesUp', 'wocHudLeft', 'wocHudRight', 'wocHudSport', 'wocHudUp', 'wocLogs', 'wocLogsSave', 'wocProfile',
+            'wocHudLanesUp', 'wocHudLeft', 'wocHudPreviewExample', 'wocHudPreviewToggle', 'wocHudRight', 'wocHudSport', 'wocHudUp',
+            'wocLogs', 'wocLogsSave', 'wocProfile',
             'wocRestart'],
             'bound buttons and checkbox');
         assert.strictEqual(byName.wocRestart.visible, false, 'restart button hidden while the map shows');
@@ -427,6 +429,22 @@ async function main() {
         assert.deepStrictEqual(tileCalls, ['init', 'availability ENABLED'],
             'the tile: enabled, its name and icon left to the app manager');
         console.log('ok   the tile keeps the name and icon the app manager gave it');
+
+        byName.wocHudPreviewToggle.emit('action');
+        await until('parking layout preview', () => byName.wocHudPreviewImage.visible &&
+            rhmi.handles.has(byName.wocHudPreviewImage.text));
+        const previewFile = byName.wocHudPreviewImage.text;
+        const previewImage = fs.readFileSync(previewFile);
+        assert.strictEqual(previewImage.readUInt32BE(16), 360);
+        assert.strictEqual(previewImage.readUInt32BE(20), 216);
+        byName.wocHudPreviewExample.emit('action');
+        await until('wide example preview', () => byName.wocHudPreviewImage.text !== previewFile &&
+            byName.wocHudPreviewExample.text === 'Example: Long road name and six lanes');
+        assert(!previewImage.equals(fs.readFileSync(byName.wocHudPreviewImage.text)));
+        await sleep(450);
+        byName.wocHudPreviewToggle.emit('action');
+        await until('preview rows close', () => !byName.wocHudPreviewImage.visible && !byName.wocHudPreviewExample.visible);
+        assert(!render.received.some((msg) => msg.cmd === 'turn' || msg.cmd === 'adaptive-lanes'), 'samples stay on the settings page');
 
         await until('patched: CarPlay\'s Remove patch button enabled, CarPlay\'s Patch button greyed', () => byName.wocDisable.enabled === true &&
             byName.wocEnable.enabled === false);
@@ -859,9 +877,9 @@ async function main() {
         /* Through every state above, no row came or went but CarPlay Wi-Fi,
          * its line and the restart's, and each button was greyed and enabled
          * in place. */
-        assert.deepStrictEqual([...shownOrHidden].sort(), ['wocRestart', 'wocRestartStatus', 'wocWifi', 'wocWifiHint'],
-            'only CarPlay Wi-Fi, its line and the restart\'s rows are shown and hidden');
-        Object.values(components).filter((d) => !/^(wocRestart|wocWifi)/.test(d.name) && d.type !== 'title')
+        assert.deepStrictEqual([...shownOrHidden].sort(), ['wocHudPreviewExample', 'wocHudPreviewImage', 'wocRestart', 'wocRestartStatus', 'wocWifi', 'wocWifiHint'],
+            'the preview, Wi-Fi and restart rows can be hidden');
+        Object.values(components).filter((d) => !/^(wocRestart|wocWifi|wocHudPreviewExample|wocHudPreviewImage)/.test(d.name) && d.type !== 'title')
             .forEach((d) => assert.strictEqual(byName[d.name].visible, true, `${d.name} stays on the page`));
         ['wocEnable', 'wocDisable', 'wocAaEnable', 'wocAaDisable', 'wocAaZoomOut', 'wocAaZoomIn', 'wocAaCard', 'wocGuide', 'wocShowOn', 'wocProfile', 'wocHudSize',
             'wocHudLeft', 'wocHudCentre', 'wocHudKeep', 'wocHudSport', 'wocHudCard', 'wocHudCardSize', 'wocHudCardCrop', 'wocHudCardLeft', 'wocHudCardReset']

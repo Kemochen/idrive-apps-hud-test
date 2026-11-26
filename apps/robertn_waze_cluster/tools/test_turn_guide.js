@@ -420,7 +420,34 @@ async function main() {
             render.adaptivePreviewReady = 0;
         }
     });
+    await check('verified lanes are sent independently before the map threshold and cleared when guidance ends', async () => {
+        await alone();
+        showing();
+        render.adaptiveHud = 1;
+        render.adaptiveLanesSupported = 1;
+        render.adaptivePreviewReady = 1;
+        let active = true;
+        const turn = Object.assign(card('offramp_right', '2.3 km', 's,s,r*'), {key: 'example', kind: 'branch'});
+        const t = make({}, {reader: {
+            read: () => Promise.resolve({card: active ? turn : null, sample: {connected: true, active, turn,
+                lanesVerified: true, at: Date.now()}})
+        }});
+        render.received.length = 0;
+        try {
+            t.sync.start();
+            await until('verified lanes', () => render.received.some((m) => m.cmd === 'adaptive-lanes' && m.lanes === 's,s,r*'));
+            assert(!render.received.some((m) => m.cmd === 'adaptive-preview' && m.on === '1'));
+            active = false;
+            await until('lanes cleared', () => render.received.some((m) => m.cmd === 'adaptive-lanes' && m.lanes === ''));
+        } finally {
+            t.stop();
+            render.adaptiveHud = 0;
+            render.adaptiveLanesSupported = undefined;
+            render.adaptivePreviewReady = 0;
+        }
+    });
     await check('the card off: nothing read or told, no connection kept; looked at again at recheck()', async () => {
+        await alone();
         showing();
         render.hudCard = 0;
         render.turns.length = 0;

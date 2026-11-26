@@ -101,6 +101,7 @@ struct FeedConfig {
      * yield 0); else it gives way to them (cluster-render's hud_yield_slots). */
     bool hud_keep_shown = false;
     bool adaptive_hud = false;
+    bool lanes_only = false;
     /* A target shown smaller than the decoded frame (the HUD) gets the frame
      * scaled on the head unit to the size it is shown at (atlas_scale.h), on
      * a worker thread, at most video.fps a second, rounded to these level
@@ -195,6 +196,8 @@ public:
      * map on the HUD. */
     void set_hud_width(unsigned pct);
     void set_hud_view(unsigned crop, unsigned zoom);
+    void set_lanes_only(bool lanes_only);
+    bool lanes_only() const { return cfg_.lanes_only; }
     /* The HUD map moved (FeedConfig::hud_offset_x/y), at once: the layer
      * only changes place, no new texture. Held inside the HUD: the offset
      * the map is at (hud_offset_x/y, the status's) then is as far as it

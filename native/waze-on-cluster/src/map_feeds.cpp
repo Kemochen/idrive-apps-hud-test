@@ -36,6 +36,7 @@ MapFeeds::MapFeeds(const FeedConfig &base, bool cluster, bool hud, unsigned hud_
 
 void MapFeeds::follow()
 {
+    const bool lanes_only = !hud_map_wanted() && hud_lanes_wanted();
     /* A feed made while the other is there starts from its newest picture:
      * the HUD's is made first, so it can still take the cluster's. */
     if (hud_wanted() && !hud_) {
@@ -48,13 +49,17 @@ void MapFeeds::follow()
         fc.video.pan_blocks = false;
         fc.vpp_scale = false;   /* the HUD scales whole frames */
         fc.always_packed = false;   /* and goes exact (cluster map only) */
+        fc.lanes_only = lanes_only;
         if (fc.adaptive_hud)
             fc.hud_keep_shown = false;
         hud_.reset(new MapFeed(fc));
         hud_->set_stream(live_, frozen_, picture_);
         hud_->changed(id_);
-        hud_->set_turn(turn_);
-        log_info("hud: on, at most %u frames a second", hud_fps_);
+        hud_->set_turn(lanes_only ? lanes_turn_ : turn_);
+        if (!lanes_only) log_info("hud: on, at most %u frames a second", hud_fps_);
+    } else if (hud_ && hud_wanted()) {
+        hud_->set_lanes_only(lanes_only);
+        hud_->set_turn(lanes_only ? lanes_turn_ : turn_);
     }
     if (cluster_on_ != !!cluster_) {
         /* off, its connection closes: the renderer drops its layer and the
@@ -99,8 +104,10 @@ void MapFeeds::set_cluster(bool on)
 void MapFeeds::set_hud(bool on)
 {
     hud_on_ = on;
-    if (!on)
+    if (!on) {
         set_adaptive_preview(false, 0, "HUD output disabled");
+        set_adaptive_lanes({}, 0);
+    }
     follow();
 }
 
@@ -109,6 +116,8 @@ void MapFeeds::set_adaptive_hud(bool on)
     if (base_.adaptive_hud == on)
         return;
     base_.adaptive_hud = on;
+    lanes_until_ms_ = 0;
+    lanes_turn_ = Turn();
     preview_until_ms_ = 0;
     set_turn(Turn(), 0);
     hud_.reset();  /* release the old map and its mode-specific options */
@@ -135,6 +144,20 @@ void MapFeeds::set_adaptive_preview(bool show, int64_t now_ms, const char *close
         log_info("hud: closing adaptive preview: %s", show ? "preview unavailable" : close_reason);
         preview_until_ms_ = 0;
         set_turn(Turn(), now_ms);
+        follow();
+    }
+}
+
+void MapFeeds::set_adaptive_lanes(const std::string &lanes, int64_t now_ms)
+{
+    if (base_.adaptive_hud && hud_on_ && live_ && base_.card.on && !hidden_for_sport() &&
+        lanes.find_first_of("*!") != std::string::npos) {
+        lanes_until_ms_ = now_ms + kPreviewHoldMs;
+        lanes_turn_.lanes = lanes;
+        follow();
+    } else if (lanes_until_ms_) {
+        lanes_until_ms_ = 0;
+        lanes_turn_ = Turn();
         follow();
     }
 }
@@ -181,8 +204,10 @@ void MapFeeds::set_hud_keep_shown(bool keep)
 void MapFeeds::set_hud_hide_sport(bool hide)
 {
     hud_hide_sport_ = hide;
-    if (hidden_for_sport())
+    if (hidden_for_sport()) {
         set_adaptive_preview(false, 0, "hidden in Sport mode");
+        set_adaptive_lanes({}, 0);
+    }
     follow();
 }
 
@@ -190,8 +215,10 @@ void MapFeeds::set_sport(bool sport, int64_t now_ms)
 {
     sport_ = sport;
     sport_at_ms_ = now_ms;
-    if (hidden_for_sport())
+    if (hidden_for_sport()) {
         set_adaptive_preview(false, now_ms, "hidden in Sport mode");
+        set_adaptive_lanes({}, now_ms);
+    }
     follow();
 }
 
@@ -200,6 +227,8 @@ void MapFeeds::set_card(const CardConfig &c)
     base_.card = c;
     if (hud_)
         hud_->set_card(c);
+    if (!c.on)
+        set_adaptive_lanes({}, 0);
 }
 
 void MapFeeds::set_turn(const Turn &t, int64_t now_ms)
@@ -208,7 +237,7 @@ void MapFeeds::set_turn(const Turn &t, int64_t now_ms)
         return;
     turn_ = t;
     turn_at_ms_ = now_ms;
-    if (hud_)
+    if (hud_ && !hud_->lanes_only())
         hud_->set_turn(t);
 }
 
@@ -232,6 +261,8 @@ void MapFeeds::poll(int64_t now_ms)
 {
     if (preview_until_ms_ && (now_ms >= preview_until_ms_ || !adaptive_preview_ready()))
         set_adaptive_preview(false, now_ms, adaptive_preview_ready() ? "preview request expired" : "video unavailable");
+    if (lanes_until_ms_ && now_ms >= lanes_until_ms_)
+        set_adaptive_lanes({}, now_ms);
     if (sport_ && now_ms - sport_at_ms_ >= kSportHoldMs) {
         log_info("hud: the Sport mode was not reported again for %lld s; it counts no longer", (long long)(kSportHoldMs / 1000));
         sport_ = false;
@@ -299,6 +330,8 @@ void MapFeeds::set_stream(bool live, bool frozen, Picture picture)
     if (!live && !turn_.empty())
         set_turn(Turn(), 0);
     live_ = live;
+    if (!live)
+        set_adaptive_lanes({}, 0);
     frozen_ = frozen;
     picture_ = picture;
     if (cluster_)
@@ -324,7 +357,7 @@ FeedStatus MapFeeds::status(const std::string &decode, const std::string &stream
         s.hud_state = !hud_on_ ? "off" : hidden_for_sport() ? "sport" : base_.adaptive_hud ? "adaptive_oem" : "off";
     } else {
         const FeedStatus h = hud_->status(decode, stream);
-        s.hud_state = h.disabled ? "disabled" : h.state;
+        s.hud_state = h.disabled ? "disabled" : hud_->lanes_only() ? "adaptive_oem" : h.state;
         if (!cluster_) {
             s.upload_cap_kb = h.upload_cap_kb;
             s.upload_reason = h.upload_reason;

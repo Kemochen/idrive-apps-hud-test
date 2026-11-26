@@ -69,6 +69,8 @@ public:
     bool adaptive_preview_ready() const { return live_ && !frozen_ && adaptive_video_fresh_; }
     void set_adaptive_video_fresh(bool fresh);
     void set_adaptive_preview(bool show, int64_t now_ms, const char *close_reason = "guidance stopped requesting the map");
+    void set_adaptive_lanes(const std::string &lanes, int64_t now_ms);
+    bool adaptive_lanes_active() const { return hud_ && hud_->lanes_only(); }
     static constexpr int64_t kPreviewHoldMs = 2800;
     /* A feed takes frames: the cluster's, or the HUD's with its layer made
      * and not disabled. */
@@ -114,7 +116,7 @@ public:
     /* hosted_vpp_scale: the part the cluster's feed asks the decoder for
      * (MapFeed::part), while the HUD is off (its feed scales the whole
      * frame); and a frame that is a part, to the cluster's feed only. */
-    OutputPart part() const { return cluster_ && !hud_ ? cluster_->part() : OutputPart(); }
+    OutputPart part() const { return cluster_ && (!hud_ || hud_->lanes_only()) ? cluster_->part() : OutputPart(); }
     void offer_part(std::vector<uint8_t> *atlas, uint64_t id, const OutputPart &part, int64_t now_ms);
     void set_stream(bool live, bool frozen, Picture picture);
 
@@ -131,7 +133,9 @@ private:
     /* The HUD's feed made or dropped to match the setting and the target. */
     void follow();
     /* The HUD's map is wanted: on, and not hidden for a Sport mode. */
-    bool hud_wanted() const { return hud_on_ && (!base_.adaptive_hud || preview_until_ms_ > 0) && !hidden_for_sport(); }
+    bool hud_map_wanted() const { return hud_on_ && (!base_.adaptive_hud || preview_until_ms_ > 0) && !hidden_for_sport(); }
+    bool hud_lanes_wanted() const { return hud_on_ && live_ && base_.adaptive_hud && base_.card.on && lanes_until_ms_ > 0 && !hidden_for_sport(); }
+    bool hud_wanted() const { return hud_map_wanted() || hud_lanes_wanted(); }
     bool hidden_for_sport() const { return hud_hide_sport_ && sport_; }
     /* The HUD's copy of the newest picture, when it is due. */
     void feed_hud(int64_t now_ms);
@@ -141,6 +145,8 @@ private:
     bool cluster_on_, hud_on_;
     bool adaptive_video_fresh_ = false;
     int64_t preview_until_ms_ = 0;
+    int64_t lanes_until_ms_ = 0;
+    Turn lanes_turn_;
     bool hud_hide_sport_ = false;   /* the setting */
     bool sport_ = false;            /* the car is in a Sport mode, as last told */
     int64_t sport_at_ms_ = 0;       /* when it was told */

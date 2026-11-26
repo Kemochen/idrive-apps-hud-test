@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+Preview the three HUD layout groups in the iDrive settings with short and long
+example guidance. Show verified lane guidance independently of the HUD map in
+adaptive mode when the renderer's slot is available.
+
 Give the HUD map, turn card and lane guidance their own position and size
 controls. Adjust the map's height and picture zoom separately from its width.
 

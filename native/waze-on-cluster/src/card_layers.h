@@ -35,7 +35,7 @@ public:
     void set_turn(const Turn &t);
     /* The HUD map's layer: its target's size, its rect, whether it is
      * visible and gives way. tw 0: the HUD has no map layer. */
-    void follow(unsigned tw, unsigned th, const CardRect &anchor, bool visible, bool yield);
+    void follow(unsigned tw, unsigned th, const CardRect &anchor, bool visible, bool yield, bool lanes_only = false);
     /* The offset the card is at: as far as it went inside the HUD once
      * placed, as asked until then. */
     int dx() const { return placed_ ? layout_.dx : cfg_.dx; }
@@ -67,7 +67,7 @@ private:
     Turn turn_;
     unsigned tw_ = 0, th_ = 0;
     CardRect anchor_;
-    bool visible_ = false, yield_ = true, refused_ = false, placed_ = false;
+    bool visible_ = false, yield_ = true, refused_ = false, placed_ = false, lanes_only_ = false;
     CardLayout layout_;
     Part row_{"row"}, lanes_{"lanes"};
 };

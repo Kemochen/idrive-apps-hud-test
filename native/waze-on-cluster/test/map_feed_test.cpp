@@ -782,6 +782,30 @@ static void hud_turn_card()
         if (x->target() == 0)
             cluster = x;
     ok("the card leaves the cluster's map alone", cluster && cluster->params.rect.w == 1088 && feeds.status("decode").state == "showing");
+
+    feeds.set_adaptive_hud(true);
+    feeds.set_adaptive_video_fresh(false);
+    feeds.set_adaptive_lanes("s,s,r", b.now);
+    ok("adaptive lanes with no recommendation do not create a HUD feed", !feeds.hud_feed());
+    feeds.set_adaptive_lanes("s,s,r*", b.now);
+    pump(500, &f1);
+    c = cards();
+    ok("adaptive lane-only shows a single yielding, non-contending image with no video layer",
+       feeds.adaptive_lanes_active() && !hud_map() && c.size() == 1 && c[0]->params.visible &&
+           c[0]->params.yield && !c[0]->params.contend && at(c[0], 408, 334, 218, 36));
+    feeds.set_adaptive_video_fresh(true);
+    feeds.set_adaptive_preview(true, b.now);
+    feeds.set_turn(right, b.now);
+    feeds.set_adaptive_lanes({}, b.now);
+    pump(500, &f1);
+    ok("the adaptive map takes over lane-only output on the existing feed", !feeds.adaptive_lanes_active() && hud_map() && cards().size() == 2);
+    feeds.set_adaptive_preview(false, b.now);
+    feeds.set_adaptive_lanes("s,s,r*", b.now);
+    pump(MapFeeds::kPreviewHoldMs + 500, &f1);
+    ok("adaptive lanes expire with no renewed guidance", !feeds.hud_feed() && cards().empty());
+    feeds.set_adaptive_lanes("s,s,r*", b.now);
+    feeds.set_stream(false, false, Picture::None);
+    ok("a disconnect clears the adaptive lane-only feed", !feeds.hud_feed());
 }
 
 /* The HUD hosted by another app's scene while the turn card is on: the

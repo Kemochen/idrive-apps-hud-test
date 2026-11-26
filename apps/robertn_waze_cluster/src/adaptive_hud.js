@@ -5,6 +5,7 @@ const DEFAULTS = Object.freeze({
     enabled: true, lanes: true, junction: true, highwayJunction: true, street: true,
     arrowDuringPreview: true, speedDependent: true,
     laneMeters: 350, junctionMeters: 150, videoPreviewMeters: 2000, videoHysteresisMeters: 100, postManeuverHoldMs: 5000,
+    earlyLaneMeters: 2500,
     laneSeconds: 18, junctionSeconds: 8,
     expiryMs: 3500, debounceMs: 350, transitionMs: 450, minimumPreviewMs: 800,
     hysteresisMeters: 35, mapBrightness: 0.9, mapOpacity: 0.85, mapSize: 1,
@@ -13,6 +14,7 @@ const DEFAULTS = Object.freeze({
 
 const LIMITS = {
     laneMeters: [100, 800], junctionMeters: [40, 300], videoPreviewMeters: [40, 2000],
+    earlyLaneMeters: [100, 3000],
     videoHysteresisMeters: [0, 200], postManeuverHoldMs: [0, 10000], laneSeconds: [1, 35], junctionSeconds: [1, 20],
     expiryMs: [1000, 5000], debounceMs: [0, 1000], transitionMs: [0, 1000], minimumPreviewMs: [0, 1500],
     hysteresisMeters: [0, 80], mapBrightness: [0.15, 1], mapOpacity: [0.15, 1], mapSize: [0.6, 1.2],
@@ -120,6 +122,9 @@ class AdaptiveHUDController {
         const mapRange = Math.min(300, Math.max(cfg.junctionMeters, speed * cfg.junctionSeconds));
         const complex = s.complex === true || highway || turn.kind === 'roundabout' || turn.kind === 'branch';
         const eligibleLanes = Boolean(cfg.lanes && key && turn.lanes && s.lanesVerified === true);
+        const earlyLanes = Boolean(s.earlyLanesSupported && eligibleLanes &&
+            (complex || turn.kind === 'laneChange' || turn.kind === 'intersection') &&
+            distance !== null && distance <= cfg.earlyLaneMeters);
         const map = s.map;
         const sceneAvailable = s.positionValid === true && map && map.kind === 'localized' && map.maneuver === key &&
             map.routeVerified === true && fresh(now, map.at, cfg.expiryMs) && validScene(map);
@@ -128,7 +133,7 @@ class AdaptiveHUDController {
         const lanesOpen = previewOpen || this.state === 'LANE_GUIDANCE';
         const showMap = eligibleMap && distance !== null && (distance <= mapRange + (previewOpen ? cfg.hysteresisMeters : 0) ||
             (previewOpen && now - this.since < cfg.minimumPreviewMs));
-        const showLanes = eligibleLanes && distance !== null && distance <= laneRange + (lanesOpen ? cfg.hysteresisMeters : 0);
+        const showLanes = earlyLanes || (eligibleLanes && distance !== null && distance <= laneRange + (lanesOpen ? cfg.hysteresisMeters : 0));
         if (showVideo) {
             if (!previewOpen) this.switchTo('JUNCTION_PREVIEW', now);
             return this.view(null, turn, showLanes);
@@ -147,7 +152,7 @@ class AdaptiveHUDController {
         } else {
             this.pending = null;
         }
-        return this.view(null, turn, showLanes);
+        return this.view(null, turn, showLanes, earlyLanes);
     }
 
     switchTo(state, now) {
@@ -156,14 +161,14 @@ class AdaptiveHUDController {
         this.pending = null;
     }
 
-    view(reason, turn, showLanes) {
+    view(reason, turn, showLanes, earlyLanes) {
         const map = this.state === 'JUNCTION_PREVIEW';
         const lanes = showLanes && (map || this.state === 'LANE_GUIDANCE') ? turn.lanes : '';
         const card = turn ? Object.assign({}, turn, {
             road: this.config.street ? turn.road : '',
             arrow: this.config.arrowDuringPreview || !map ? turn.arrow : '', lanes
         }) : null;
-        return {state: this.state, card, showMap: map, reason};
+        return {state: this.state, card, showMap: map, earlyLanes: earlyLanes && !map ? turn.lanes : '', reason};
     }
 }
 

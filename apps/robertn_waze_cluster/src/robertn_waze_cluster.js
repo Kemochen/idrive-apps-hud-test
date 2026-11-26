@@ -115,6 +115,8 @@ const HUD_LANES_POS_NAME = 'wocHudLanesPos';
 const HUD_LANES_MOVE_NAMES = {left: 'wocHudLanesLeft', right: 'wocHudLanesRight', up: 'wocHudLanesUp', down: 'wocHudLanesDown'};
 const HUD_LANES_RESET_NAME = 'wocHudLanesReset';
 const HUD_LAYOUT_HEADINGS = ['wocHeadHudMap', 'wocHeadHudTurn', 'wocHeadHudLanes'];
+const HUD_PREVIEW_TOGGLE = 'wocHudPreviewToggle', HUD_PREVIEW_EXAMPLE = 'wocHudPreviewExample', HUD_PREVIEW_IMAGE = 'wocHudPreviewImage';
+const { layoutPreviewPng } = require('./hud_layout_preview.js');
 const HUD_CARD_POS_NAME = 'wocHudCardPos';
 const HUD_CARD_MOVE_NAMES = { left: 'wocHudCardLeft', right: 'wocHudCardRight', up: 'wocHudCardUp', down: 'wocHudCardDown' };
 const HUD_CARD_RESET_NAME = 'wocHudCardReset';
@@ -159,6 +161,7 @@ class WazeClusterApp extends OnlineApp {
         this._shownPage = 'main';   /* the page last shown, which shows again when the app does */
         this._hideTimer = null;
         this._qr = { url: undefined, file: null, chain: Promise.resolve() };
+        this._hudPreview = { enabled: false, wide: false, url: undefined, file: null, chain: Promise.resolve() };
         this._sawForeground = false;
         this._shutdownPromise = null;
         this._control = new WazeClusterControl({ log: logger });
@@ -255,7 +258,7 @@ class WazeClusterApp extends OnlineApp {
             HEAD_GENERAL_NAME, HEAD_HUD_NAME, SHOW_ON_NAME, PROFILE_NAME, HUD_NAME, HUD_ADAPTIVE_NAME, HUD_KEEP_NAME, HUD_SPORT_NAME, HUD_SIZE_NAME, HUD_POS_NAME]
             .concat(Object.values(HUD_MOVE_NAMES), [HUD_CENTRE_NAME, HUD_CARD_NAME, HUD_CARD_SIZE_NAME, HUD_CARD_POS_NAME],
                 HUD_LAYOUT_HEADINGS, Object.values(HUD_LAYOUT_SLIDERS), Object.values(HUD_LANES_MOVE_NAMES),
-                [HUD_LANES_POS_NAME, HUD_LANES_RESET_NAME],
+                [HUD_LANES_POS_NAME, HUD_LANES_RESET_NAME, HUD_PREVIEW_TOGGLE, HUD_PREVIEW_EXAMPLE, HUD_PREVIEW_IMAGE],
                 Object.values(HUD_CARD_MOVE_NAMES), [HUD_CARD_RESET_NAME, CAPTURE_NAME, CAPTURE_STATUS,
                 LOGS_NAME, LOGS_SAVE, LOGS_STATUS, LOGS_QR, LOGS_URL], LOGS_ROW_NAMES);
         names.forEach((name) => { this._components[name] = rhmi.getByName(name); });
@@ -354,6 +357,14 @@ class WazeClusterApp extends OnlineApp {
         this._bind(HUD_CARD_RESET_NAME, () => this._control.resetHudCard());
         Object.keys(HUD_LANES_MOVE_NAMES).forEach((dir) => this._bind(HUD_LANES_MOVE_NAMES[dir], () => this._control.moveHudLanes(dir)));
         this._bind(HUD_LANES_RESET_NAME, () => this._control.resetHudLanes());
+        this._bind(HUD_PREVIEW_TOGGLE, () => {
+            this._hudPreview.enabled = !this._hudPreview.enabled;
+            this._render();
+        });
+        this._bind(HUD_PREVIEW_EXAMPLE, () => {
+            this._hudPreview.wide = !this._hudPreview.wide;
+            this._render();
+        });
         this._bind(CAPTURE_NAME, () => this._control.capture());
         this._bind(LOGS_NAME, () => Promise.resolve(rhmi.openState(LOGS_STATE))
             .catch((err) => logger.warn(`openState ${LOGS_STATE} failed: ${err && err.message}`)));
@@ -384,6 +395,7 @@ class WazeClusterApp extends OnlineApp {
             logger.info('RESTORE_HMI: re-pushing page content');
             this._written = {};
             this._qr.url = undefined;
+            this._hudPreview.url = undefined;
             this._render();
             this._renderLogs();
         });
@@ -494,6 +506,10 @@ class WazeClusterApp extends OnlineApp {
             return;
         }
         this._pages[page] = visible;
+        if (page === 'main' && !visible && this._hudPreview.enabled) {
+            this._hudPreview.enabled = false;
+            this._render();
+        }
         if (visible) {
             this._shownPage = page;
         }
@@ -519,6 +535,7 @@ class WazeClusterApp extends OnlineApp {
 
     _setVisible(visible) {
         if (!visible) {
+            this._hudPreview.enabled = false;
             this._pages = { main: false, logs: false };
             this._logs.close();
         }
@@ -735,6 +752,21 @@ class WazeClusterApp extends OnlineApp {
         this._write(HUD_LANES_POS_NAME, c.hudLanesPositionText());
         Object.values(HUD_LANES_MOVE_NAMES).forEach((n) => this._setEnabled(n, c.canChangeHudLanes() && card));
         this._setEnabled(HUD_LANES_RESET_NAME, c.canResetHudLanes() && card);
+        this._renderHudPreview();
+    }
+
+    _renderHudPreview() {
+        const preview = this._hudPreview;
+        this._write(HUD_PREVIEW_TOGGLE, preview.enabled ? t('Hide HUD layout preview') : t('Preview HUD layout while parked'));
+        this._write(HUD_PREVIEW_EXAMPLE, preview.wide ? t('Example: Long road name and six lanes') : t('Example: Turn and three lanes'));
+        this._setVisibleComp(HUD_PREVIEW_EXAMPLE, preview.enabled);
+        this._setVisibleComp(HUD_PREVIEW_IMAGE, preview.enabled);
+        if (preview.enabled) {
+            const settings = this._control.hudPreviewSettings();
+            const wide = preview.wide;
+            this._showPng(preview, JSON.stringify([settings, wide]), HUD_PREVIEW_IMAGE, 'hud_preview',
+                () => layoutPreviewPng(settings, wide));
+        }
     }
 
     _renderLogs() {
@@ -753,12 +785,21 @@ class WazeClusterApp extends OnlineApp {
     /* Writes url's QR code (none: a blank square) as a new file and shows it,
      * then removes the one it replaced. */
     _showQr(url) {
+        return this._showPng(this._qr, url, LOGS_QR, 'qr', () => qrPng(url).png);
+    }
+
+    _showPng(state, key, component, prefix, makePng) {
         const rhmi = this.rhmiApplication;
-        if (this._qr.url === url || !rhmi) {
-            return this._qr.chain;
+        if (state.url === key || !rhmi) {
+            return state.chain;
         }
-        this._qr.url = url;
-        this._qr.chain = this._qr.chain.then(() => {
+        state.url = key;
+        state.chain = state.chain.then(() => {
+            if (state.url !== key || this._shutdownPromise) return;
+            if (state === this._hudPreview && !state.enabled) {
+                state.url = undefined;
+                return;
+            }
             /* the HMI reads the picture: the folder and the file world-readable */
             try {
                 fs.mkdirSync(QR_DIR);
@@ -768,23 +809,23 @@ class WazeClusterApp extends OnlineApp {
                 }
             }
             fs.chmodSync(QR_DIR, 0o755);
-            const file = path.join(QR_DIR, `qr_${Date.now()}.png`);
-            fs.writeFileSync(file, qrPng(url).png);
+            const file = path.join(QR_DIR, `${prefix}_${Date.now()}.png`);
+            fs.writeFileSync(file, makePng());
             fs.chmodSync(file, 0o644);
             const bundle = rhmi.getResourceBundle();
-            const old = this._qr.file;
+            const old = state.file;
             return Promise.resolve(bundle.createResourceHandles([file]))
-                .then(() => this._components[LOGS_QR].setValue(0, 'Graphic', file, 'ResourceId'))
+                .then(() => this._components[component].setValue(0, 'Graphic', file, 'ResourceId'))
                 .then(() => rhmi.flush())
                 .then(() => {
-                    this._qr.file = file;
+                    state.file = file;
                     return old ? this._retireQr(bundle, old) : undefined;
-                });
+                }).catch((err) => this._retireQr(bundle, file).then(() => { throw err; }));
         }).catch((err) => {
-            this._qr.url = undefined;
-            logger.warn(`QR code failed: ${err && err.message}`);
+            if (state.url === key) state.url = undefined;
+            logger.warn(`${component} image failed: ${err && err.message}`);
         });
-        return this._qr.chain;
+        return state.chain;
     }
 
     _retireQr(bundle, file) {
@@ -802,7 +843,7 @@ class WazeClusterApp extends OnlineApp {
 
     _removeStaleQr() {
         try {
-            fs.readdirSync(QR_DIR).filter((n) => /^qr_\d+\.png$/.test(n))
+            fs.readdirSync(QR_DIR).filter((n) => /^(qr|hud_preview)_\d+\.png$/.test(n))
                 .forEach((n) => fs.unlinkSync(path.join(QR_DIR, n)));
         } catch (e) {
             /* no folder yet */
@@ -822,13 +863,13 @@ class WazeClusterApp extends OnlineApp {
         this._profiles.stop();
         this._drive.stop();
         this._turns.stop();
-        if (this._qr.file) {
+        [this._qr.file, this._hudPreview.file].filter(Boolean).forEach((file) => {
             try {
-                fs.unlinkSync(this._qr.file);
+                fs.unlinkSync(file);
             } catch (e) {
                 /* gone already */
             }
-        }
+        });
         this._shutdownPromise = Promise.resolve()
             .then(() => this.destroyBundles().catch((err) =>
                 logger.info(`destroyBundles: ${err && err.message}`)))

@@ -119,6 +119,10 @@ void MapFeed::make_layer()
     layer_reason_.clear();
     target_state_.clear();
     holder_.clear();
+    if (cfg_.lanes_only) {
+        sync_card();
+        return;
+    }
     /* Hidden by its host: no layer anywhere, nothing sent. */
     if (hosted() && !host_.shown) {
         sync_card();
@@ -247,14 +251,28 @@ void MapFeed::make_layer()
 
 void MapFeed::sync_card()
 {
-    if (cfg_.target != "hud" || !layer_ || !tw_ || hosted()) {
+    if (cfg_.target != "hud" || (!cfg_.lanes_only && !layer_) || !tw_ || hosted()) {
         card_.follow(0, 0, CardRect(), false, true);
         return;
     }
     const auto ref = crk::map_quad(tw_, th_, cfg_.video.w, cfg_.video.h);
     const int inset = (int)(ref.h * kCardCropDefault / 200);
     const CardRect anchor{(int)ref.x, (int)ref.y + inset, ref.w, ref.h - 2 * (unsigned)inset};
-    card_.follow(tw_, th_, anchor, lo_.visible, lo_.yield);
+    card_.follow(tw_, th_, anchor, cfg_.lanes_only ? live_ : lo_.visible, cfg_.lanes_only || lo_.yield, cfg_.lanes_only);
+}
+
+void MapFeed::set_lanes_only(bool lanes_only)
+{
+    if (lanes_only == cfg_.lanes_only)
+        return;
+    cfg_.lanes_only = lanes_only;
+    if (layer_) {
+        keep_newest();
+        client_.drop(layer_);
+        layer_ = 0;
+    }
+    if (client_.connected())
+        make_layer();
 }
 
 void MapFeed::set_card(const CardConfig &c)
@@ -632,6 +650,10 @@ void MapFeed::set_stream(bool live, bool frozen, Picture picture)
     live_ = live;
     frozen_ = frozen;
     picture_ = picture;
+    if (cfg_.lanes_only) {
+        sync_card();
+        return;
+    }
     const bool visible = live && !frozen && picture == Picture::Shown;
     if (!layer_ || (lo_.visible || show_due_) == visible)
         return;

@@ -11,6 +11,7 @@
   "videoPreviewMeters": 2000,
   "videoHysteresisMeters": 100,
   "postManeuverHoldMs": 5000,
+  "earlyLaneMeters": 2500,
   "laneSeconds": 18,
   "junctionSeconds": 8,
   "expiryMs": 3500,
