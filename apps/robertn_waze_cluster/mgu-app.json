@@ -10,6 +10,7 @@
     "src/waze_cluster_control.js",
     "src/logs_control.js",
     "src/qr.js",
+    "src/png.js",
     "src/qrcodegen.js",
     "src/profile_sync.js",
     "src/drive_mode.js",
@@ -17,7 +18,8 @@
     "src/turn_decode.js",
     "src/lane_reader.js",
     "src/turn_guide.js",
-    "src/adaptive_hud.js"
+    "src/adaptive_hud.js",
+    "src/hud_layout_preview.js"
   ],
   "sdk": [
     "oap-sdk/src/core/OnlineApp.js",
