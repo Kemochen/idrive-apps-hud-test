@@ -13,9 +13,10 @@
 
 namespace woc {
 
-const char *const kMapStateKeys[13] = {"cluster",      "hud",            "hud_width_pct",  "hud_offset_x",
+const char *const kMapStateKeys[18] = {"cluster",      "hud",            "hud_width_pct",  "hud_offset_x",
                                        "hud_offset_y", "hud_keep_shown", "hud_hide_sport", "hud_card",
-                                       "hud_card_pct", "hud_card_x",     "hud_card_y",     "hud_card_crop", "adaptive_hud"};
+                                       "hud_card_pct", "hud_card_x",     "hud_card_y",     "hud_card_crop", "adaptive_hud",
+                                       "hud_map_crop", "hud_map_zoom",   "hud_lanes_pct",  "hud_lanes_x", "hud_lanes_y"};
 
 namespace {
 
@@ -38,12 +39,15 @@ bool valid(const std::string &key, const std::string &value)
         return false;
     if (key == "hud_width_pct")
         return v == 0 || (v >= 20 && v <= 100);
-    if (key == "hud_offset_x" || key == "hud_offset_y" || key == "hud_card_x" || key == "hud_card_y")
+    if (key == "hud_offset_x" || key == "hud_offset_y" || key == "hud_card_x" || key == "hud_card_y" ||
+        key == "hud_lanes_x" || key == "hud_lanes_y")
         return v >= -800 && v <= 800;
-    if (key == "hud_card_pct")
+    if (key == "hud_card_pct" || key == "hud_lanes_pct")
         return v >= 50 && v <= 150;
-    if (key == "hud_card_crop")
+    if (key == "hud_card_crop" || key == "hud_map_crop")
         return v >= 0 && v <= 40;
+    if (key == "hud_map_zoom")
+        return v >= 100 && v <= 150;
     return v == 0 || v == 1;
 }
 

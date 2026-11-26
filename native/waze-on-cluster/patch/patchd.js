@@ -257,10 +257,11 @@ var LOCAL_CONF = process.env.WOC_LOCAL_CONF || '/var/opt/waze-on-cluster/waze-on
  * configuration. Not in LOCAL_CONF, which waze-on-cluster 0.8 refuses to
  * start with any of MAP_KEYS in. */
 var MAP_STATE = path.join(STATE_DIR, 'map.state.conf');
+var HUD_LAYOUT_KEYS = ['hud_map_crop', 'hud_map_zoom', 'hud_lanes_pct', 'hud_lanes_x', 'hud_lanes_y'];
 var MAP_KEYS = ['cluster', 'hud', 'hud_width_pct', 'hud_offset_x', 'hud_offset_y', 'hud_keep_shown', 'hud_hide_sport',
-    'hud_card', 'hud_card_pct', 'hud_card_x', 'hud_card_y', 'hud_card_crop', 'adaptive_hud'];
+    'hud_card', 'hud_card_pct', 'hud_card_x', 'hud_card_y', 'hud_card_crop', 'adaptive_hud'].concat(HUD_LAYOUT_KEYS);
 /* Keys added after the first sets were saved: one missing from a saved set is its default. */
-var MAP_KEYS_ADDED = ['hud_keep_shown', 'hud_hide_sport', 'hud_card', 'hud_card_pct', 'hud_card_x', 'hud_card_y', 'hud_card_crop', 'adaptive_hud'];
+var MAP_KEYS_ADDED = ['hud_keep_shown', 'hud_hide_sport', 'hud_card', 'hud_card_pct', 'hud_card_x', 'hud_card_y', 'hud_card_crop', 'adaptive_hud'].concat(HUD_LAYOUT_KEYS);
 var CARD_MIN_PCT = 50, CARD_MAX_PCT = 150;   /* the turn card's size, % of the drawn one */
 var CARD_CROP_MAX = 40;   /* the HUD map's height cut while the turn card is on, % */
 /* The opt-in settings: the render reads this file (its features_file) over
@@ -301,9 +302,10 @@ function rewriteConf(file, set, drop) {
 function mapValueOk(k, v) {
     var n = Number(v);
     return /^-?\d+$/.test(v) && (k === 'hud_width_pct' ? n === 0 || (n >= 20 && n <= 100)
-        : k === 'hud_card_pct' ? n >= CARD_MIN_PCT && n <= CARD_MAX_PCT
-        : k === 'hud_card_crop' ? n >= 0 && n <= CARD_CROP_MAX
-        : /^hud_offset_|^hud_card_[xy]$/.test(k) ? n >= -800 && n <= 800 : n === 0 || n === 1);
+        : k === 'hud_card_pct' || k === 'hud_lanes_pct' ? n >= CARD_MIN_PCT && n <= CARD_MAX_PCT
+        : k === 'hud_card_crop' || k === 'hud_map_crop' ? n >= 0 && n <= CARD_CROP_MAX
+        : k === 'hud_map_zoom' ? n >= 100 && n <= 150
+        : /^hud_offset_|^hud_(card|lanes)_[xy]$/.test(k) ? n >= -800 && n <= 800 : n === 0 || n === 1);
 }
 
 /* Moves any of MAP_KEYS found in LOCAL_CONF into MAP_STATE, a value already
@@ -370,6 +372,9 @@ function pendingSave() {
     return mapSave;
 }
 function saveMapSettings(sock, ev, settings, what) {
+    if (Object.prototype.hasOwnProperty.call(settings, 'hud_card') && !('hud_map_crop' in settings)) {
+        settings.hud_map_crop = mapSettingsNow().hud_map_crop;
+    }
     var m = pendingSave();
     Object.keys(settings).forEach(function (k) { m.settings[k] = settings[k]; });
     m.asked.push({ sock: sock, ev: ev, keys: Object.keys(settings), what: what });
@@ -437,7 +442,8 @@ var PROFILES_FILE = path.join(STATE_DIR, 'profiles.json');
 var PROFILE_ID = /^[A-Za-z0-9][A-Za-z0-9._:@+={}-]{0,127}$/;
 var MAX_OWN = 16;
 var MAP_DEFAULTS = { cluster: 1, hud: 0, hud_width_pct: 0, hud_offset_x: 0, hud_offset_y: 0, hud_keep_shown: 0, hud_hide_sport: 0,
-    hud_card: 0, hud_card_pct: 100, hud_card_x: 0, hud_card_y: 0, hud_card_crop: 20, adaptive_hud: 0 };
+    hud_card: 0, hud_card_pct: 100, hud_card_x: 0, hud_card_y: 0, hud_card_crop: 20, adaptive_hud: 0,
+    hud_map_crop: 0, hud_map_zoom: 100, hud_lanes_pct: 100, hud_lanes_x: 0, hud_lanes_y: 0 };
 var profiles = null;          /* PROFILES_FILE as read at the start, and changed since */
 var currentProfile;           /* the profile the app last told (null: none; undefined: not told since the start) */
 var restored = false;         /* MAP_STATE written from PROFILES_FILE at the start, not yet told to the app */
@@ -463,6 +469,7 @@ function profileSettings(o) {
         if (v === null || !mapValueOk(k, v)) return null;
         s[k] = Number(v);
     }
+    if (!('hud_map_crop' in o) && s.hud_card) s.hud_map_crop = s.hud_card_crop;
     return s;
 }
 /* The settings MAP_STATE holds and what waits to be written there, the
@@ -470,6 +477,7 @@ function profileSettings(o) {
 function mapSettingsNow() {
     var c = readConf(MAP_STATE), s = {};
     MAP_KEYS.forEach(function (k) { s[k] = k in c && mapValueOk(k, c[k]) ? Number(c[k]) : MAP_DEFAULTS[k]; });
+    if (!('hud_map_crop' in c) && s.hud_card) s.hud_map_crop = s.hud_card_crop;
     if (mapSave) MAP_KEYS.forEach(function (k) { if (k in mapSave.settings) s[k] = mapSave.settings[k]; });
     return s;
 }
@@ -1880,7 +1888,18 @@ function handle(line, sock) {
             reply(sock, { ev: 'hud-card-crop-reply', ok: false, reason: 'the HUD map\'s cut with the turn card must be 0-' + CARD_CROP_MAX + ' %' });
             return;
         }
-        saveMapSettings(sock, 'hud-card-crop-reply', { hud_card_crop: crop }, 'the HUD map height with the turn card');
+        saveMapSettings(sock, 'hud-card-crop-reply', { hud_card_crop: crop, hud_map_crop: crop }, 'the HUD map height');
+        return;
+    }
+    if (msg.cmd === 'hud-layout') {
+        var layout = {};
+        var fields = HUD_LAYOUT_KEYS.filter(function (k) { return k in msg; });
+        if (!fields.length || !fields.every(function (k) { return Number.isInteger(msg[k]) && mapValueOk(k, String(msg[k])); })) {
+            reply(sock, { ev: 'hud-layout-reply', ok: false, reason: 'invalid HUD layout' });
+            return;
+        }
+        fields.forEach(function (k) { layout[k] = msg[k]; });
+        saveMapSettings(sock, 'hud-layout-reply', layout, 'HUD layout');
         return;
     }
     /* The driver profile and its own settings: not operations on carplay either. */

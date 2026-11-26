@@ -328,12 +328,17 @@ async function main() {
         'wocTitle',
         'wocHeadGeneral General', 'wocShowOn Show on: Cluster', 'wocProfile Own settings for this driver', 'wocMap Cluster map: Off', "wocGuide Hide BMW's turn box", 'wocLogs Logs',
         'wocHeadHud HUD', 'wocHud HUD map: \u2014', 'wocHudAdaptive Adaptive junction preview',
-        "wocHudKeep Keep HUD map over BMW's pop-ups", 'wocHudSport Hide HUD map in Sport mode', 'wocHudSize Size: \u2014', 'wocHudPos Position: \u2014', 'wocHudLeft Move left',
+        "wocHudKeep Keep HUD map over BMW's pop-ups", 'wocHudSport Hide HUD map in Sport mode',
+        'wocHeadHudMap HUD map layout', 'wocHudSize Size: \u2014', 'wocHudCardCrop Map height: \u2014', 'wocHudMapZoom Map zoom: \u2014',
+        'wocHudPos Position: \u2014', 'wocHudLeft Move left',
         'wocHudRight Move right', 'wocHudUp Move up', 'wocHudDown Move down', 'wocHudCentre Centre',
-        'wocHudCard Turn card on HUD', 'wocHudCardSize Turn card size: \u2014', 'wocHudCardCrop Map height with turn card: \u2014',
+        'wocHeadHudTurn Turn card layout', 'wocHudCard Turn card on HUD', 'wocHudCardSize Turn card size: \u2014',
         'wocHudCardPos Turn card position: \u2014',
         'wocHudCardLeft Move turn card left', 'wocHudCardRight Move turn card right', 'wocHudCardUp Move turn card up',
         'wocHudCardDown Move turn card down', 'wocHudCardReset Reset turn card position',
+        'wocHeadHudLanes Lane guidance layout', 'wocHudLanesSize Lane guidance size: \u2014', 'wocHudLanesPos Lane guidance position: \u2014',
+        'wocHudLanesLeft Move lane guidance left', 'wocHudLanesRight Move lane guidance right', 'wocHudLanesUp Move lane guidance up',
+        'wocHudLanesDown Move lane guidance down', 'wocHudLanesReset Reset lane guidance position',
         'wocHeadCarPlay CarPlay', 'wocStatus Status: Connecting…', 'wocEnable Patch', 'wocDisable Remove patch', 'wocWifi ', 'wocWifiHint ',
         'wocHeadAa Android Auto', 'wocAaStatus Status: Connecting…', 'wocAaEnable Patch', 'wocAaDisable Remove patch',
         'wocAaZoom Zoom: —', 'wocAaZoomOut Zoom out', 'wocAaZoomIn Zoom in', "wocAaCard Hide phone's turn card",
@@ -497,9 +502,10 @@ async function main() {
         /* ---- where the map shows, and the HUD ---- */
         const showOn = byName.wocShowOn;
         const size = byName.wocHudSize;
-        const hudRows = () => ['wocHudKeep', 'wocHudSport', 'wocHudSize', 'wocHudLeft', 'wocHudRight', 'wocHudUp', 'wocHudDown', 'wocHudCard']
+        const hudRows = () => ['wocHudKeep', 'wocHudSport', 'wocHudSize', 'wocHudCardCrop', 'wocHudMapZoom', 'wocHudLeft', 'wocHudRight', 'wocHudUp', 'wocHudDown', 'wocHudCard']
             .map((n) => byName[n].enabled);
-        const cardRows = () => ['wocHudCardSize', 'wocHudCardCrop', 'wocHudCardLeft', 'wocHudCardRight', 'wocHudCardUp', 'wocHudCardDown']
+        const cardRows = () => ['wocHudCardSize', 'wocHudCardLeft', 'wocHudCardRight', 'wocHudCardUp', 'wocHudCardDown',
+            'wocHudLanesSize', 'wocHudLanesLeft', 'wocHudLanesRight', 'wocHudLanesUp', 'wocHudLanesDown']
             .map((n) => byName[n].enabled);
         await until('the cluster, the HUD off', () => showOn.shown() === 'Show on: Cluster' && showOn.enabled === true &&
             byName.wocHud.text === 'HUD map: Off' && size.text === 'Size: Standard' && size.cells['0:Value'] === 5 &&
@@ -602,7 +608,7 @@ async function main() {
         const cardBox = byName.wocHudCard, cardSize = byName.wocHudCardSize, cardPos = byName.wocHudCardPos, cardCrop = byName.wocHudCardCrop;
         await until('the card off by default', () => cardBox.enabled === true && cardBox.selected === false && cardBox.text === 'Turn card on HUD' &&
             cardSize.text === 'Turn card size: 100 %' && cardSize.cells['0:Value'] === 5 && cardPos.text === 'Turn card position: Standard' &&
-            cardCrop.text === 'Map height with turn card: 80 %' && cardCrop.cells['0:Value'] === 4);
+            cardCrop.text === 'Map height: 80 %' && cardCrop.enabled && cardCrop.cells['0:Value'] === 4);
         assert(cardRows().every((e) => e === false) && byName.wocHudCardReset.enabled === false, 'its size and position greyed while it is off');
         turnDirection = 'RIGHT';
         const guidanceBeforeCard = guidanceCalls;
@@ -630,8 +636,15 @@ async function main() {
         await until('larger', () => cardSize.text === 'Turn card size: 110 %' && render.hudCardPct === 110 && cardSize.cells['0:Value'] === 6);
         await until('its size saved', () => patch.received.some((m) => m.cmd === 'hud-card-size' && m.hud_card_pct === 110));
         cardCrop.turn(1);
-        await until('the map taller', () => cardCrop.text === 'Map height with turn card: 85 %' && render.hudCardCrop === 15 && cardCrop.cells['0:Value'] === 5);
-        await until('its height saved', () => patch.received.some((m) => m.cmd === 'hud-card-crop' && m.hud_card_crop === 15));
+        await until('the map taller', () => cardCrop.text === 'Map height: 85 %' && render.hudLayout.hud_map_crop === 15 && cardCrop.cells['0:Value'] === 5);
+        await until('its height saved', () => patch.map.hud_map_crop === 15);
+        byName.wocHudMapZoom.turn(1);
+        await until('map zoom moved separately', () => patch.map.hud_map_zoom === 105 && byName.wocHudMapZoom.text === 'Map zoom: 105 %');
+        byName.wocHudLanesSize.turn(1);
+        await until('lane size moved separately', () => patch.map.hud_lanes_pct === 110 && byName.wocHudLanesSize.text === 'Lane guidance size: 110 %');
+        byName.wocHudLanesDown.emit('action');
+        await until('lane position moved separately', () => patch.map.hud_lanes_y === 10 && byName.wocHudLanesPos.text === 'Lane guidance position: 10 px down');
+        assert.strictEqual(cardPos.text, 'Turn card position: Standard');
         byName.wocHudCardLeft.emit('action');
         await sleep(450);
         byName.wocHudCardUp.emit('action');

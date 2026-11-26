@@ -615,11 +615,11 @@ static void hud_turn_card()
     pump(500, &f1);
     std::vector<const crs::Layer *> c = cards();
     st = feeds.status("decode");
-    ok("card on: the row over the map and the lanes under its right end", c.size() == 2 && at(c[0], 160, 78, 480, 44) && at(c[1], 422, 360, 218, 36));
+    ok("card on: the row over the map and the lanes under its right end", c.size() == 2 && at(c[0], 173, 104, 453, 44) && at(c[1], 408, 334, 218, 36));
     ok("card on: both drawn over the map, as it is, and the status says so",
        c.size() == 2 && c[0]->params.visible && c[1]->params.visible && c[0]->params.z > 0 && c[0]->params.contend &&
            c[0]->params.yield && st.hud_card && st.hud_card_pct == 100 && st.hud_card_x == 0 && st.hud_card_y == 0);
-    ok("card on: the turn's row and its lanes are on the HUD", drawn(row(right, 1.0f, 480, 44)) && drawn(lanes("s*,s*,r", 1.0f, 218, 36)));
+    ok("card on: the turn's row and its lanes are on the HUD", drawn(row(right, 1.0f, 453, 44)) && drawn(lanes("s*,s*,r", 1.0f, 218, 36)));
     ok("card on: the map still shows, the cluster's too", st.state == "showing" && st.hud_state == "showing");
 
     Turn nearer = right;
@@ -627,61 +627,61 @@ static void hud_turn_card()
     feeds.set_turn(nearer, b.now);
     pump(500, &f1);
     ok("the distance counting down: the row drawn again, the layers kept",
-       drawn(row(nearer, 1.0f, 480, 44)) && !drawn(row(right, 1.0f, 480, 44)) && cards() == c);
+       drawn(row(nearer, 1.0f, 453, 44)) && !drawn(row(right, 1.0f, 453, 44)) && cards() == c);
     Turn left;
     left.arrow = "left";
     left.dist = "1.2 km";
     left.road = "Another Road";
     feeds.set_turn(left, b.now);
     pump(500, &f1);
-    ok("another turn with no lanes: its row, the lanes clear", drawn(row(left, 1.0f, 480, 44)) && drawn(lanes("", 1.0f, 218, 36)));
+    ok("another turn with no lanes: its row, the lanes clear", drawn(row(left, 1.0f, 453, 44)) && drawn(lanes("", 1.0f, 218, 36)));
 
     /* a turn is told again while it lasts; one not told again goes */
     pump(MapFeeds::kTurnHoldMs - 1000, &f1);
-    ok("a turn told once stays until just before its hold ends", drawn(row(left, 1.0f, 480, 44)));
+    ok("a turn told once stays until just before its hold ends", drawn(row(left, 1.0f, 453, 44)));
     feeds.set_turn(left, b.now);
     pump(MapFeeds::kTurnHoldMs - 1000, &f1);
-    ok("told again within the hold: still drawn", drawn(row(left, 1.0f, 480, 44)));
+    ok("told again within the hold: still drawn", drawn(row(left, 1.0f, 453, 44)));
     pump(2000, &f1);
     ok("not told again for the hold: the row clear, the map still showing",
-       drawn(row(Turn(), 1.0f, 480, 44)) && !drawn(row(left, 1.0f, 480, 44)) && feeds.status("decode").hud_state == "showing");
+       drawn(row(Turn(), 1.0f, 453, 44)) && !drawn(row(left, 1.0f, 453, 44)) && feeds.status("decode").hud_state == "showing");
     feeds.set_turn(right, b.now);
     pump(500, &f1);
     feeds.set_turn(Turn(), b.now);
     pump(500, &f1);
-    ok("no turn told: clear at once", drawn(row(Turn(), 1.0f, 480, 44)) && drawn(lanes("", 1.0f, 218, 36)) && !drawn(row(right, 1.0f, 480, 44)));
+    ok("no turn told: clear at once", drawn(row(Turn(), 1.0f, 453, 44)) && drawn(lanes("", 1.0f, 218, 36)) && !drawn(row(right, 1.0f, 453, 44)));
 
     /* ---- its size and place ---- */
     feeds.set_turn(right, b.now);
     feeds.set_card(card(true, 150, 0, 0));
     pump(500, &f1);
     c = cards();
-    ok("150 %: larger pictures, the row 18 over the map, the lanes 21 under it",
-       c.size() == 2 && at(c[0], 160, 50, 480, 66) && at(c[1], 313, 367, 327, 54) && drawn(row(right, 1.5f, 480, 66)) &&
-           drawn(lanes("s*,s*,r", 1.5f, 327, 54)) && feeds.status("decode").hud_card_pct == 150);
+    ok("150 % increases only the turn card",
+       c.size() == 2 && at(c[0], 173, 76, 453, 66) && at(c[1], 408, 334, 218, 36) && drawn(row(right, 1.5f, 453, 66)) &&
+           drawn(lanes("s*,s*,r", 1.0f, 218, 36)) && feeds.status("decode").hud_card_pct == 150);
     feeds.set_card(card(true, 100, 50, -10));
     pump(500, &f1);
     c = cards();
     st = feeds.status("decode");
-    ok("moved: both go together, the status has the offset",
-       c.size() == 2 && at(c[0], 210, 68, 480, 44) && at(c[1], 472, 350, 218, 36) && st.hud_card_x == 50 && st.hud_card_y == -10);
+    ok("the turn card moves independently of the lanes",
+       c.size() == 2 && at(c[0], 223, 94, 453, 44) && at(c[1], 408, 334, 218, 36) && st.hud_card_x == 50 && st.hud_card_y == -10);
     const uint32_t row_id = c.size() == 2 ? c[0]->id() : 0;
     feeds.set_card(card(true, 100, -400, 0));
     pump(500, &f1);
     c = cards();
     ok("moved past the HUD's edge: held at it, the status has how far it went, the layer only moved",
-       c.size() == 2 && at(c[0], 0, 78, 480, 44) && feeds.status("decode").hud_card_x == -160 && c[0]->id() == row_id);
+       c.size() == 2 && at(c[0], 0, 104, 453, 44) && feeds.status("decode").hud_card_x == -173 && c[0]->id() == row_id);
     feeds.set_card(card(true, 100, 0, 0));
     feeds.set_hud_offset(40, 20);
     pump(500, &f1);
     c = cards();
-    ok("the map moved: the card goes with it", c.size() == 2 && at(c[0], 200, 98, 480, 44) && at(c[1], 462, 380, 218, 36));
+    ok("moving the map leaves both guidance layers in place", c.size() == 2 && at(c[0], 173, 104, 453, 44) && at(c[1], 408, 334, 218, 36));
     feeds.set_hud_offset(0, 0);
     feeds.set_hud_width(40);
     pump(500, &f1);
     c = cards();
-    ok("the map smaller (320x140 at 240,169): the row as wide as it, the lanes end at its right edge",
-       c.size() == 2 && at(c[0], 240, 113, 320, 44) && at(c[1], 342, 323, 218, 36) && drawn(row(right, 1.0f, 320, 44)));
+    ok("resizing the map leaves both guidance layers at their own positions and sizes",
+       c.size() == 2 && at(c[0], 173, 104, 453, 44) && at(c[1], 408, 334, 218, 36) && drawn(row(right, 1.0f, 453, 44)));
     feeds.set_hud_width(60);
     pump(500, &f1);
 
@@ -694,21 +694,39 @@ static void hud_turn_card()
         return m;
     };
     CardConfig cropped = card(true, 100, 0, 0);
-    cropped.crop = 20;
+    feeds.set_hud_view(20, 100);
     feeds.set_card(cropped);
     pump(1500, &f1);
     c = cards();
     ok("crop 20 %: the map as wide, 168 high around the same centre (480x168 at 160,156), the status says so",
-       hud_map() && at(hud_map(), 160, 156, 480, 168) && feeds.status("decode").hud_card_crop == 20 &&
+       hud_map() && at(hud_map(), 160, 156, 480, 168) && feeds.status("decode").hud_map_crop == 20 &&
            feeds.status("decode").hud_state == "showing");
-    ok("crop 20 %: the row and the lanes follow the shorter map", c.size() == 2 && at(c[0], 160, 100, 480, 44) && at(c[1], 422, 338, 218, 36));
+    ok("crop 20 % leaves both guidance layers in place", c.size() == 2 && at(c[0], 173, 104, 453, 44) && at(c[1], 408, 334, 218, 36));
     CardConfig off = cropped;
     off.on = false;
     feeds.set_card(off);
     pump(1500, &f1);
-    ok("crop 20 % with the card off: the map at its full height", hud_map() && at(hud_map(), 160, 134, 480, 212) && cards().empty());
+    ok("turning off the card preserves the map height", hud_map() && at(hud_map(), 160, 156, 480, 168) && cards().empty());
     feeds.set_card(card(true, 100, 0, 0));
+    feeds.set_hud_view(0, 130);
     pump(1500, &f1);
+    c = cards();
+    ok("zoom changes the map content without moving or resizing its viewport or either guidance layer",
+       hud_map() && at(hud_map(), 160, 134, 480, 212) && feeds.status("decode").hud_map_zoom == 130 &&
+           c.size() == 2 && at(c[0], 173, 104, 453, 44) && at(c[1], 408, 334, 218, 36));
+    CardConfig lane_only = card(true, 100, 0, 0);
+    lane_only.lanes_pct = 150;
+    lane_only.lanes_dx = 30;
+    lane_only.lanes_dy = -20;
+    feeds.set_card(lane_only);
+    pump(500, &f1);
+    c = cards();
+    ok("the lane controls resize and move only the lane layer",
+       hud_map() && at(hud_map(), 160, 134, 480, 212) && c.size() == 2 && at(c[0], 173, 104, 453, 44) &&
+           at(c[1], 329, 321, 327, 54) && drawn(lanes("s*,s*,r", 1.5f, 327, 54)));
+    feeds.set_card(card(true, 100, 0, 0));
+    feeds.set_hud_view(0, 100);
+    pump(500, &f1);
     ok("crop 0: the map at its full height", hud_map() && at(hud_map(), 160, 134, 480, 212));
 
     /* ---- it shows with the map ---- */
@@ -725,13 +743,13 @@ static void hud_turn_card()
     feeds.set_stream(true, false, Picture::Shown);
     pump(1500, &f2);
     ok("reconnect: a turn from before or during disconnect is absent",
-       drawn(row(Turn(), 1.0f, 480, 44)) && !drawn(row(right, 1.0f, 480, 44)));
+       drawn(row(Turn(), 1.0f, 453, 44)) && !drawn(row(right, 1.0f, 453, 44)));
     feeds.set_stream(true, false, Picture::Shown);
     feeds.set_turn(nearer, b.now);
     pump(1500, &f2);
     c = cards();
     ok("live again: shown again, with the turn told meanwhile",
-       c.size() == 2 && c[0]->params.visible && c[1]->params.visible && drawn(row(nearer, 1.0f, 480, 44)));
+       c.size() == 2 && c[0]->params.visible && c[1]->params.visible && drawn(row(nearer, 1.0f, 453, 44)));
 
     feeds.set_card(card(false, 100, 0, 0));
     pump(500, &f1);
@@ -744,7 +762,7 @@ static void hud_turn_card()
     feeds.set_hud(true);
     pump(2500, &f1);
     c = cards();
-    ok("the HUD on again: its feed takes the card's settings and the turn", c.size() == 2 && at(c[0], 160, 78, 480, 44) && drawn(row(right, 1.0f, 480, 44)));
+    ok("the HUD on again: its feed takes the card's settings and the turn", c.size() == 2 && at(c[0], 173, 104, 453, 44) && drawn(row(right, 1.0f, 453, 44)));
     const crs::Layer *cluster = nullptr;
     for (const crs::Layer *x : b.svc->compositor().layers())
         if (x->target() == 0)

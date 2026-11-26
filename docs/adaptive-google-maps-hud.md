@@ -4,6 +4,8 @@
 
 Choose **Show on → HUD (experimental)** for windshield-only output. Turn on **HUD → Adaptive junction preview** to show the map when the next maneuver is within 2 km and the video is fresh. The switch defaults to off, using the regular HUD map and turn card. The choice is saved in the active profile. The previous diagnostics checkbox used the same preference, so an already selected checkbox becomes active on upgrade.
 
+The HUD settings group the map, the turn card (arrow, road and distance), and lane guidance separately. Each group has its own position and size. **Map height** controls the viewport's aspect ratio, and **Map zoom** crops the video around its center while keeping the viewport in place. The turn card and lane guidance use their own fixed HUD anchors. Earlier map height preferences are carried over from profiles that used the turn card.
+
 The baseline is the already tested Store experiment, `d6555d2`, descended from minakoto00's `79a4f20`. This keeps its existing app packaging, CarPlay compatibility gates, renderer integration, and logging. The separate branch leaves upstream and the previous release intact. Merging a newer renderer and patcher is a separate compatibility change.
 
 On the owner's 2021 G05, resizing the turn card also resized the HUD lane arrows while navigating with Google Maps over CarPlay. Recommended lanes matched the center display and cleared after the maneuver. This is observational evidence for the existing `Guidance.currentLaneGuiding` render path on that car. It does not establish packet contents, road geometry or warning precedence.

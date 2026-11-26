@@ -163,6 +163,14 @@ void MapFeeds::set_hud_offset(int dx, int dy)
     hud_->set_hud_offset(dx, dy);
 }
 
+void MapFeeds::set_hud_view(unsigned crop, unsigned zoom)
+{
+    base_.hud_map_crop = (int)crop;
+    base_.hud_map_zoom = zoom;
+    if (hud_)
+        hud_->set_hud_view(crop, zoom);
+}
+
 void MapFeeds::set_hud_keep_shown(bool keep)
 {
     base_.hud_keep_shown = keep;
@@ -332,6 +340,11 @@ FeedStatus MapFeeds::status(const std::string &decode, const std::string &stream
     s.hud_card_crop = base_.card.crop;
     s.hud_card_x = hud_ ? hud_->card_offset_x() : base_.card.dx;
     s.hud_card_y = hud_ ? hud_->card_offset_y() : base_.card.dy;
+    s.hud_map_crop = base_.hud_crop();
+    s.hud_map_zoom = base_.hud_map_zoom;
+    s.hud_lanes_pct = base_.card.lanes_pct;
+    s.hud_lanes_x = hud_ ? hud_->lanes_offset_x() : base_.card.lanes_dx;
+    s.hud_lanes_y = hud_ ? hud_->lanes_offset_y() : base_.card.lanes_dy;
     return s;
 }
 

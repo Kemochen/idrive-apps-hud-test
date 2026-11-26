@@ -156,6 +156,7 @@ class FakeRender extends LineServer {
         this.hudCardX = 0;
         this.hudCardY = 0;
         this.hudCardCrop = 20;
+        this.hudLayout = {hud_map_crop: 20, hud_map_zoom: 100, hud_lanes_pct: 100, hud_lanes_x: 0, hud_lanes_y: 0};
         this.turn = null;
         this.turns = [];
         /* one owner: a second connection is told busy and closed */
@@ -188,6 +189,7 @@ class FakeRender extends LineServer {
                 nav_live: this.navLive, nav_diagnostics: this.navDiagnostics,
                 hud_width_pct: this.hudWidth || 0, hud_x: this.hudX || 0, hud_y: this.hudY || 0 });
             if (this.hudKeep !== null) s.hud_keep_shown = this.hudKeep;
+            Object.assign(s, this.hudLayout);
             if (this.adaptiveHud !== null) s.adaptive_hud = this.adaptiveHud;
             if (this.adaptivePreviewSupported !== undefined) s.adaptive_preview_supported = this.adaptivePreviewSupported;
             if (this.adaptivePreviewReady !== undefined) s.adaptive_preview_ready = this.adaptivePreviewReady;
@@ -240,6 +242,9 @@ class FakeRender extends LineServer {
             this._broadcast(this._status());
         }
         if (msg.cmd === 'hud') {
+            Object.keys(this.hudLayout).forEach((key) => {
+                if (msg[key] !== undefined) this.hudLayout[key] = Number(msg[key]);
+            });
             if (msg.on !== undefined) this.hud = Number(msg.on);
             if (msg.hud_width_pct !== undefined) this.hudWidth = Number(msg.hud_width_pct);
             /* held inside the HUD, as the render does, when hudMaxX is set */
@@ -370,6 +375,11 @@ class FakePatch extends LineServer {
         }
         if (msg.cmd === 'profile' || msg.cmd === 'profile-own') {
             if (!this.profileMute) this._profile(msg, socket);
+            return;
+        }
+        if (msg.cmd === 'hud-layout') {
+            this.map = Object.assign({}, this.map);
+            Object.keys(msg).filter((key) => key !== 'cmd').forEach((key) => { this.map[key] = msg[key]; });
             return;
         }
         const MAP = { cluster: ['cluster'], hud: ['hud'], 'hud-size': ['hud_width_pct'], 'hud-pos': ['hud_offset_x', 'hud_offset_y'],

@@ -128,6 +128,11 @@ const CARD_SIZE_STEPS = (CARD_MAX_PCT - CARD_MIN_PCT) / CARD_STEP_PCT;
  * CARD_CROP_STEPS is the whole height, 0 the most cut. */
 const CARD_CROP_MAX = 40, CARD_CROP_STEP = 5;
 const CARD_CROP_STEPS = CARD_CROP_MAX / CARD_CROP_STEP;
+const HUD_LAYOUT_SLIDERS = {
+    mapHeight: {key: 'hud_map_crop', start: CARD_CROP_MAX, step: -CARD_CROP_STEP, steps: CARD_CROP_STEPS},
+    mapZoom: {key: 'hud_map_zoom', start: 100, step: 5, steps: 10},
+    lanesSize: {key: 'hud_lanes_pct', start: CARD_MIN_PCT, step: CARD_STEP_PCT, steps: CARD_SIZE_STEPS}
+};
 
 /* An offset in HUD pixels as words ("20 px right, 10 px up"), or home (the word for none). */
 function offsetText(x, y, home) {
@@ -317,6 +322,7 @@ class WazeClusterControl extends EventEmitter {
         this._forget();
         this.captureState = { state: 'unavailable' };
         this.renderStatus = null;   /* the render tool's last status while connected */
+        this._layoutAsked = new Map();
 
         this.render = new LineSocket({
             path: o.renderPath || RENDER_PATH,
@@ -547,6 +553,8 @@ class WazeClusterControl extends EventEmitter {
         this._askedCardPos = null;
         clearTimeout(this._askedCropTimer);
         this._askedCrop = null;
+        this._layoutAsked.forEach((pending) => clearTimeout(pending.timer));
+        this._layoutAsked.clear();
     }
 
     /* ---- where the HUD map is: moved from its centre, in HUD pixels ---- */
@@ -788,6 +796,80 @@ class WazeClusterControl extends EventEmitter {
     hudCardPositionText() {
         const at = this.hudCardOffset();
         return t('Turn card position: {0}', at ? offsetText(at[0], at[1], t('Standard')) : '—');
+    }
+
+    _layoutValue(key) {
+        const pending = this._layoutAsked.get(key);
+        const value = pending ? pending.value : this.renderStatus && this.renderStatus[key];
+        return Number.isInteger(value) ? value : null;
+    }
+
+    canChangeHudLayout(name) {
+        const slider = HUD_LAYOUT_SLIDERS[name];
+        return this.connectedPatch() && this.canChangeHudSize() &&
+            (name === 'lanesSize' ? this.canChangeHudLanes() : true) && this._layoutValue(slider.key) !== null;
+    }
+
+    hudLayoutStep(name) {
+        const slider = HUD_LAYOUT_SLIDERS[name];
+        const value = this._layoutValue(slider.key);
+        return value === null ? null : Math.round((value - slider.start) / slider.step);
+    }
+
+    hudLayoutPercent(name) {
+        const value = this._layoutValue(HUD_LAYOUT_SLIDERS[name].key);
+        return value === null ? '—' : t('{0} %', name === 'mapHeight' ? 100 - value : value);
+    }
+
+    setHudLayoutStep(name, step) {
+        const slider = HUD_LAYOUT_SLIDERS[name];
+        if (Number.isInteger(step) && step >= 0 && step <= slider.steps &&
+            this.canChangeHudLayout(name) && step !== this.hudLayoutStep(name)) {
+            this._setHudLayout({[slider.key]: slider.start + step * slider.step});
+        }
+    }
+
+    canChangeHudLanes() {
+        return this.canChangeHudCard() && this._layoutValue('hud_lanes_x') !== null && this._layoutValue('hud_lanes_y') !== null;
+    }
+
+    hudLanesPositionText() {
+        const x = this._layoutValue('hud_lanes_x'), y = this._layoutValue('hud_lanes_y');
+        return t('Lane guidance position: {0}', x === null || y === null ? '—' : offsetText(x, y, t('Standard')));
+    }
+
+    moveHudLanes(dir) {
+        const move = MOVES[dir];
+        if (!move || !this.canChangeHudLanes()) return;
+        const clamp = (v) => Math.max(-HUD_MOVE_MAX, Math.min(HUD_MOVE_MAX, v));
+        this._setHudLayout({hud_lanes_x: clamp(this._layoutValue('hud_lanes_x') + move[0] * HUD_MOVE_PX),
+            hud_lanes_y: clamp(this._layoutValue('hud_lanes_y') + move[1] * HUD_MOVE_PX)});
+    }
+
+    canResetHudLanes() {
+        return this.canChangeHudLanes() && (this._layoutValue('hud_lanes_x') !== 0 || this._layoutValue('hud_lanes_y') !== 0);
+    }
+
+    resetHudLanes() {
+        if (this.canResetHudLanes()) this._setHudLayout({hud_lanes_x: 0, hud_lanes_y: 0});
+    }
+
+    _setHudLayout(settings) {
+        const live = {cmd: 'hud'};
+        Object.keys(settings).forEach((key) => {
+            const value = settings[key];
+            const pending = this._layoutAsked.get(key);
+            if (pending) clearTimeout(pending.timer);
+            const timer = setTimeout(() => {
+                this._layoutAsked.delete(key);
+                this.emit('change');
+            }, HUD_ASKED_MS);
+            this._layoutAsked.set(key, {value, timer});
+            live[key] = String(value);
+        });
+        this.render.send(live);
+        this.patch.send(Object.assign({cmd: 'hud-layout'}, settings));
+        this.emit('change');
     }
 
     /* CarPlay's Patch button is offered for an original (never patched, or reverted), an
@@ -1268,6 +1350,12 @@ class WazeClusterControl extends EventEmitter {
                 clearTimeout(this._askedCropTimer);
                 this._askedCrop = null;
             }
+            this._layoutAsked.forEach((pending, key) => {
+                if (msg[key] === pending.value) {
+                    clearTimeout(pending.timer);
+                    this._layoutAsked.delete(key);
+                }
+            });
             this.emit('change');
         }
     }
@@ -1285,7 +1373,7 @@ class WazeClusterControl extends EventEmitter {
             this._noteCardAsked(msg);
             this._wake();
             this.emit('change');
-        } else if (/^(cluster|hud|hud-size|hud-pos|hud-keep-shown|hud-hide-sport|hud-card|hud-card-size|hud-card-pos|hud-card-crop|hud-adaptive)-reply$/.test(msg.ev)) {
+        } else if (/^(cluster|hud|hud-size|hud-pos|hud-keep-shown|hud-hide-sport|hud-card|hud-card-size|hud-card-pos|hud-card-crop|hud-layout|hud-adaptive)-reply$/.test(msg.ev)) {
             if (!msg.ok) {
                 this._log.info(`patchd did not save the setting: ${msg.reason || 'refused'}`);
             }

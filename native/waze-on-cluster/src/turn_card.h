@@ -58,8 +58,10 @@ const unsigned kCardCropMax = 40, kCardCropDefault = 20;
 struct CardConfig {
     bool on = false;
     unsigned pct = kCardDefaultPct;   /* its size, % of the drawn one */
-    int dx = 0, dy = 0;               /* moved from its place by the map, the HUD scene's pixels */
-    unsigned crop = 0;                /* % of the HUD map's height cut while on (kCardCropMax at most) */
+    int dx = 0, dy = 0;               /* offset from the HUD's turn-card anchor */
+    unsigned crop = 0;                /* legacy linked map crop, read from older settings */
+    unsigned lanes_pct = kCardDefaultPct;
+    int lanes_dx = 0, lanes_dy = 0;
 };
 
 /* The rows cut at the top of a picture h rows high, and as many at the
@@ -79,8 +81,9 @@ struct CardRect {
  * offset as far as it went. */
 struct CardLayout {
     CardRect top, lanes;
-    float scale = 1.0f;
+    float scale = 1.0f, lanes_scale = 1.0f;
     int dx = 0, dy = 0;
+    int lanes_dx = 0, lanes_dy = 0;
 };
 
 namespace card_detail {
@@ -95,30 +98,34 @@ inline int held(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v; }
 
 }  // namespace card_detail
 
-/* The layout on a target of tw x th whose map is at `map`. */
-inline CardLayout card_layout(unsigned tw, unsigned th, const CardRect &map, const CardConfig &c)
+/* Both anchors use a fixed reference box in HUD coordinates. */
+inline CardLayout card_layout(unsigned tw, unsigned th, const CardRect &anchor, const CardConfig &c)
 {
     using namespace card_detail;
     CardLayout l;
     const unsigned pct = c.pct < kCardMinPct ? kCardMinPct : c.pct > kCardMaxPct ? kCardMaxPct : c.pct;
     l.scale = pct / 100.0f;
+    l.lanes_scale = held((int)c.lanes_pct, kCardMinPct, kCardMaxPct) / 100.0f;
     const int w = (int)tw, h = (int)th;
 
-    l.top.w = map.w < tw ? map.w : tw;
+    l.top.w = anchor.w < tw ? anchor.w : tw;
     l.top.h = (unsigned)held(scaled(kRowH, l.scale), 1, h);
-    const int top_x = held(map.x, 0, w - (int)l.top.w);
-    const int top_y = held(map.y - scaled(kRowGap, l.scale) - (int)l.top.h, 0, h - (int)l.top.h);
+    const int top_x = held(anchor.x, 0, w - (int)l.top.w);
+    const int top_y = held(anchor.y - scaled(kRowGap, l.scale) - (int)l.top.h, 0, h - (int)l.top.h);
     l.top.x = held(top_x + c.dx, 0, w - (int)l.top.w);
     l.top.y = held(top_y + c.dy, 0, h - (int)l.top.h);
     l.dx = l.top.x - top_x;
     l.dy = l.top.y - top_y;
 
-    l.lanes.w = (unsigned)held(scaled(kLaneW * (int)kCardLanes + 2, l.scale), 1, w);
-    l.lanes.h = (unsigned)held(scaled(kLanesH, l.scale), 1, h);
-    const int lanes_x = map.x + (int)map.w - (int)l.lanes.w;
-    const int lanes_y = map.y + (int)map.h + scaled(kLanesGap, l.scale);
-    l.lanes.x = held(held(lanes_x, 0, w - (int)l.lanes.w) + l.dx, 0, w - (int)l.lanes.w);
-    l.lanes.y = held(held(lanes_y, 0, h - (int)l.lanes.h) + l.dy, 0, h - (int)l.lanes.h);
+    l.lanes.w = (unsigned)held(scaled(kLaneW * (int)kCardLanes + 2, l.lanes_scale), 1, w);
+    l.lanes.h = (unsigned)held(scaled(kLanesH, l.lanes_scale), 1, h);
+    const int max_lane_x = w - (int)l.lanes.w, max_lane_y = h - (int)l.lanes.h;
+    const int lanes_x = held(anchor.x + (int)anchor.w - (int)l.lanes.w, 0, max_lane_x);
+    const int lanes_y = held(anchor.y + (int)anchor.h + scaled(kLanesGap, l.lanes_scale), 0, max_lane_y);
+    l.lanes.x = held(lanes_x + c.lanes_dx, 0, max_lane_x);
+    l.lanes.y = held(lanes_y + c.lanes_dy, 0, max_lane_y);
+    l.lanes_dx = l.lanes.x - lanes_x;
+    l.lanes_dy = l.lanes.y - lanes_y;
     return l;
 }
 

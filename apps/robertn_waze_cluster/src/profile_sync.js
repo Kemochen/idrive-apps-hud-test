@@ -344,6 +344,9 @@ class ProfileSync extends EventEmitter {
         if (Number.isInteger(s.hud_card_crop)) {
             hud.hud_card_crop = String(s.hud_card_crop);
         }
+        ['hud_map_crop', 'hud_map_zoom', 'hud_lanes_pct', 'hud_lanes_x', 'hud_lanes_y'].forEach((key) => {
+            if (Number.isInteger(s[key])) hud[key] = String(s[key]);
+        });
         const cmds = shows.map((d) => ({ cmd: d, on: on(s[d]) })).concat([hud]);
         const c = this._control;
         if (c && c.render && c.render.connected()) {

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+Give the HUD map, turn card and lane guidance their own position and size
+controls. Adjust the map's height and picture zoom separately from its width.
+
 Keep the HUD map visible for five seconds after a maneuver when the next
 step is outside the preview range.
 

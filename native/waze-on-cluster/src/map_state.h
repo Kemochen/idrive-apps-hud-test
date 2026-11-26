@@ -21,7 +21,7 @@
 namespace woc {
 
 /* The keys map_state_file holds. */
-extern const char *const kMapStateKeys[13];
+extern const char *const kMapStateKeys[18];
 
 void load_map_state(cld::Config *cfg, const std::string &path);
 

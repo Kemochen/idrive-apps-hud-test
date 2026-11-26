@@ -54,7 +54,19 @@
                 <property id="2" value="1"/>
                 <property id="3" value="3"/>
             </component>
+            <component id="150" type="label" widget="LT_Label_Header_1Row">
+                <property id="2" value="1"/>
+                <property id="3" value="0"/>
+            </component>
             <component id="52" type="slider" widget="LT_Slider_LeftJustified_Fill_Steps">
+                <property id="2" value="1"/>
+                <property id="3" value="3"/>
+            </component>
+            <component id="73" type="slider" widget="LT_Slider_LeftJustified_Fill_Steps">
+                <property id="2" value="1"/>
+                <property id="3" value="3"/>
+            </component>
+            <component id="151" type="slider" widget="LT_Slider_LeftJustified_Fill_Steps">
                 <property id="2" value="1"/>
                 <property id="3" value="3"/>
             </component>
@@ -82,15 +94,15 @@
                 <property id="2" value="1"/>
                 <property id="3" value="3"/>
             </component>
+            <component id="152" type="label" widget="LT_Label_Header_1Row">
+                <property id="2" value="1"/>
+                <property id="3" value="0"/>
+            </component>
             <component id="65" type="checkBox" widget="LT_CheckBox_1Row">
                 <property id="2" value="1"/>
                 <property id="3" value="3"/>
             </component>
             <component id="66" type="slider" widget="LT_Slider_LeftJustified_Fill_Steps">
-                <property id="2" value="1"/>
-                <property id="3" value="3"/>
-            </component>
-            <component id="73" type="slider" widget="LT_Slider_LeftJustified_Fill_Steps">
                 <property id="2" value="1"/>
                 <property id="3" value="3"/>
             </component>
@@ -115,6 +127,38 @@
                 <property id="3" value="3"/>
             </component>
             <component id="72" type="button" widget="LT_Button_1Row">
+                <property id="2" value="1"/>
+                <property id="3" value="3"/>
+            </component>
+            <component id="153" type="label" widget="LT_Label_Header_1Row">
+                <property id="2" value="1"/>
+                <property id="3" value="0"/>
+            </component>
+            <component id="154" type="slider" widget="LT_Slider_LeftJustified_Fill_Steps">
+                <property id="2" value="1"/>
+                <property id="3" value="3"/>
+            </component>
+            <component id="155" type="label" widget="LT_Label_1Row">
+                <property id="2" value="1"/>
+                <property id="3" value="0"/>
+            </component>
+            <component id="156" type="button" widget="LT_Button_1Row">
+                <property id="2" value="1"/>
+                <property id="3" value="3"/>
+            </component>
+            <component id="157" type="button" widget="LT_Button_1Row">
+                <property id="2" value="1"/>
+                <property id="3" value="3"/>
+            </component>
+            <component id="158" type="button" widget="LT_Button_1Row">
+                <property id="2" value="1"/>
+                <property id="3" value="3"/>
+            </component>
+            <component id="159" type="button" widget="LT_Button_1Row">
+                <property id="2" value="1"/>
+                <property id="3" value="3"/>
+            </component>
+            <component id="160" type="button" widget="LT_Button_1Row">
                 <property id="2" value="1"/>
                 <property id="3" value="3"/>
             </component>

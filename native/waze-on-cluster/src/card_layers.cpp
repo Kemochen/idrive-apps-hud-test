@@ -65,13 +65,13 @@ void CardLayers::set_turn(const Turn &t)
     update();
 }
 
-void CardLayers::follow(unsigned tw, unsigned th, const CardRect &map, bool visible, bool yield)
+void CardLayers::follow(unsigned tw, unsigned th, const CardRect &anchor, bool visible, bool yield)
 {
     if (!tw)
         refused_ = false;
     tw_ = tw;
     th_ = th;
-    map_ = map;
+    anchor_ = anchor;
     visible_ = visible;
     yield_ = yield;
     update();
@@ -92,7 +92,7 @@ void CardLayers::update()
         drop(&lanes_);
         return;
     }
-    layout_ = card_layout(tw_, th_, map_, cfg_);
+    layout_ = card_layout(tw_, th_, anchor_, cfg_);
     place(&row_, layout_.top);
     place(&lanes_, layout_.lanes);
     const float scale = layout_.scale;
@@ -102,9 +102,9 @@ void CardLayers::update()
         show(&row_, std::move(m));
     }
     const std::string lanes = turn_.empty() ? std::string() : turn_.lanes;
-    if (stale(&lanes_, picture_key(layout_.lanes, scale, {lanes}))) {
+    if (stale(&lanes_, picture_key(layout_.lanes, layout_.lanes_scale, {lanes}))) {
         CardImage m;
-        draw_card_lanes(lanes, scale, layout_.lanes.w, layout_.lanes.h, &m);
+        draw_card_lanes(lanes, layout_.lanes_scale, layout_.lanes.w, layout_.lanes.h, &m);
         show(&lanes_, std::move(m));
     }
 }

@@ -191,12 +191,15 @@ void MapFeed::make_layer()
         shape_.h = cfg_.video.h;
         shape_.dw = sw;
         shape_.dh = sh;
-        /* the turn card's cut (crop_rows): the frame's rows between */
+        /* Zoom the picture about its centre without changing the HUD rectangle. */
         const uint32_t cut = crop_rows();
-        if (cut) {
-            shape_.crop_y = cut;
-            shape_.crop_w = cfg_.video.w;
-            shape_.crop_h = cfg_.video.h - 2 * cut;
+        const uint32_t picture_h = cfg_.video.h - 2 * cut;
+        const unsigned zoom = cfg_.hud_map_zoom;
+        if (cut || zoom != kHudZoomMin) {
+            shape_.crop_w = std::max(sw, (cfg_.video.w * 100 / zoom) & ~1U);
+            shape_.crop_h = std::max(sh, (picture_h * 100 / zoom) & ~1U);
+            shape_.crop_x = ((cfg_.video.w - shape_.crop_w) / 2) & ~1U;
+            shape_.crop_y = ((cfg_.video.h - shape_.crop_h) / 2) & ~1U;
         }
         shape_.level_bits = cfg_.scaled_level_bits;
         shape_.radius = cfg_.hud_round_corners ? (sh / 12 > 6 ? sh / 12 : 6) : 0;
@@ -248,12 +251,10 @@ void MapFeed::sync_card()
         card_.follow(0, 0, CardRect(), false, true);
         return;
     }
-    CardRect map;
-    map.x = lo_.x;
-    map.y = lo_.y;
-    map.w = lo_.w;
-    map.h = lo_.h;
-    card_.follow(tw_, th_, map, lo_.visible, lo_.yield);
+    const auto ref = crk::map_quad(tw_, th_, cfg_.video.w, cfg_.video.h);
+    const int inset = (int)(ref.h * kCardCropDefault / 200);
+    const CardRect anchor{(int)ref.x, (int)ref.y + inset, ref.w, ref.h - 2 * (unsigned)inset};
+    card_.follow(tw_, th_, anchor, lo_.visible, lo_.yield);
 }
 
 void MapFeed::set_card(const CardConfig &c)
@@ -272,15 +273,31 @@ void MapFeed::set_card(const CardConfig &c)
     make_layer();
 }
 
+void MapFeed::set_hud_view(unsigned crop, unsigned zoom)
+{
+    if (crop == cfg_.hud_crop() && zoom == cfg_.hud_map_zoom) {
+        cfg_.hud_map_crop = (int)crop;
+        return;
+    }
+    cfg_.hud_map_crop = (int)crop;
+    cfg_.hud_map_zoom = zoom;
+    if (cfg_.target != "hud" || !layer_ || hosted())
+        return;
+    keep_newest();
+    client_.drop(layer_);
+    layer_ = 0;
+    make_layer();
+}
+
 /* The frame's rows cut at the top, and as many at the bottom, while the
  * HUD's turn card is on: only on the HUD and when the frame is scaled
  * here, which takes them out (the KOMBI would squash a whole frame into a
  * shorter rect instead). */
 uint32_t MapFeed::crop_rows() const
 {
-    if (cfg_.target != "hud" || hosted() || !cfg_.card.on || !cfg_.scale_down || !cfg_.video.h)
+    if (cfg_.target != "hud" || hosted() || !cfg_.scale_down || !cfg_.video.h)
         return 0;
-    return card_crop_rows(cfg_.video.h, cfg_.card.crop);
+    return card_crop_rows(cfg_.video.h, cfg_.hud_crop());
 }
 
 void MapFeed::set_host(const cr::Host &h)

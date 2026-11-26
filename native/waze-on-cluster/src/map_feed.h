@@ -80,6 +80,7 @@ namespace woc {
 /* The HUD map's widest size, % of the HUD's width: wider is cut off at its
  * edges. A larger hud_width_pct is held to it. */
 const unsigned kHudMaxPct = 85;
+const unsigned kHudZoomMin = 100, kHudZoomMax = 150;
 
 struct FeedConfig {
     std::string socket = "/dev/shm/cluster-render/render.sock";
@@ -91,6 +92,8 @@ struct FeedConfig {
      * the picture's shape, at most the HUD's), centred. 0: the kit's fitted
      * box (about 57 %). */
     unsigned hud_width_pct = 0;
+    int hud_map_crop = -1;
+    unsigned hud_map_zoom = kHudZoomMin;
     /* On the HUD: the map moved from its centred place, in the HUD scene's
      * pixels (+x right, +y down), held inside the HUD's scene. */
     int hud_offset_x = 0, hud_offset_y = 0;
@@ -119,6 +122,7 @@ struct FeedConfig {
     bool always_packed = false;
     /* On the HUD: the turn card beside the map (turn_card.h). */
     CardConfig card;
+    unsigned hud_crop() const { return hud_map_crop >= 0 ? (unsigned)hud_map_crop : card.on ? card.crop : 0; }
 };
 
 /* The status the app shows (its render socket's "status" event), with
@@ -146,6 +150,9 @@ struct FeedStatus {
     unsigned hud_card_pct = kCardDefaultPct;   /* its size */
     int hud_card_x = 0, hud_card_y = 0;        /* and where it is moved to from its place by the map */
     unsigned hud_card_crop = 0;                /* % of the HUD map's height cut while it is on */
+    unsigned hud_map_crop = 0, hud_map_zoom = kHudZoomMin;
+    unsigned hud_lanes_pct = kCardDefaultPct;
+    int hud_lanes_x = 0, hud_lanes_y = 0;
 };
 
 /* Whether a status is worth a log line: its state, reason or target differs
@@ -187,6 +194,7 @@ public:
     /* The HUD map's size (FeedConfig::hud_width_pct), applied at once to a
      * map on the HUD. */
     void set_hud_width(unsigned pct);
+    void set_hud_view(unsigned crop, unsigned zoom);
     /* The HUD map moved (FeedConfig::hud_offset_x/y), at once: the layer
      * only changes place, no new texture. Held inside the HUD: the offset
      * the map is at (hud_offset_x/y, the status's) then is as far as it
@@ -203,6 +211,8 @@ public:
     void set_turn(const Turn &t) { card_.set_turn(t); }
     int card_offset_x() const { return card_.dx(); }
     int card_offset_y() const { return card_.dy(); }
+    int lanes_offset_x() const { return card_.lanes_dx(); }
+    int lanes_offset_y() const { return card_.lanes_dy(); }
     /* A layer to take frames: made, and not reported disabled by
      * cluster-render. */
     bool takes_frames() const { return layer_ && !disabled(); }

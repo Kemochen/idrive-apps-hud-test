@@ -110,7 +110,11 @@ const HUD_MOVE_NAMES = { left: 'wocHudLeft', right: 'wocHudRight', up: 'wocHudUp
 const HUD_CENTRE_NAME = 'wocHudCentre';
 const HUD_CARD_NAME = 'wocHudCard';
 const HUD_CARD_SIZE_NAME = 'wocHudCardSize';
-const HUD_CARD_CROP_NAME = 'wocHudCardCrop';
+const HUD_LAYOUT_SLIDERS = {mapHeight: 'wocHudCardCrop', mapZoom: 'wocHudMapZoom', lanesSize: 'wocHudLanesSize'};
+const HUD_LANES_POS_NAME = 'wocHudLanesPos';
+const HUD_LANES_MOVE_NAMES = {left: 'wocHudLanesLeft', right: 'wocHudLanesRight', up: 'wocHudLanesUp', down: 'wocHudLanesDown'};
+const HUD_LANES_RESET_NAME = 'wocHudLanesReset';
+const HUD_LAYOUT_HEADINGS = ['wocHeadHudMap', 'wocHeadHudTurn', 'wocHeadHudLanes'];
 const HUD_CARD_POS_NAME = 'wocHudCardPos';
 const HUD_CARD_MOVE_NAMES = { left: 'wocHudCardLeft', right: 'wocHudCardRight', up: 'wocHudCardUp', down: 'wocHudCardDown' };
 const HUD_CARD_RESET_NAME = 'wocHudCardReset';
@@ -249,7 +253,9 @@ class WazeClusterApp extends OnlineApp {
         const names = [STATUS_NAME, MAP_NAME, RESTART_STATUS_NAME, ENABLE_NAME, DISABLE_NAME, WIFI_NAME, WIFI_HINT_NAME, AA_STATUS_NAME,
             AA_ENABLE_NAME, AA_DISABLE_NAME, AA_ZOOM_NAME, AA_ZOOM_OUT_NAME, AA_ZOOM_IN_NAME, AA_CARD_NAME, RESTART_NAME, GUIDE_NAME,
             HEAD_GENERAL_NAME, HEAD_HUD_NAME, SHOW_ON_NAME, PROFILE_NAME, HUD_NAME, HUD_ADAPTIVE_NAME, HUD_KEEP_NAME, HUD_SPORT_NAME, HUD_SIZE_NAME, HUD_POS_NAME]
-            .concat(Object.values(HUD_MOVE_NAMES), [HUD_CENTRE_NAME, HUD_CARD_NAME, HUD_CARD_SIZE_NAME, HUD_CARD_CROP_NAME, HUD_CARD_POS_NAME],
+            .concat(Object.values(HUD_MOVE_NAMES), [HUD_CENTRE_NAME, HUD_CARD_NAME, HUD_CARD_SIZE_NAME, HUD_CARD_POS_NAME],
+                HUD_LAYOUT_HEADINGS, Object.values(HUD_LAYOUT_SLIDERS), Object.values(HUD_LANES_MOVE_NAMES),
+                [HUD_LANES_POS_NAME, HUD_LANES_RESET_NAME],
                 Object.values(HUD_CARD_MOVE_NAMES), [HUD_CARD_RESET_NAME, CAPTURE_NAME, CAPTURE_STATUS,
                 LOGS_NAME, LOGS_SAVE, LOGS_STATUS, LOGS_QR, LOGS_URL], LOGS_ROW_NAMES);
         names.forEach((name) => { this._components[name] = rhmi.getByName(name); });
@@ -333,16 +339,21 @@ class WazeClusterApp extends OnlineApp {
                 setImmediate(() => this._render());
             }
         });
-        this._components[HUD_CARD_CROP_NAME].on('changed', (step) => {
-            if (step !== this._written[`cell:${HUD_CARD_CROP_NAME}:0:Value`]) {
-                logger.info(`SLIDER ${HUD_CARD_CROP_NAME} ${step}`);
-                delete this._written[`cell:${HUD_CARD_CROP_NAME}:0:Value`];
-                this._control.setHudCardCropStep(step);
-                setImmediate(() => this._render());
-            }
+        Object.keys(HUD_LAYOUT_SLIDERS).forEach((key) => {
+            const name = HUD_LAYOUT_SLIDERS[key];
+            this._components[name].on('changed', (step) => {
+                const cell = `cell:${name}:0:Value`;
+                if (step !== this._written[cell]) {
+                    delete this._written[cell];
+                    this._control.setHudLayoutStep(key, step);
+                    setImmediate(() => this._render());
+                }
+            });
         });
         Object.keys(HUD_CARD_MOVE_NAMES).forEach((dir) => this._bind(HUD_CARD_MOVE_NAMES[dir], () => this._control.moveHudCard(dir)));
         this._bind(HUD_CARD_RESET_NAME, () => this._control.resetHudCard());
+        Object.keys(HUD_LANES_MOVE_NAMES).forEach((dir) => this._bind(HUD_LANES_MOVE_NAMES[dir], () => this._control.moveHudLanes(dir)));
+        this._bind(HUD_LANES_RESET_NAME, () => this._control.resetHudLanes());
         this._bind(CAPTURE_NAME, () => this._control.capture());
         this._bind(LOGS_NAME, () => Promise.resolve(rhmi.openState(LOGS_STATE))
             .catch((err) => logger.warn(`openState ${LOGS_STATE} failed: ${err && err.message}`)));
@@ -627,6 +638,11 @@ class WazeClusterApp extends OnlineApp {
             [HUD_CARD_MOVE_NAMES.left, t('Move turn card left')], [HUD_CARD_MOVE_NAMES.right, t('Move turn card right')],
             [HUD_CARD_MOVE_NAMES.up, t('Move turn card up')], [HUD_CARD_MOVE_NAMES.down, t('Move turn card down')],
             [HUD_CARD_RESET_NAME, t('Reset turn card position')],
+            [HUD_LAYOUT_HEADINGS[0], t('HUD map layout')], [HUD_LAYOUT_HEADINGS[1], t('Turn card layout')],
+            [HUD_LAYOUT_HEADINGS[2], t('Lane guidance layout')],
+            [HUD_LANES_MOVE_NAMES.left, t('Move lane guidance left')], [HUD_LANES_MOVE_NAMES.right, t('Move lane guidance right')],
+            [HUD_LANES_MOVE_NAMES.up, t('Move lane guidance up')], [HUD_LANES_MOVE_NAMES.down, t('Move lane guidance down')],
+            [HUD_LANES_RESET_NAME, t('Reset lane guidance position')],
             [RESTART_NAME, t('Restart head unit')]].forEach(([name, text]) => this._write(name, text));
         this._write(STATUS_NAME, c.statusText());
         this._write(MAP_NAME, c.mapText());
@@ -701,14 +717,24 @@ class WazeClusterApp extends OnlineApp {
             this._writeCell(HUD_CARD_SIZE_NAME, 'Value', c.hudCardSizeStep(), 'SInt', 0);
         }
         this._setEnabled(HUD_CARD_SIZE_NAME, adjustCard);
-        this._writeCell(HUD_CARD_CROP_NAME, 'TextDescription', c.hudCardCropText(), 'Text', 0);
-        if (c.hudCardCropStep() !== null) {
-            this._writeCell(HUD_CARD_CROP_NAME, 'Value', c.hudCardCropStep(), 'SInt', 0);
-        }
-        this._setEnabled(HUD_CARD_CROP_NAME, c.canChangeHudCardCrop() && card);
+        const layoutLabels = {
+            mapHeight: t('Map height: {0}', c.hudLayoutPercent('mapHeight')),
+            mapZoom: t('Map zoom: {0}', c.hudLayoutPercent('mapZoom')),
+            lanesSize: t('Lane guidance size: {0}', c.hudLayoutPercent('lanesSize'))
+        };
+        Object.keys(HUD_LAYOUT_SLIDERS).forEach((key) => {
+            const name = HUD_LAYOUT_SLIDERS[key];
+            this._writeCell(name, 'TextDescription', layoutLabels[key], 'Text', 0);
+            const step = c.hudLayoutStep(key);
+            if (step !== null) this._writeCell(name, 'Value', step, 'SInt', 0);
+            this._setEnabled(name, c.canChangeHudLayout(key) && (key !== 'lanesSize' || card));
+        });
         this._write(HUD_CARD_POS_NAME, c.hudCardPositionText());
         Object.values(HUD_CARD_MOVE_NAMES).forEach((n) => this._setEnabled(n, adjustCard));
         this._setEnabled(HUD_CARD_RESET_NAME, c.canResetHudCard() && card);
+        this._write(HUD_LANES_POS_NAME, c.hudLanesPositionText());
+        Object.values(HUD_LANES_MOVE_NAMES).forEach((n) => this._setEnabled(n, c.canChangeHudLanes() && card));
+        this._setEnabled(HUD_LANES_RESET_NAME, c.canResetHudLanes() && card);
     }
 
     _renderLogs() {
