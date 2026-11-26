@@ -373,11 +373,11 @@ async function main() {
     assert.deepStrictEqual(['MinValue', 'MaxValue', 'NumberOfSteps'].map((k) => components['73'].rows[0][k].value), [0, CARD_CROP_STEPS, CARD_CROP_STEPS],
         'its slider: one step for each 5 %');
     /* every info row reads "Name: Value" */
-    assert(main.filter(([, type, name]) => type === 'label' && !/^wocHead|^(wocRestartStatus|wocWifi|wocWifiHint)$/.test(name))
+    assert(main.filter(([, type, name]) => type === 'label' && !/^wocHead|^(wocHudPreviewImage|wocRestartStatus|wocWifi|wocWifiHint)$/.test(name))
         .every(([, , , text]) => /^[A-Z][A-Za-z ]+: [A-Z\u2014]/.test(text)), 'info rows as Name: Value');
     const hidden = Object.values(components).filter((d) => d.properties.Visible.value !== 1).map((d) => d.name);
-    assert.deepStrictEqual(hidden, ['wocWifi', 'wocWifiHint', 'wocRestart', 'wocRestartStatus'],
-        'every row ships shown but CarPlay Wi-Fi, its line and the restart\'s two');
+    assert.deepStrictEqual(hidden, ['wocWifi', 'wocWifiHint', 'wocRestart', 'wocRestartStatus', 'wocHudPreviewExample', 'wocHudPreviewImage'],
+        'Wi-Fi, restart, and preview output start hidden');
     assert(/<component id="34" type="button" widget="LT_Button_1Row">\s*<property id="2" value="0"\/>/.test(XML), 'application.xml: the restart, hidden');
     ['29', '30'].forEach((id) => assert(new RegExp(`<component id="${id}" type="label" widget="LT_Label_1Row">\\s*<property id="2" value="0"\\/>\\s*` +
         '<property id="3" value="0"\\/>').test(XML), `application.xml: ${components[id].name}, hidden and unfocusable`));
@@ -441,6 +441,12 @@ async function main() {
         await until('wide example preview', () => byName.wocHudPreviewImage.text !== previewFile &&
             byName.wocHudPreviewExample.text === 'Example: Long road name and six lanes');
         assert(!previewImage.equals(fs.readFileSync(byName.wocHudPreviewImage.text)));
+        const wideFile = byName.wocHudPreviewImage.text;
+        render.hudLayout.hud_map_zoom = 115;
+        render.announce(render.state, render.reason);
+        await until('active layout change refreshes the preview', () => byName.wocHudPreviewImage.text !== wideFile);
+        render.hudLayout.hud_map_zoom = 100;
+        render.announce(render.state, render.reason);
         await sleep(450);
         byName.wocHudPreviewToggle.emit('action');
         await until('preview rows close', () => !byName.wocHudPreviewImage.visible && !byName.wocHudPreviewExample.visible);
