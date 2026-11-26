@@ -708,17 +708,31 @@ static void hud_turn_card()
     pump(1500, &f1);
     ok("turning off the card preserves the map height", hud_map() && at(hud_map(), 160, 156, 480, 168) && cards().empty());
     feeds.set_card(card(true, 100, 0, 0));
+    const auto map_pixels = [&]() -> std::vector<uint8_t> {
+        crs::FakeGraph *g = b.gpu.graph("hud");
+        if (g)
+            for (const auto &kv : g->shown.buffers)
+                if (kv.second.f == crs::TexFormat::R8 && kv.second.w == 480 && kv.second.h == 318)
+                    return kv.second.px;
+        return {};
+    };
+    feeds.set_hud_view(0, 100);
+    pump(500, &f1);
+    const auto unzoomed = map_pixels();
     feeds.set_hud_view(0, 130);
     pump(1500, &f1);
     c = cards();
+    const auto zoomed = map_pixels();
     ok("zoom changes the map content without moving or resizing its viewport or either guidance layer",
        hud_map() && at(hud_map(), 160, 134, 480, 212) && feeds.status("decode").hud_map_zoom == 130 &&
-           c.size() == 2 && at(c[0], 173, 104, 453, 44) && at(c[1], 408, 334, 218, 36));
+           c.size() == 2 && at(c[0], 173, 104, 453, 44) && at(c[1], 408, 334, 218, 36) &&
+           !unzoomed.empty() && !zoomed.empty() && unzoomed != zoomed);
     CardConfig lane_only = card(true, 100, 0, 0);
     lane_only.lanes_pct = 150;
     lane_only.lanes_dx = 30;
     lane_only.lanes_dy = -20;
     feeds.set_card(lane_only);
+    feeds.set_turn(right, b.now);
     pump(500, &f1);
     c = cards();
     ok("the lane controls resize and move only the lane layer",
