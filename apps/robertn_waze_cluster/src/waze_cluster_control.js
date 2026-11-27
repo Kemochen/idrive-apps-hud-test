@@ -110,9 +110,9 @@ const SIZE = '1088x480';
 /* The safe area CarPlay's Patch button writes: where the phone keeps its guidance UI,
  * inside the part of the map the gauges leave visible. */
 const SAFE = '504x368+286+72';
-/* The HUD map's size: HUD_STEP_PCT steps from HUD_MIN_PCT to HUD_MAX_PCT (85 %, the widest the HUD shows
- * whole), HUD_SIZE_STEPS of them. Standard (0) counts as HUD_STANDARD_PCT, about what the fitted box is. */
-const HUD_MIN_PCT = 30, HUD_MAX_PCT = 85, HUD_STEP_PCT = 5, HUD_STANDARD_PCT = 57;
+/* The HUD map's width in HUD_STEP_PCT steps. Standard (0) uses the fitted box,
+ * approximately HUD_STANDARD_PCT. */
+const HUD_MIN_PCT = 30, HUD_MAX_PCT = 100, HUD_STEP_PCT = 5, HUD_STANDARD_PCT = 57;
 const HUD_SIZE_STEPS = (HUD_MAX_PCT - HUD_MIN_PCT) / HUD_STEP_PCT;
 /* Where the map can show, the choices in their order on the page. */
 const SHOWN_ON = ['cluster', 'hud', 'both', 'off'];
@@ -507,7 +507,7 @@ class WazeClusterControl extends EventEmitter {
 
     hudSizeText() {
         const w = this.hudWidth();
-        return t('Size: {0}', w == null ? '—' : w === 0 ? t('Standard') : t('{0} %', w));
+        return t('Map width: {0}', w == null ? '—' : w === 0 ? t('Standard') : t('{0} %', w));
     }
 
     /* The size and place change only while the HUD is on and not disabled. */
@@ -838,9 +838,40 @@ class WazeClusterControl extends EventEmitter {
         return t('Lane guidance position: {0}', x === null || y === null ? '—' : offsetText(x, y, t('Standard')));
     }
 
+    hudGuidanceOffset(part) {
+        return [this._layoutValue('hud_' + part + '_x'), this._layoutValue('hud_' + part + '_y')];
+    }
+
+    canMoveHudGuidance(part) {
+        return this.connectedPatch() && this.canChangeHudCard() && this.hudGuidanceOffset(part).every((v) => v !== null);
+    }
+
+    hudGuidanceOffsetText(part) {
+        const [x, y] = this.hudGuidanceOffset(part);
+        return x === null || y === null ? '—' : offsetText(x, y, t('Standard'));
+    }
+
+    moveHudGuidance(part, dir) {
+        const move = MOVES[dir];
+        if (!move || !this.canMoveHudGuidance(part)) return;
+        const [x, y] = this.hudGuidanceOffset(part);
+        const clamp = (v) => Math.max(-HUD_MOVE_MAX, Math.min(HUD_MOVE_MAX, v));
+        this._setHudLayout({['hud_' + part + '_x']: clamp(x + move[0] * HUD_MOVE_PX),
+            ['hud_' + part + '_y']: clamp(y + move[1] * HUD_MOVE_PX)});
+    }
+
+    canResetHudGuidance(part) {
+        return this.canMoveHudGuidance(part) && this.hudGuidanceOffset(part).some((v) => v !== 0);
+    }
+
+    resetHudGuidance(part) {
+        if (this.canResetHudGuidance(part)) this._setHudLayout({['hud_' + part + '_x']: 0, ['hud_' + part + '_y']: 0});
+    }
+
     hudPreviewSettings() {
         return {width: this.hudWidth(), crop: this._layoutValue('hud_map_crop'), zoom: this._layoutValue('hud_map_zoom'),
             mapOffset: this.hudOffset(), turnSize: this.hudCardPct(), turnOffset: this.hudCardOffset(),
+            roadOffset: this.hudGuidanceOffset('road'), maneuverOffset: this.hudGuidanceOffset('maneuver'),
             lanesSize: this._layoutValue('hud_lanes_pct'), lanesOffset: [this._layoutValue('hud_lanes_x'), this._layoutValue('hud_lanes_y')]};
     }
 

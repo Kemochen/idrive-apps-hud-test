@@ -4,7 +4,9 @@
 
 Choose **Show on → HUD (experimental)** for windshield-only output. Turn on **HUD → Adaptive junction preview** to show the map when the next maneuver is within 2 km and the video is fresh. The switch defaults to off, using the regular HUD map and turn card. The choice is saved in the active profile. The previous diagnostics checkbox used the same preference, so an already selected checkbox becomes active on upgrade.
 
-The HUD settings group the map, the turn card (arrow, road and distance), and lane guidance separately. Each group has its own position and size. **Map height** controls the viewport's aspect ratio, and **Map zoom** crops the video around its center while keeping the viewport in place. The turn card and lane guidance use their own fixed HUD anchors. Earlier map height preferences are carried over from profiles that used the turn card.
+The HUD settings provide separate positioning controls for the map, road name, maneuver arrow with distance, and lane guidance. Each position can move up, down, left or right and can be reset independently. For an existing profile, resetting the road name or maneuver returns it to the position set by the saved turn card offset. The road name and maneuver share the turn card size setting.
+
+**Map width** ranges from 30% to 100% of the HUD in five-point steps. At full width the map can still move vertically. **Map height** trims the video vertically, and **Map zoom** magnifies the center of the video inside the viewport. The renderer limits magnification when a wider viewport requires more source pixels to maintain the aspect ratio. Earlier map height preferences are carried over from profiles that used the turn card.
 
 Use **Preview HUD layout while parked** on the iDrive settings page. The preview shows the map viewport, turn card and lanes together using the live layout settings, with example scenarios for a short or long road name and three or six lanes. The example is drawn in the app and sends no mock guidance to the windshield.
 

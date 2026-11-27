@@ -36,7 +36,9 @@ struct CardImage {
 };
 
 /* The row for a turn, w x h, drawn at `scale` (1: a row 44 high). */
-void draw_card_row(const Turn &turn, float scale, unsigned w, unsigned h, CardImage *out);
+enum class CardRowPart { Both, Road, Maneuver };
+void draw_card_row(const Turn &turn, float scale, unsigned w, unsigned h, CardImage *out,
+                   CardRowPart part = CardRowPart::Both);
 /* The lanes ("s*,s+r*,r", turn_card.h), w x h, drawn at `scale`. */
 void draw_card_lanes(const std::string &lanes, float scale, unsigned w, unsigned h, CardImage *out);
 

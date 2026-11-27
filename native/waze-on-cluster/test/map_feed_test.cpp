@@ -738,6 +738,22 @@ static void hud_turn_card()
     ok("the lane controls resize and move only the lane layer",
        hud_map() && at(hud_map(), 160, 134, 480, 212) && c.size() == 2 && at(c[0], 173, 104, 453, 44) &&
            at(c[1], 329, 321, 327, 54) && drawn(lanes("s*,s*,r", 1.5f, 327, 54)));
+    lane_only.road_dx = -75;
+    lane_only.road_dy = 30;
+    lane_only.maneuver_dx = 80;
+    lane_only.maneuver_dy = -50;
+    feeds.set_card(lane_only);
+    pump(500, &f1);
+    c = cards();
+    const auto has_card_at = [&](int x, int y, unsigned w, unsigned h) {
+        return std::any_of(c.begin(), c.end(), [&](const crs::Layer *layer) { return at(layer, x, y, w, h); });
+    };
+    const auto split_status = feeds.status("decode");
+    ok("road name and maneuver move independently of the map and lanes",
+       hud_map() && at(hud_map(), 160, 134, 480, 212) && c.size() == 3 &&
+           has_card_at(98, 134, 293, 44) && has_card_at(546, 54, 160, 44) && has_card_at(329, 321, 327, 54) &&
+           split_status.hud_road_x == -75 && split_status.hud_road_y == 30 &&
+           split_status.hud_maneuver_x == 80 && split_status.hud_maneuver_y == -50);
     feeds.set_card(card(true, 100, 0, 0));
     feeds.set_hud_view(0, 100);
     pump(500, &f1);
@@ -1919,9 +1935,9 @@ int main()
     feeds.set_hud_width(100);
     bpump(300, &f2);
     hl = layer_on(2);
-    ok("100 %: held to the widest, 85 % (680x300), the picture's shape kept, centred",
-       hl && hl->params.rect.w == 680 && hl->params.rect.h == 300 && hl->params.rect.x == 60 && hl->params.rect.y == 90 &&
-           feeds.status("decode").hud_width_pct == 85);
+    ok("100 %: the full HUD width (800x352), the picture's shape kept, centred",
+       hl && hl->params.rect.w == 800 && hl->params.rect.h == 352 && hl->params.rect.x == 0 && hl->params.rect.y == 63 &&
+           feeds.status("decode").hud_width_pct == 100);
     feeds.set_hud_width(40);
     bpump(300, &f2);
     hl = layer_on(2);

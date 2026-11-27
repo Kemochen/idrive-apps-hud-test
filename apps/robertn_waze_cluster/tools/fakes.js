@@ -156,7 +156,8 @@ class FakeRender extends LineServer {
         this.hudCardX = 0;
         this.hudCardY = 0;
         this.hudCardCrop = 20;
-        this.hudLayout = {hud_map_crop: 20, hud_map_zoom: 100, hud_lanes_pct: 100, hud_lanes_x: 0, hud_lanes_y: 0};
+        this.hudLayout = {hud_map_crop: 20, hud_map_zoom: 100, hud_lanes_pct: 100, hud_lanes_x: 0, hud_lanes_y: 0,
+            hud_road_x: 0, hud_road_y: 0, hud_maneuver_x: 0, hud_maneuver_y: 0};
         this.turn = null;
         this.turns = [];
         /* one owner: a second connection is told busy and closed */

@@ -79,7 +79,7 @@ namespace woc {
 
 /* The HUD map's widest size, % of the HUD's width: wider is cut off at its
  * edges. A larger hud_width_pct is held to it. */
-const unsigned kHudMaxPct = 85;
+const unsigned kHudMaxPct = 100;
 const unsigned kHudZoomMin = 100, kHudZoomMax = 150;
 
 struct FeedConfig {
@@ -149,6 +149,8 @@ struct FeedStatus {
     bool hud_hide_sport = false;   /* the HUD map hidden while the car is in a Sport mode (MapFeeds) */
     bool hud_card = false;         /* the turn card on the HUD (MapFeeds) */
     unsigned hud_card_pct = kCardDefaultPct;   /* its size */
+    int hud_road_x = 0, hud_road_y = 0;
+    int hud_maneuver_x = 0, hud_maneuver_y = 0;
     int hud_card_x = 0, hud_card_y = 0;        /* and where it is moved to from its place by the map */
     unsigned hud_card_crop = 0;                /* % of the HUD map's height cut while it is on */
     unsigned hud_map_crop = 0, hud_map_zoom = kHudZoomMin;
@@ -214,6 +216,10 @@ public:
     void set_turn(const Turn &t) { card_.set_turn(t); }
     int card_offset_x() const { return card_.dx(); }
     int card_offset_y() const { return card_.dy(); }
+    int road_offset_x() const { return card_.road_dx(); }
+    int road_offset_y() const { return card_.road_dy(); }
+    int maneuver_offset_x() const { return card_.maneuver_dx(); }
+    int maneuver_offset_y() const { return card_.maneuver_dy(); }
     int lanes_offset_x() const { return card_.lanes_dx(); }
     int lanes_offset_y() const { return card_.lanes_dy(); }
     /* A layer to take frames: made, and not reported disabled by

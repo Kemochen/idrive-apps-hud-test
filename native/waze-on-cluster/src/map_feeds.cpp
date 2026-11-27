@@ -376,6 +376,10 @@ FeedStatus MapFeeds::status(const std::string &decode, const std::string &stream
     s.hud_map_crop = base_.hud_crop();
     s.hud_map_zoom = base_.hud_map_zoom;
     s.hud_lanes_pct = base_.card.lanes_pct;
+    s.hud_road_x = hud_ ? hud_->road_offset_x() : base_.card.road_dx;
+    s.hud_road_y = hud_ ? hud_->road_offset_y() : base_.card.road_dy;
+    s.hud_maneuver_x = hud_ ? hud_->maneuver_offset_x() : base_.card.maneuver_dx;
+    s.hud_maneuver_y = hud_ ? hud_->maneuver_offset_y() : base_.card.maneuver_dy;
     s.hud_lanes_x = hud_ ? hud_->lanes_offset_x() : base_.card.lanes_dx;
     s.hud_lanes_y = hud_ ? hud_->lanes_offset_y() : base_.card.lanes_dy;
     return s;

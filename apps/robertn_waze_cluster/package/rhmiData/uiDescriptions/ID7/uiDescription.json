@@ -412,7 +412,7 @@
           "rows": [
             {
               "TextDescription": {
-                "value": "Size: —",
+                "value": "Map width: —",
                 "type": "Text"
               },
               "TextDescriptionVisible": {
@@ -428,11 +428,11 @@
                 "type": "SInt"
               },
               "MaxValue": {
-                "value": 11,
+                "value": 14,
                 "type": "SInt"
               },
               "NumberOfSteps": {
-                "value": 11,
+                "value": 14,
                 "type": "SInt"
               }
             }
@@ -744,6 +744,138 @@
             }
           ]
         },
+        "164": {
+          "type": "label",
+          "name": "wocHudRoadPos",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 0,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Road name position: —",
+                "type": "Text"
+              }
+            }
+          ]
+        },
+        "165": {
+          "type": "button",
+          "name": "wocHudRoadLeft",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Move road name left",
+                "type": "Text"
+              }
+            }
+          ]
+        },
+        "166": {
+          "type": "button",
+          "name": "wocHudRoadRight",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Move road name right",
+                "type": "Text"
+              }
+            }
+          ]
+        },
+        "167": {
+          "type": "button",
+          "name": "wocHudRoadUp",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Move road name up",
+                "type": "Text"
+              }
+            }
+          ]
+        },
+        "168": {
+          "type": "button",
+          "name": "wocHudRoadDown",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Move road name down",
+                "type": "Text"
+              }
+            }
+          ]
+        },
+        "169": {
+          "type": "button",
+          "name": "wocHudRoadReset",
+          "properties": {
+            "Visible": {
+              "value": 1,
+              "type": "UInt"
+            },
+            "Focusable": {
+              "value": 3,
+              "type": "UInt"
+            }
+          },
+          "rows": [
+            {
+              "Text": {
+                "value": "Reset road name position",
+                "type": "Text"
+              }
+            }
+          ]
+        },
         "67": {
           "type": "label",
           "name": "wocHudCardPos",
@@ -760,7 +892,7 @@
           "rows": [
             {
               "Text": {
-                "value": "Turn card position: —",
+                "value": "Maneuver position: —",
                 "type": "Text"
               }
             }
@@ -782,7 +914,7 @@
           "rows": [
             {
               "Text": {
-                "value": "Move turn card left",
+                "value": "Move maneuver left",
                 "type": "Text"
               }
             }
@@ -804,7 +936,7 @@
           "rows": [
             {
               "Text": {
-                "value": "Move turn card right",
+                "value": "Move maneuver right",
                 "type": "Text"
               }
             }
@@ -826,7 +958,7 @@
           "rows": [
             {
               "Text": {
-                "value": "Move turn card up",
+                "value": "Move maneuver up",
                 "type": "Text"
               }
             }
@@ -848,7 +980,7 @@
           "rows": [
             {
               "Text": {
-                "value": "Move turn card down",
+                "value": "Move maneuver down",
                 "type": "Text"
               }
             }
@@ -870,7 +1002,7 @@
           "rows": [
             {
               "Text": {
-                "value": "Reset turn card position",
+                "value": "Reset maneuver position",
                 "type": "Text"
               }
             }

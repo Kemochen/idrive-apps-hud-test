@@ -98,6 +98,8 @@ std::string status_line(const FeedStatus &s, bool nav_live, bool nav_diagnostics
            ",\"hud_card_crop\":" + std::to_string(s.hud_card_crop) +
            ",\"hud_map_crop\":" + std::to_string(s.hud_map_crop) + ",\"hud_map_zoom\":" + std::to_string(s.hud_map_zoom) +
            ",\"hud_lanes_pct\":" + std::to_string(s.hud_lanes_pct) +
+           ",\"hud_road_x\":" + std::to_string(s.hud_road_x) + ",\"hud_road_y\":" + std::to_string(s.hud_road_y) +
+           ",\"hud_maneuver_x\":" + std::to_string(s.hud_maneuver_x) + ",\"hud_maneuver_y\":" + std::to_string(s.hud_maneuver_y) +
            ",\"hud_lanes_x\":" + std::to_string(s.hud_lanes_x) + ",\"hud_lanes_y\":" + std::to_string(s.hud_lanes_y) +
            ",\"nav_live\":" + (nav_live ? "1" : "0") +
            ",\"nav_diagnostics\":" + (nav_diagnostics ? "1" : "0") +
@@ -136,6 +138,8 @@ public:
         auto hide_sport = msg.find("hud_hide_sport"), sport = msg.find("sport");
         auto adaptive = msg.find("adaptive_hud");
         const bool card = msg.count("hud_card") || msg.count("hud_card_pct") || msg.count("hud_card_x") || msg.count("hud_card_y") ||
+                          msg.count("hud_road_x") || msg.count("hud_road_y") ||
+                          msg.count("hud_maneuver_x") || msg.count("hud_maneuver_y") ||
                           msg.count("hud_card_crop") || msg.count("hud_lanes_pct") || msg.count("hud_lanes_x") || msg.count("hud_lanes_y");
         const bool map_view = msg.count("hud_map_crop") || msg.count("hud_map_zoom");
         if (cmd == "start" && it != msg.end()) {
@@ -299,11 +303,17 @@ private:
         };
         long on = c.on, pct = c.pct, x = c.dx, y = c.dy, crop = c.crop;
         long lanes_pct = c.lanes_pct, lanes_x = c.lanes_dx, lanes_y = c.lanes_dy;
+        long road_x = c.road_dx, road_y = c.road_dy;
+        long maneuver_x = c.maneuver_dx, maneuver_y = c.maneuver_dy;
         long map_crop = feeds_->hud_map_crop(), zoom = feeds_->hud_map_zoom();
         if (!number("hud_card", 0, 1, &on) || !number("hud_card_pct", kCardMinPct, kCardMaxPct, &pct) ||
             !number("hud_card_x", -kCardMoveMax, kCardMoveMax, &x) || !number("hud_card_y", -kCardMoveMax, kCardMoveMax, &y) ||
             !number("hud_card_crop", 0, kCardCropMax, &crop) || !number("hud_map_crop", 0, kCardCropMax, &map_crop) ||
             !number("hud_map_zoom", kHudZoomMin, kHudZoomMax, &zoom) || !number("hud_lanes_pct", kCardMinPct, kCardMaxPct, &lanes_pct) ||
+            !number("hud_road_x", -kCardMoveMax, kCardMoveMax, &road_x) ||
+            !number("hud_road_y", -kCardMoveMax, kCardMoveMax, &road_y) ||
+            !number("hud_maneuver_x", -kCardMoveMax, kCardMoveMax, &maneuver_x) ||
+            !number("hud_maneuver_y", -kCardMoveMax, kCardMoveMax, &maneuver_y) ||
             !number("hud_lanes_x", -kCardMoveMax, kCardMoveMax, &lanes_x) || !number("hud_lanes_y", -kCardMoveMax, kCardMoveMax, &lanes_y))
             return;
         c.on = on == 1;
@@ -312,6 +322,10 @@ private:
         c.dy = (int)y;
         c.crop = (unsigned)crop;
         c.lanes_pct = (unsigned)lanes_pct;
+        c.road_dx = (int)road_x;
+        c.road_dy = (int)road_y;
+        c.maneuver_dx = (int)maneuver_x;
+        c.maneuver_dy = (int)maneuver_y;
         c.lanes_dx = (int)lanes_x;
         c.lanes_dy = (int)lanes_y;
         if (msg.count("hud_map_crop") || msg.count("hud_map_zoom"))
@@ -372,6 +386,8 @@ int serve(Config cfg)
         {"adaptive_hud", 0, 1},
         {"hud_card_x", -800, 800},  {"hud_card_y", -800, 800},  {"hud_card_crop", 0, 40},
         {"hud_map_crop", -1, 40},    {"hud_map_zoom", 100, 150},
+        {"hud_road_x", -800, 800}, {"hud_road_y", -800, 800},
+        {"hud_maneuver_x", -800, 800}, {"hud_maneuver_y", -800, 800},
         {"hud_lanes_pct", 50, 150},   {"hud_lanes_x", -800, 800}, {"hud_lanes_y", -800, 800},
         {"freeze_ms", 0, 600000},   {"freeze_min_fps", 1, 60},       {"alt_screen_port", 0, 65535},
         {"idle_ms", 1000, 600000},  {"blank_ms", 1000, 600000},
@@ -427,6 +443,10 @@ int serve(Config cfg)
     fc.hud_map_crop = (int)fc.hud_crop(); /* resolve legacy preferences once at startup */
     fc.hud_map_zoom = (unsigned)cfg.num("hud_map_zoom");
     fc.card.lanes_pct = (unsigned)cfg.num("hud_lanes_pct");
+    fc.card.road_dx = (int)cfg.num("hud_road_x");
+    fc.card.road_dy = (int)cfg.num("hud_road_y");
+    fc.card.maneuver_dx = (int)cfg.num("hud_maneuver_x");
+    fc.card.maneuver_dy = (int)cfg.num("hud_maneuver_y");
     fc.card.lanes_dx = (int)cfg.num("hud_lanes_x");
     fc.card.lanes_dy = (int)cfg.num("hud_lanes_y");
     fc.scale_down = cfg.num("hud_scale_down") != 0;
@@ -730,6 +750,10 @@ void define_keys(Config *cfg)
     cfg->define("hud_map_crop", "-1");
     cfg->define("hud_map_zoom", "100");
     cfg->define("hud_lanes_pct", "100");
+    cfg->define("hud_road_x", "0");
+    cfg->define("hud_road_y", "0");
+    cfg->define("hud_maneuver_x", "0");
+    cfg->define("hud_maneuver_y", "0");
     cfg->define("hud_lanes_x", "0");
     cfg->define("hud_lanes_y", "0");
     cfg->define("hud_scale_down", "1");

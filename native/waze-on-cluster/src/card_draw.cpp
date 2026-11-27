@@ -277,7 +277,7 @@ void distance_parts(const std::string &dist, std::vector<uint32_t> *number, std:
 
 }  // namespace
 
-void draw_card_row(const Turn &turn, float scale, unsigned w, unsigned h, CardImage *out)
+void draw_card_row(const Turn &turn, float scale, unsigned w, unsigned h, CardImage *out, CardRowPart part)
 {
     Canvas c(w, h, out);
     if (turn.empty() || !w || !h)
@@ -285,6 +285,10 @@ void draw_card_row(const Turn &turn, float scale, unsigned w, unsigned h, CardIm
     const float arrow = std::min({kArrowPx * scale, (float)h, (float)w});
     const float text_px = kTextPx * scale, digit_px = kDigitPx * scale, mid = h / 2.0f;
 
+    if (part == CardRowPart::Road) {
+        paint_text(&c, kCardText, fitted_name(turn.road, text_px, w), 0, centred_baseline(mid, text_px), text_px, kWhite);
+        return;
+    }
     std::vector<uint32_t> number, unit;
     distance_parts(turn.dist, &number, &unit);
     const float number_w = number.empty() ? 0 : text_width(kCardDigits, number, digit_px);
@@ -307,8 +311,9 @@ void draw_card_row(const Turn &turn, float scale, unsigned w, unsigned h, CardIm
         paint_text(&c, kCardDigits, number, x, baseline, digit_px, kWhite);
         paint_text(&c, kCardText, unit, x + number_w + kUnitGap * scale, baseline, text_px, kWhite);
     }
-    const std::vector<uint32_t> name = fitted_name(turn.road, text_px, group - kNameGap * scale);
-    paint_text(&c, kCardText, name, 0, centred_baseline(mid, text_px), text_px, kWhite);
+    if (part == CardRowPart::Both)
+        paint_text(&c, kCardText, fitted_name(turn.road, text_px, group - kNameGap * scale), 0,
+                   centred_baseline(mid, text_px), text_px, kWhite);
 }
 
 void draw_card_lanes(const std::string &lanes, float scale, unsigned w, unsigned h, CardImage *out)

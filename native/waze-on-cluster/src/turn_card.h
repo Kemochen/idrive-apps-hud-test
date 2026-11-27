@@ -59,6 +59,8 @@ struct CardConfig {
     bool on = false;
     unsigned pct = kCardDefaultPct;   /* its size, % of the drawn one */
     int dx = 0, dy = 0;               /* offset from the HUD's turn-card anchor */
+    int road_dx = 0, road_dy = 0;
+    int maneuver_dx = 0, maneuver_dy = 0;
     unsigned crop = 0;                /* legacy linked map crop, read from older settings */
     unsigned lanes_pct = kCardDefaultPct;
     int lanes_dx = 0, lanes_dy = 0;
@@ -77,13 +79,16 @@ struct CardRect {
     unsigned w = 0, h = 0;
 };
 
-/* Where the card's two pictures go, the size they are drawn at and the
+/* Where the card's pictures go, the size they are drawn at and the
  * offset as far as it went. */
 struct CardLayout {
-    CardRect top, lanes;
+    CardRect top, road, maneuver, lanes;
     float scale = 1.0f, lanes_scale = 1.0f;
     int dx = 0, dy = 0;
+    int road_dx = 0, road_dy = 0;
+    int maneuver_dx = 0, maneuver_dy = 0;
     int lanes_dx = 0, lanes_dy = 0;
+    bool split_row() const { return road_dx || road_dy || maneuver_dx || maneuver_dy; }
 };
 
 namespace card_detail {
@@ -91,7 +96,7 @@ namespace card_detail {
 /* The design's measures at 100 %: the row's height and its gap to the map,
  * a lane's width, the lanes' height and their gap to the map. The arrow
  * and each lane's icon are the same 36 px square. */
-const int kRowH = 44, kRowGap = 12, kLaneW = 36, kLanesH = 36, kLanesGap = 14;
+const int kRowH = 44, kRowGap = 12, kManeuverW = 160, kLaneW = 36, kLanesH = 36, kLanesGap = 14;
 
 inline int scaled(int v, float s) { return (int)(v * s + 0.5f); }
 inline int held(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v; }
@@ -116,6 +121,20 @@ inline CardLayout card_layout(unsigned tw, unsigned th, const CardRect &anchor, 
     l.top.y = held(top_y + c.dy, 0, h - (int)l.top.h);
     l.dx = l.top.x - top_x;
     l.dy = l.top.y - top_y;
+
+    const auto move = [w,h](CardRect base, int dx, int dy, int &actual_x, int &actual_y) {
+        CardRect rect = base;
+        rect.x = held(base.x + dx, 0, w - (int)base.w);
+        rect.y = held(base.y + dy, 0, h - (int)base.h);
+        actual_x = rect.x - base.x;
+        actual_y = rect.y - base.y;
+        return rect;
+    };
+    const unsigned maneuver_w = (unsigned)held(scaled(kManeuverW, l.scale), 1, (int)l.top.w);
+    const unsigned road_w = (unsigned)held((int)l.top.w - (int)maneuver_w, 1, (int)l.top.w);
+    l.road = move({l.top.x, l.top.y, road_w, l.top.h}, c.road_dx, c.road_dy, l.road_dx, l.road_dy);
+    l.maneuver = move({l.top.x + (int)(l.top.w - maneuver_w), l.top.y, maneuver_w, l.top.h},
+                      c.maneuver_dx, c.maneuver_dy, l.maneuver_dx, l.maneuver_dy);
 
     l.lanes.w = (unsigned)held(scaled(kLaneW * (int)kCardLanes + 2, l.lanes_scale), 1, w);
     l.lanes.h = (unsigned)held(scaled(kLanesH, l.lanes_scale), 1, h);

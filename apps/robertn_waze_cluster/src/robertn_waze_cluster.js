@@ -119,6 +119,9 @@ const HUD_PREVIEW_TOGGLE = 'wocHudPreviewToggle', HUD_PREVIEW_EXAMPLE = 'wocHudP
 const { layoutPreviewPng } = require('./hud_layout_preview.js');
 const HUD_CARD_POS_NAME = 'wocHudCardPos';
 const HUD_CARD_MOVE_NAMES = { left: 'wocHudCardLeft', right: 'wocHudCardRight', up: 'wocHudCardUp', down: 'wocHudCardDown' };
+const HUD_ROAD_POS_NAME = 'wocHudRoadPos';
+const HUD_ROAD_MOVE_NAMES = {left: 'wocHudRoadLeft', right: 'wocHudRoadRight', up: 'wocHudRoadUp', down: 'wocHudRoadDown'};
+const HUD_ROAD_RESET_NAME = 'wocHudRoadReset';
 const HUD_CARD_RESET_NAME = 'wocHudCardReset';
 const CAPTURE_NAME = 'wocCapture';
 const CAPTURE_STATUS = 'wocCaptureStatus';
@@ -259,6 +262,7 @@ class WazeClusterApp extends OnlineApp {
             .concat(Object.values(HUD_MOVE_NAMES), [HUD_CENTRE_NAME, HUD_CARD_NAME, HUD_CARD_SIZE_NAME, HUD_CARD_POS_NAME],
                 HUD_LAYOUT_HEADINGS, Object.values(HUD_LAYOUT_SLIDERS), Object.values(HUD_LANES_MOVE_NAMES),
                 [HUD_LANES_POS_NAME, HUD_LANES_RESET_NAME, HUD_PREVIEW_TOGGLE, HUD_PREVIEW_EXAMPLE, HUD_PREVIEW_IMAGE],
+                Object.values(HUD_ROAD_MOVE_NAMES), [HUD_ROAD_POS_NAME, HUD_ROAD_RESET_NAME],
                 Object.values(HUD_CARD_MOVE_NAMES), [HUD_CARD_RESET_NAME, CAPTURE_NAME, CAPTURE_STATUS,
                 LOGS_NAME, LOGS_SAVE, LOGS_STATUS, LOGS_QR, LOGS_URL], LOGS_ROW_NAMES);
         names.forEach((name) => { this._components[name] = rhmi.getByName(name); });
@@ -353,8 +357,11 @@ class WazeClusterApp extends OnlineApp {
                 }
             });
         });
-        Object.keys(HUD_CARD_MOVE_NAMES).forEach((dir) => this._bind(HUD_CARD_MOVE_NAMES[dir], () => this._control.moveHudCard(dir)));
-        this._bind(HUD_CARD_RESET_NAME, () => this._control.resetHudCard());
+        for (const [part, moves, reset] of [['road', HUD_ROAD_MOVE_NAMES, HUD_ROAD_RESET_NAME],
+            ['maneuver', HUD_CARD_MOVE_NAMES, HUD_CARD_RESET_NAME]]) {
+            Object.keys(moves).forEach((dir) => this._bind(moves[dir], () => this._control.moveHudGuidance(part, dir)));
+            this._bind(reset, () => this._control.resetHudGuidance(part));
+        }
         Object.keys(HUD_LANES_MOVE_NAMES).forEach((dir) => this._bind(HUD_LANES_MOVE_NAMES[dir], () => this._control.moveHudLanes(dir)));
         this._bind(HUD_LANES_RESET_NAME, () => this._control.resetHudLanes());
         this._bind(HUD_PREVIEW_TOGGLE, () => {
@@ -652,9 +659,12 @@ class WazeClusterApp extends OnlineApp {
             [HEAD_HUD_NAME, t('HUD')],
             [HUD_MOVE_NAMES.left, t('Move left')], [HUD_MOVE_NAMES.right, t('Move right')], [HUD_MOVE_NAMES.up, t('Move up')],
             [HUD_MOVE_NAMES.down, t('Move down')], [HUD_CENTRE_NAME, t('Centre')],
-            [HUD_CARD_MOVE_NAMES.left, t('Move turn card left')], [HUD_CARD_MOVE_NAMES.right, t('Move turn card right')],
-            [HUD_CARD_MOVE_NAMES.up, t('Move turn card up')], [HUD_CARD_MOVE_NAMES.down, t('Move turn card down')],
-            [HUD_CARD_RESET_NAME, t('Reset turn card position')],
+            [HUD_ROAD_MOVE_NAMES.left, t('Move road name left')], [HUD_ROAD_MOVE_NAMES.right, t('Move road name right')],
+            [HUD_ROAD_MOVE_NAMES.up, t('Move road name up')], [HUD_ROAD_MOVE_NAMES.down, t('Move road name down')],
+            [HUD_ROAD_RESET_NAME, t('Reset road name position')],
+            [HUD_CARD_MOVE_NAMES.left, t('Move maneuver left')], [HUD_CARD_MOVE_NAMES.right, t('Move maneuver right')],
+            [HUD_CARD_MOVE_NAMES.up, t('Move maneuver up')], [HUD_CARD_MOVE_NAMES.down, t('Move maneuver down')],
+            [HUD_CARD_RESET_NAME, t('Reset maneuver position')],
             [HUD_LAYOUT_HEADINGS[0], t('HUD map layout')], [HUD_LAYOUT_HEADINGS[1], t('Turn card layout')],
             [HUD_LAYOUT_HEADINGS[2], t('Lane guidance layout')],
             [HUD_LANES_MOVE_NAMES.left, t('Move lane guidance left')], [HUD_LANES_MOVE_NAMES.right, t('Move lane guidance right')],
@@ -746,9 +756,13 @@ class WazeClusterApp extends OnlineApp {
             if (step !== null) this._writeCell(name, 'Value', step, 'SInt', 0);
             this._setEnabled(name, c.canChangeHudLayout(key) && (key !== 'lanesSize' || card));
         });
-        this._write(HUD_CARD_POS_NAME, c.hudCardPositionText());
-        Object.values(HUD_CARD_MOVE_NAMES).forEach((n) => this._setEnabled(n, adjustCard));
-        this._setEnabled(HUD_CARD_RESET_NAME, c.canResetHudCard() && card);
+        this._write(HUD_ROAD_POS_NAME, t('Road name position: {0}', c.hudGuidanceOffsetText('road')));
+        this._write(HUD_CARD_POS_NAME, t('Maneuver position: {0}', c.hudGuidanceOffsetText('maneuver')));
+        for (const [part, moves, reset] of [['road', HUD_ROAD_MOVE_NAMES, HUD_ROAD_RESET_NAME],
+            ['maneuver', HUD_CARD_MOVE_NAMES, HUD_CARD_RESET_NAME]]) {
+            Object.values(moves).forEach((n) => this._setEnabled(n, card && c.canMoveHudGuidance(part)));
+            this._setEnabled(reset, card && c.canResetHudGuidance(part));
+        }
         this._write(HUD_LANES_POS_NAME, c.hudLanesPositionText());
         Object.values(HUD_LANES_MOVE_NAMES).forEach((n) => this._setEnabled(n, c.canChangeHudLanes() && card));
         this._setEnabled(HUD_LANES_RESET_NAME, c.canResetHudLanes() && card);

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Copyright (C) 2026 minakoto
-/* The HUD turn card's two image layers (turn_card.h, card_draw.h) on the
- * HUD feed's connection to the cluster renderer: the row and the lanes,
+/* The HUD turn card's image layers on the HUD feed's connection to the
+ * cluster renderer: the row (or separate road and maneuver) and lanes,
  * above the map's layer in the stack, and like it contending for the HUD's
  * slot, giving way to the stock HMI's pop-ups or not, and visible only
  * while the map is. So the card never shows without the map, and never
@@ -42,7 +42,11 @@ public:
     int dy() const { return placed_ ? layout_.dy : cfg_.dy; }
     int lanes_dx() const { return placed_ ? layout_.lanes_dx : cfg_.lanes_dx; }
     int lanes_dy() const { return placed_ ? layout_.lanes_dy : cfg_.lanes_dy; }
-    bool owns(uint32_t ref) const { return ref && (ref == row_.ref || ref == lanes_.ref); }
+    int road_dx() const { return placed_ ? layout_.road_dx : cfg_.road_dx; }
+    int road_dy() const { return placed_ ? layout_.road_dy : cfg_.road_dy; }
+    int maneuver_dx() const { return placed_ ? layout_.maneuver_dx : cfg_.maneuver_dx; }
+    int maneuver_dy() const { return placed_ ? layout_.maneuver_dy : cfg_.maneuver_dy; }
+    bool owns(uint32_t ref) const { return ref && (ref == row_.ref || ref == road_.ref || ref == maneuver_.ref || ref == lanes_.ref); }
     /* The renderer refused one of its layers: no card until its settings
      * change or the HUD's map layer is made again. */
     void refused(const std::string &reason);
@@ -69,7 +73,7 @@ private:
     CardRect anchor_;
     bool visible_ = false, yield_ = true, refused_ = false, placed_ = false, lanes_only_ = false;
     CardLayout layout_;
-    Part row_{"row"}, lanes_{"lanes"};
+    Part row_{"row"}, road_{"road"}, maneuver_{"maneuver"}, lanes_{"lanes"};
 };
 
 }  // namespace woc

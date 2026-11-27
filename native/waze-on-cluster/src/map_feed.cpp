@@ -195,10 +195,11 @@ void MapFeed::make_layer()
         shape_.h = cfg_.video.h;
         shape_.dw = sw;
         shape_.dh = sh;
-        /* Zoom the picture about its centre without changing the HUD rectangle. */
+        /* Zoom about the centre at a single magnification for both axes.
+         * At wide output sizes, stop before the source would require upscaling. */
         const uint32_t cut = crop_rows();
         const uint32_t picture_h = cfg_.video.h - 2 * cut;
-        const unsigned zoom = cfg_.hud_map_zoom;
+        const unsigned zoom = std::min({cfg_.hud_map_zoom, cfg_.video.w * 100 / sw, picture_h * 100 / sh});
         if (cut || zoom != kHudZoomMin) {
             shape_.crop_w = std::max(sw, (cfg_.video.w * 100 / zoom) & ~1U);
             shape_.crop_h = std::max(sh, (picture_h * 100 / zoom) & ~1U);

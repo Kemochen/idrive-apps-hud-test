@@ -330,13 +330,16 @@ async function main() {
         'wocHeadHud HUD', 'wocHud HUD map: \u2014', 'wocHudAdaptive Adaptive junction preview',
         "wocHudKeep Keep HUD map over BMW's pop-ups", 'wocHudSport Hide HUD map in Sport mode',
         'wocHudPreviewToggle Preview HUD layout while parked', 'wocHudPreviewExample Example: Turn and three lanes', 'wocHudPreviewImage ',
-        'wocHeadHudMap HUD map layout', 'wocHudSize Size: \u2014', 'wocHudCardCrop Map height: \u2014', 'wocHudMapZoom Map zoom: \u2014',
+        'wocHeadHudMap HUD map layout', 'wocHudSize Map width: \u2014', 'wocHudCardCrop Map height: \u2014', 'wocHudMapZoom Map zoom: \u2014',
         'wocHudPos Position: \u2014', 'wocHudLeft Move left',
         'wocHudRight Move right', 'wocHudUp Move up', 'wocHudDown Move down', 'wocHudCentre Centre',
         'wocHeadHudTurn Turn card layout', 'wocHudCard Turn card on HUD', 'wocHudCardSize Turn card size: \u2014',
-        'wocHudCardPos Turn card position: \u2014',
-        'wocHudCardLeft Move turn card left', 'wocHudCardRight Move turn card right', 'wocHudCardUp Move turn card up',
-        'wocHudCardDown Move turn card down', 'wocHudCardReset Reset turn card position',
+        'wocHudRoadPos Road name position: \u2014',
+        'wocHudRoadLeft Move road name left', 'wocHudRoadRight Move road name right', 'wocHudRoadUp Move road name up',
+        'wocHudRoadDown Move road name down', 'wocHudRoadReset Reset road name position',
+        'wocHudCardPos Maneuver position: \u2014',
+        'wocHudCardLeft Move maneuver left', 'wocHudCardRight Move maneuver right', 'wocHudCardUp Move maneuver up',
+        'wocHudCardDown Move maneuver down', 'wocHudCardReset Reset maneuver position',
         'wocHeadHudLanes Lane guidance layout', 'wocHudLanesSize Lane guidance size: \u2014', 'wocHudLanesPos Lane guidance position: \u2014',
         'wocHudLanesLeft Move lane guidance left', 'wocHudLanesRight Move lane guidance right', 'wocHudLanesUp Move lane guidance up',
         'wocHudLanesDown Move lane guidance down', 'wocHudLanesReset Reset lane guidance position',
@@ -529,11 +532,11 @@ async function main() {
         const size = byName.wocHudSize;
         const hudRows = () => ['wocHudKeep', 'wocHudSport', 'wocHudSize', 'wocHudCardCrop', 'wocHudMapZoom', 'wocHudLeft', 'wocHudRight', 'wocHudUp', 'wocHudDown', 'wocHudCard']
             .map((n) => byName[n].enabled);
-        const cardRows = () => ['wocHudCardSize', 'wocHudCardLeft', 'wocHudCardRight', 'wocHudCardUp', 'wocHudCardDown',
+        const cardRows = () => ['wocHudRoadLeft', 'wocHudRoadRight', 'wocHudRoadUp', 'wocHudRoadDown', 'wocHudCardSize', 'wocHudCardLeft', 'wocHudCardRight', 'wocHudCardUp', 'wocHudCardDown',
             'wocHudLanesSize', 'wocHudLanesLeft', 'wocHudLanesRight', 'wocHudLanesUp', 'wocHudLanesDown']
             .map((n) => byName[n].enabled);
         await until('the cluster, the HUD off', () => showOn.shown() === 'Show on: Cluster' && showOn.enabled === true &&
-            byName.wocHud.text === 'HUD map: Off' && size.text === 'Size: Standard' && size.cells['0:Value'] === 5 &&
+            byName.wocHud.text === 'HUD map: Off' && size.text === 'Map width: Standard' && size.cells['0:Value'] === 5 &&
             byName.wocHudPos.text === 'Position: Centre');
         assert(hudRows().every((e) => e === false) && byName.wocHudCentre.enabled === false, 'the size and position greyed while off');
         assert(cardRows().every((e) => e === false) && byName.wocHudCardReset.enabled === false, 'the turn card\'s too');
@@ -548,11 +551,11 @@ async function main() {
         assert.deepStrictEqual(render.received, [{ cmd: 'hud', on: '1' }, { cmd: 'cluster', on: '0' }], 'the HUD on, then the cluster off');
         await until('saved', () => patch.count('hud') === 1 && patch.count('cluster') === 1);
         size.turn(1);
-        await until('larger', () => size.text === 'Size: 60 %' && render.hudWidth === 60 && size.cells['0:Value'] === 6);
+        await until('larger', () => size.text === 'Map width: 60 %' && render.hudWidth === 60 && size.cells['0:Value'] === 6);
         await until('saved', () => patch.received.some((m) => m.cmd === 'hud-size' && m.hud_width_pct === 60));
         size.turn(-1);
         size.turn(-1);
-        await until('smaller', () => size.text === 'Size: 50 %' && render.hudWidth === 50);
+        await until('smaller', () => size.text === 'Map width: 50 %' && render.hudWidth === 50);
         byName.wocHudLeft.emit('action');
         await until('moved', () => byName.wocHudPos.text === 'Position: 10 px left' && byName.wocHudCentre.enabled === true);
         /* the HUD map over BMW's pop-ups: gives way by default; a press keeps it shown, the render's answer ticks it, patchd saves it */
@@ -632,7 +635,7 @@ async function main() {
          * render, patchd saves it, and the next turn is told to the render through the page's connection; its size and place */
         const cardBox = byName.wocHudCard, cardSize = byName.wocHudCardSize, cardPos = byName.wocHudCardPos, cardCrop = byName.wocHudCardCrop;
         await until('the card off by default', () => cardBox.enabled === true && cardBox.selected === false && cardBox.text === 'Turn card on HUD' &&
-            cardSize.text === 'Turn card size: 100 %' && cardSize.cells['0:Value'] === 5 && cardPos.text === 'Turn card position: Standard' &&
+            cardSize.text === 'Turn card size: 100 %' && cardSize.cells['0:Value'] === 5 && cardPos.text === 'Maneuver position: Standard' &&
             cardCrop.text === 'Map height: 80 %' && cardCrop.enabled && cardCrop.cells['0:Value'] === 4);
         assert(cardRows().every((e) => e === false) && byName.wocHudCardReset.enabled === false, 'its size and position greyed while it is off');
         turnDirection = 'RIGHT';
@@ -669,15 +672,20 @@ async function main() {
         await until('lane size moved separately', () => patch.map.hud_lanes_pct === 110 && byName.wocHudLanesSize.text === 'Lane guidance size: 110 %');
         byName.wocHudLanesDown.emit('action');
         await until('lane position moved separately', () => patch.map.hud_lanes_y === 10 && byName.wocHudLanesPos.text === 'Lane guidance position: 10 px down');
-        assert.strictEqual(cardPos.text, 'Turn card position: Standard');
-        byName.wocHudCardLeft.emit('action');
+        assert.strictEqual(cardPos.text, 'Maneuver position: Standard');
+        byName.wocHudRoadLeft.emit('action');
+        byName.wocHudCardRight.emit('action');
         await sleep(450);
+        byName.wocHudRoadDown.emit('action');
         byName.wocHudCardUp.emit('action');
-        await until('moved', () => cardPos.text === 'Turn card position: 10 px left, 10 px up' && render.hudCardX === -10 && render.hudCardY === -10 &&
-            byName.wocHudCardReset.enabled === true);
-        await until('its place saved', () => patch.map.hud_card_x === -10 && patch.map.hud_card_y === -10);
+        await until('independent positions', () => byName.wocHudRoadPos.text === 'Road name position: 10 px left, 10 px down' &&
+            cardPos.text === 'Maneuver position: 10 px right, 10 px up' && byName.wocHudCardReset.enabled);
+        await until('each position saved', () => patch.map.hud_road_x === -10 && patch.map.hud_road_y === 10 &&
+            patch.map.hud_maneuver_x === 10 && patch.map.hud_maneuver_y === -10);
         byName.wocHudCardReset.emit('action');
-        await until('back at its place', () => cardPos.text === 'Turn card position: Standard' && render.hudCardX === 0 && byName.wocHudCardReset.enabled === false);
+        await until('only the maneuver reset', () => cardPos.text === 'Maneuver position: Standard' &&
+            byName.wocHudRoadPos.text === 'Road name position: 10 px left, 10 px down' && !byName.wocHudCardReset.enabled);
+        assert.strictEqual(render.hudCardX, 0, 'the saved turn-card anchor has stayed in place');
         render.hudCard = null;   /* a render without the turn card */
         render.announce(render.state, render.reason);
         await until('a render without it: greyed, unticked', () => cardBox.enabled === false && cardBox.selected === false && cardRows().every((e) => e === false) &&

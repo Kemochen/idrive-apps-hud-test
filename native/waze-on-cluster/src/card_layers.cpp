@@ -90,20 +90,40 @@ void CardLayers::update()
     placed_ = cfg_.on && tw_ && !refused_;
     if (!placed_) {
         drop(&row_);
+        drop(&road_);
+        drop(&maneuver_);
         drop(&lanes_);
         return;
     }
     layout_ = card_layout(tw_, th_, anchor_, cfg_);
-    if (lanes_only_) drop(&row_);
+    const bool split = layout_.split_row();
+    if (lanes_only_ || split) drop(&row_);
     else place(&row_, layout_.top);
+    if (!lanes_only_ && split) {
+        place(&road_, layout_.road);
+        place(&maneuver_, layout_.maneuver);
+    } else {
+        drop(&road_);
+        drop(&maneuver_);
+    }
     const std::string lanes = !lanes_only_ && turn_.empty() ? std::string() : turn_.lanes;
     if (lanes_only_ && lanes.empty()) drop(&lanes_);
     else place(&lanes_, layout_.lanes);
     const float scale = layout_.scale;
-    if (stale(&row_, picture_key(layout_.top, scale, {turn_.arrow, turn_.angle, turn_.side, turn_.dist, turn_.road}))) {
+    if (stale(&row_, picture_key(layout_.top, scale, {turn_.arrow, turn_.exit, turn_.angle, turn_.side, turn_.dist, turn_.road}))) {
         CardImage m;
         draw_card_row(turn_, scale, layout_.top.w, layout_.top.h, &m);
         show(&row_, std::move(m));
+    }
+    if (stale(&road_, picture_key(layout_.road, scale, {turn_.empty() ? std::string() : turn_.road}))) {
+        CardImage m;
+        draw_card_row(turn_, scale, layout_.road.w, layout_.road.h, &m, CardRowPart::Road);
+        show(&road_, std::move(m));
+    }
+    if (stale(&maneuver_, picture_key(layout_.maneuver, scale, {turn_.arrow, turn_.exit, turn_.angle, turn_.side, turn_.dist}))) {
+        CardImage m;
+        draw_card_row(turn_, scale, layout_.maneuver.w, layout_.maneuver.h, &m, CardRowPart::Maneuver);
+        show(&maneuver_, std::move(m));
     }
     if (stale(&lanes_, picture_key(layout_.lanes, layout_.lanes_scale, {lanes}))) {
         CardImage m;

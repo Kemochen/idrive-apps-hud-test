@@ -131,12 +131,12 @@ function ok(name, cond) {
     r = await ask({ cmd: 'hud-size', hud_width_pct: 85 });
     ok('a new size replaces it', r.ok && fs.readFileSync(STATE, 'utf8') === 'hud = 1\nhud_width_pct = 85\n');
     r = await ask({ cmd: 'hud-size', hud_width_pct: 100 });
-    ok('100 % is saved as the widest, 85 %', r.ok && r.hud_width_pct === 85 && fs.readFileSync(STATE, 'utf8') === 'hud = 1\nhud_width_pct = 85\n');
+    ok('100 % is saved as the full width', r.ok && r.hud_width_pct === 100 && fs.readFileSync(STATE, 'utf8') === 'hud = 1\nhud_width_pct = 100\n');
     r = await ask({ cmd: 'hud-size', hud_width_pct: 10 });
-    ok('an out-of-range size is refused, nothing written', !r.ok && /hud_width_pct = 85\n$/.test(fs.readFileSync(STATE, 'utf8')));
+    ok('an out-of-range size is refused, nothing written', !r.ok && /hud_width_pct = 100\n$/.test(fs.readFileSync(STATE, 'utf8')));
     r = await ask({ cmd: 'hud-pos', hud_x: 40, hud_y: -20 });
     ok('the HUD position is saved next to the size, in one write', r.ok && r.hud_offset_x === 40 && r.hud_offset_y === -20 &&
-        fs.readFileSync(STATE, 'utf8') === 'hud = 1\nhud_width_pct = 85\nhud_offset_x = 40\nhud_offset_y = -20\n');
+        fs.readFileSync(STATE, 'utf8') === 'hud = 1\nhud_width_pct = 100\nhud_offset_x = 40\nhud_offset_y = -20\n');
     r = await ask({ cmd: 'hud-pos', hud_x: 0, hud_y: 0 });
     ok('centred again: both replaced', r.ok && /hud_offset_x = 0\nhud_offset_y = 0\n$/.test(fs.readFileSync(STATE, 'utf8')));
     r = await ask({ cmd: 'hud-pos', hud_x: 900, hud_y: 0 });
@@ -178,14 +178,16 @@ function ok(name, cond) {
         /^hud_map_crop = 0$/m.test(fs.readFileSync(STATE, 'utf8')) &&
         fs.readFileSync(STATE, 'utf8').split('hud_card = ').length === 2);
     state = fs.readFileSync(STATE, 'utf8');
-    r = await ask({ cmd: 'hud-layout', hud_map_zoom: 130, hud_map_crop: 15, hud_lanes_pct: 120, hud_lanes_x: -40, hud_lanes_y: 20 });
-    ok('independent HUD layout saved', r.ok && r.hud_map_zoom === 130 && r.hud_lanes_x === -40 &&
+    r = await ask({ cmd: 'hud-layout', hud_map_zoom: 130, hud_map_crop: 15, hud_lanes_pct: 120, hud_lanes_x: -40, hud_lanes_y: 20,
+        hud_road_x: -70, hud_road_y: 30, hud_maneuver_x: 50, hud_maneuver_y: -60 });
+    ok('independent HUD layout saved', r.ok && r.hud_map_zoom === 130 && r.hud_lanes_x === -40 && r.hud_road_x === -70 && r.hud_maneuver_y === -60 &&
+        /^hud_road_y = 30$/m.test(fs.readFileSync(STATE, 'utf8')) && /^hud_maneuver_x = 50$/m.test(fs.readFileSync(STATE, 'utf8')) &&
         /^hud_map_crop = 15$/m.test(fs.readFileSync(STATE, 'utf8')) && /^hud_lanes_pct = 120$/m.test(fs.readFileSync(STATE, 'utf8')));
     r = await ask({ cmd: 'hud-card', on: 1 });
     ok('toggling the turn card preserves the independent map height', r.ok && /^hud_map_crop = 15$/m.test(fs.readFileSync(STATE, 'utf8')));
     state = fs.readFileSync(STATE, 'utf8');
     var refused = true;
-    var bad = [{ cmd: 'hud-layout', hud_map_zoom: 160 }, { cmd: 'hud-layout', hud_lanes_x: '10' }, { cmd: 'hud-card', on: '1' }, { cmd: 'hud-card', on: 2 }, { cmd: 'hud-card-size', hud_card_pct: 40 },
+    var bad = [{ cmd: 'hud-layout', hud_map_zoom: 160 }, { cmd: 'hud-layout', hud_lanes_x: '10' }, { cmd: 'hud-layout', hud_maneuver_x: 801 }, { cmd: 'hud-card', on: '1' }, { cmd: 'hud-card', on: 2 }, { cmd: 'hud-card-size', hud_card_pct: 40 },
         { cmd: 'hud-card-size', hud_card_pct: 151 }, { cmd: 'hud-card-size', hud_card_pct: 99.5 },
         { cmd: 'hud-card-size', hud_card_pct: '100' }, { cmd: 'hud-card-size' }, { cmd: 'hud-card-pos', hud_card_x: 801, hud_card_y: 0 },
         { cmd: 'hud-card-pos', hud_card_x: 0, hud_card_y: -801 }, { cmd: 'hud-card-pos', hud_card_x: 1.5, hud_card_y: 0 },

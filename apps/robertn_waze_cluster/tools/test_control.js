@@ -394,27 +394,27 @@ test('the HUD disabled by the cluster renderer: Disabled after errors, the size 
     c.close();
 });
 
-test('the HUD map size as a slider: 5 % steps from 30 to 85 %, Standard at the step below its ~57 %', async (render, patch) => {
+test('the HUD map size as a slider: 5 % steps from 30 to 100 %, Standard at the step below its ~57 %', async (render, patch) => {
     render.hud = 1;
     const c = control();
     c.open();
     await until('connected', () => c.connectedRender() && c.connectedPatch());
     render.stream(true);
     await until('on', () => c.renderStatus && c.canChangeHudSize());
-    assert.deepStrictEqual([c.hudSizeText(), c.hudSizeStep()], ['Size: Standard', 5], 'Standard at 55 %');
+    assert.deepStrictEqual([c.hudSizeText(), c.hudSizeStep()], ['Map width: Standard', 5], 'Standard at 55 %');
     c.setHudSizeStep(6);
-    assert.deepStrictEqual([c.hudSizeText(), c.hudSizeStep()], ['Size: 60 %', 6], 'shown at once');
+    assert.deepStrictEqual([c.hudSizeText(), c.hudSizeStep()], ['Map width: 60 %', 6], 'shown at once');
     await until('60 %', () => render.hudWidth === 60 && c.renderStatus.hud_width_pct === 60);
     c.setHudSizeStep(HUD_SIZE_STEPS);
-    await until('85 %', () => c.renderStatus.hud_width_pct === 85 && c.hudSizeStep() === HUD_SIZE_STEPS);
+    await until('100 %', () => c.renderStatus.hud_width_pct === 100 && c.hudSizeStep() === HUD_SIZE_STEPS);
     c.setHudSizeStep(0);
-    await until('30 %', () => c.renderStatus.hud_width_pct === 30 && c.hudSizeText() === 'Size: 30 %');
+    await until('30 %', () => c.renderStatus.hud_width_pct === 30 && c.hudSizeText() === 'Map width: 30 %');
     const sent = render.received.length;
     [-1, HUD_SIZE_STEPS + 1, 2.5, '3', 0].forEach((step) => c.setHudSizeStep(step));
     assert.strictEqual(render.received.length, sent, 'nothing sent past either end, between steps or for the same step');
-    await until('each one saved', () => patch.received.filter((m) => m.cmd === 'hud-size').map((m) => m.hud_width_pct).join() === '60,85,30');
+    await until('each one saved', () => patch.received.filter((m) => m.cmd === 'hud-size').map((m) => m.hud_width_pct).join() === '60,100,30');
     c.close();
-    assert.deepStrictEqual([c.hudSizeText(), c.hudSizeStep()], ['Size: —', null], 'nothing known while closed');
+    assert.deepStrictEqual([c.hudSizeText(), c.hudSizeStep()], ['Map width: —', null], 'nothing known while closed');
 });
 
 test('the HUD map over BMW\'s pop-ups: gives way by default; a flip goes to the render and patchd, the render\'s status shows it; ' +
@@ -589,26 +589,26 @@ test('an asked HUD size the render does not show: the render\'s own after a mome
     render.hudWidth = 50;
     const c = control();
     c.open();
-    await until('on', () => c.renderStatus && c.canChangeHudSize() && c.hudSizeText() === 'Size: 50 %');
+    await until('on', () => c.renderStatus && c.canChangeHudSize() && c.hudSizeText() === 'Map width: 50 %');
     /* a render that takes no size */
     const take = render._onCommand.bind(render);
     render._onCommand = (msg) => (msg.cmd === 'hud' && msg.hud_width_pct !== undefined ? render.received.push(msg) : take(msg));
     const asked = () => render.received.filter((m) => m.cmd === 'hud' && m.hud_width_pct !== undefined).length;
     c.setHudSizeStep(6);
-    assert.strictEqual(c.hudSizeText(), 'Size: 60 %', 'shown at once');
-    await until('the render\'s own again', () => c.hudSizeText() === 'Size: 50 %');
+    assert.strictEqual(c.hudSizeText(), 'Map width: 60 %', 'shown at once');
+    await until('the render\'s own again', () => c.hudSizeText() === 'Map width: 50 %');
     c.setHudSizeStep(6);
-    assert.strictEqual(c.hudSizeText(), 'Size: 60 %');
+    assert.strictEqual(c.hudSizeText(), 'Map width: 60 %');
     await until('the same step taken again', () => asked() === 2);
     let t0 = Date.now();
     render.dropClients();
-    await until('the render reconnecting: nothing asked kept', () => c.hudSizeText() === 'Size: —');
+    await until('the render reconnecting: nothing asked kept', () => c.hudSizeText() === 'Map width: —');
     assert(Date.now() - t0 < 250, 'at once, not after the wait');
-    await until('the render\'s own after it reconnects', () => c.hudSizeText() === 'Size: 50 %');
+    await until('the render\'s own after it reconnects', () => c.hudSizeText() === 'Map width: 50 %');
     c.setHudSizeStep(6);
     await until('taken again after the reconnect', () => asked() === 3);
     c.close();
-    assert.deepStrictEqual([c.hudSizeText(), c.hudSizeStep()], ['Size: —', null], 'nothing asked kept while closed');
+    assert.deepStrictEqual([c.hudSizeText(), c.hudSizeStep()], ['Map width: —', null], 'nothing asked kept while closed');
 });
 
 test('the HUD map position: 10 px a press each way, Centre back; the render moves it and patchd saves it', async (render, patch) => {

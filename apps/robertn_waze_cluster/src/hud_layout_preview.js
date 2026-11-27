@@ -27,10 +27,14 @@ function layoutRects(s) {
     const rowScale = (s.turnSize || 100) / 100, lanesScale = (s.lanesSize || 100) / 100;
     const rowH = Math.round(44 * rowScale), lanesH = Math.round(36 * lanesScale);
     const lanesW = Math.round(218 * lanesScale);
+    const turn = place(REF.w, rowH, REF.x + at(s.turnOffset, 0), REF.y - Math.round(12 * rowScale) - rowH + at(s.turnOffset, 1));
+    const maneuverW = Math.round(160 * rowScale), roadW = REF.w - maneuverW;
+    const roadName = place(roadW, rowH, turn.x + at(s.roadOffset, 0), turn.y + at(s.roadOffset, 1));
+    const maneuver = place(maneuverW, rowH, turn.x + roadW + at(s.maneuverOffset, 0), turn.y + at(s.maneuverOffset, 1));
     return {
         map: place(mapW, mapH, Math.floor((HUD_W - w) / 2) + Math.floor((w - mapW) / 2) + at(s.mapOffset, 0),
             Math.floor((HUD_H - originalH) / 2) + Math.floor((originalH - h) / 2) + Math.floor((h - mapH) / 2) + at(s.mapOffset, 1)),
-        turn: place(REF.w, rowH, REF.x + at(s.turnOffset, 0), REF.y - Math.round(12 * rowScale) - rowH + at(s.turnOffset, 1)),
+        turn, roadName, maneuver,
         lanes: place(lanesW, lanesH, REF.x + REF.w - lanesW + at(s.lanesOffset, 0),
             REF.y + REF.h + Math.round(14 * lanesScale) + at(s.lanesOffset, 1))
     };
@@ -79,8 +83,10 @@ function layoutPreviewPng(settings, wide) {
     };
     const rect = (box) => ({x: Math.round(box.x * SCALE), y: Math.round(box.y * SCALE),
         w: Math.round(box.w * SCALE), h: Math.round(box.h * SCALE)});
-    const {map, turn, lanes} = layoutRects(settings);
-    const m = rect(map), t = rect(turn), l = rect(lanes);
+    const {map, turn, roadName, maneuver, lanes} = layoutRects(settings);
+    const split = roadName.x !== turn.x || roadName.y !== turn.y ||
+        maneuver.x + maneuver.w !== turn.x + turn.w || maneuver.y !== turn.y;
+    const m = rect(map), r = rect(split ? roadName : turn), t = rect(split ? maneuver : turn), l = rect(lanes);
     const white = [236,245,251], muted = [111,131,151], route = [37,194,231];
     paint(0, 0, WIDTH, HEIGHT, [15,22,32]);
     paint(0, 0, WIDTH, 1, [66,86,108]);
@@ -88,7 +94,8 @@ function layoutPreviewPng(settings, wide) {
     paint(0, 0, 1, HEIGHT, [66,86,108]);
     paint(WIDTH - 1, 0, 1, HEIGHT, [66,86,108]);
     paint(m.x, m.y, m.w, m.h, [25,46,54]);
-    const zoom = (settings.zoom || 100) / 100;
+    const sourceHeight = 480 - 4 * Math.floor((settings.crop || 0) * 480 / 400);
+    const zoom = Math.min((settings.zoom || 100) / 100, 1088 / map.w, sourceHeight / map.h);
     const road = (points, color, size) => line(points.map(([x,y]) => [m.x + m.w * (0.5 + x * zoom), m.y + m.h * (0.5 + y * zoom)]), color, size, m);
     road([[-0.7,0.22],[-0.2,0.05],[0.18,-0.01],[0.68,-0.17]], muted, 2);
     road([[-0.7,-0.44],[-0.16,-0.25],[0.22,-0.23],[0.69,-0.35]], muted, 1);
@@ -96,9 +103,10 @@ function layoutPreviewPng(settings, wide) {
     road([[0.01,0.62],[-0.11,0.22],[-0.2,0.05],[0.18,-0.01],[0.68,-0.17]], route, 3);
     road([[-0.08,0.34],[-0.08,0.34]], white, 5);
     paint(t.x, t.y, t.w, t.h, [36,52,68]);
-    const textSize = Math.max(1, Math.round(t.h / 20));
-    text(wide ? 'WEST GEORGIA STREET' : 'OAK ST', t.x + 7, t.y + Math.round((t.h - 7 * textSize) / 2), textSize, white,
-        Object.assign({}, t, {w: Math.max(0, t.w - 45)}));
+    if (split) paint(r.x, r.y, r.w, r.h, [36,52,68]);
+    const textSize = Math.max(1, Math.round(r.h / 20));
+    text(wide ? 'WEST GEORGIA STREET' : 'OAK ST', r.x + 7, r.y + Math.round((r.h - 7 * textSize) / 2), textSize, white,
+        split ? r : Object.assign({}, r, {w: Math.max(0, r.w - 45)}));
     text(wide ? '240 M' : '420 M', t.x + t.w - 45, t.y + Math.round((t.h - 7) / 2), 1, muted, t);
     arrow(t.x + t.w - t.h / 2, t.y + t.h / 2, t.h * 0.65, wide ? -1 : 1, white, t);
     const count = wide ? 6 : 3, icon = l.w / 6;
