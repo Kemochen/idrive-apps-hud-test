@@ -423,7 +423,8 @@ async function main() {
         assert.deepStrictEqual(bound, ['wocAaCard', 'wocAaDisable', 'wocAaEnable', 'wocAaZoomIn', 'wocAaZoomOut', 'wocCapture', 'wocDisable', 'wocEnable',
             'wocGuide', 'wocHudAdaptive', 'wocHudCard', 'wocHudCardDown', 'wocHudCardLeft', 'wocHudCardReset', 'wocHudCardRight', 'wocHudCardUp',
             'wocHudCentre', 'wocHudDown', 'wocHudKeep', 'wocHudLanesDown', 'wocHudLanesLeft', 'wocHudLanesReset', 'wocHudLanesRight',
-            'wocHudLanesUp', 'wocHudLeft', 'wocHudPreviewExample', 'wocHudPreviewToggle', 'wocHudRight', 'wocHudSport', 'wocHudUp',
+            'wocHudLanesUp', 'wocHudLeft', 'wocHudPreviewExample', 'wocHudPreviewToggle', 'wocHudRight',
+            'wocHudRoadDown', 'wocHudRoadLeft', 'wocHudRoadReset', 'wocHudRoadRight', 'wocHudRoadUp', 'wocHudSport', 'wocHudUp',
             'wocLogs', 'wocLogsSave', 'wocProfile',
             'wocRestart'],
             'bound buttons and checkbox');
