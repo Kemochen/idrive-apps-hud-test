@@ -426,7 +426,8 @@ var A = 'a1b2c3d4-0000-4000-8000-000000000001', B = 'a1b2c3d4-0000-4000-8000-000
     var sameKeys = function (a, b) { return Object.keys(b).length === Object.keys(a).length && Object.keys(b).every(function (k) { return a[k] === b[k]; }); };
     fs.writeFileSync(STATE, 'cluster = 1\nhud = 0\nhud_width_pct = 0\nhud_offset_x = 0\nhud_offset_y = 0\nhud_keep_shown = 0\nhud_hide_sport = 0\n' +
         'hud_card = 0\nhud_card_pct = 100\nhud_card_x = 0\nhud_card_y = 0\nhud_card_crop = 20\nadaptive_hud = 0\n' +
-        'hud_map_crop = 0\nhud_map_zoom = 100\nhud_lanes_pct = 100\nhud_lanes_x = 0\nhud_lanes_y = 0\n');
+        'hud_map_crop = 0\nhud_map_zoom = 100\nhud_lanes_pct = 100\nhud_lanes_x = 0\nhud_lanes_y = 0\n' +
+        'hud_road_x = 0\nhud_road_y = 0\nhud_maneuver_x = 0\nhud_maneuver_y = 0\n');
     await start();
     await ask({ cmd: 'profile', id: A });
     await ask({ cmd: 'profile-own', id: A, on: 1 });
@@ -461,7 +462,7 @@ var A = 'a1b2c3d4-0000-4000-8000-000000000001', B = 'a1b2c3d4-0000-4000-8000-000
     await start();
     r = await ask({ cmd: 'profile', id: B });
     lines = fs.readFileSync(STATE, 'utf8').split('\n').filter(Boolean);
-    ok('started again: the shared Off kept, map.state.conf in the lines an earlier version reads', r.ok && !r.changed && same(r.settings, OFF) &&
+    ok('started again: the shared Off kept, map.state.conf contains supported settings', r.ok && !r.changed && same(r.settings, OFF) &&
         lines.indexOf('cluster = 0') >= 0 && lines.indexOf('hud = 0') >= 0 &&
         lines.every(function (l) { return /^(cluster|hud|hud_width_pct|hud_offset_[xy]|hud_keep_shown|hud_hide_sport|hud_card(?:_pct|_[xy]|_crop)?|adaptive_hud|hud_map_(?:crop|zoom)|hud_lanes_(?:pct|[xy])|hud_(?:road|maneuver)_[xy]) = -?\d+$/.test(l); }),
         lines.join('|'));
