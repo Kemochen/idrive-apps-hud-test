@@ -708,11 +708,11 @@ static void hud_turn_card()
     pump(1500, &f1);
     ok("turning off the card preserves the map height", hud_map() && at(hud_map(), 160, 156, 480, 168) && cards().empty());
     feeds.set_card(card(true, 100, 0, 0));
-    const auto map_pixels = [&]() -> std::vector<uint8_t> {
+    const auto map_pixels = [&](unsigned width = 480, unsigned height = 318) -> std::vector<uint8_t> {
         crs::FakeGraph *g = b.gpu.graph("hud");
         if (g)
             for (const auto &kv : g->shown.buffers)
-                if (kv.second.f == crs::TexFormat::R8 && kv.second.w == 480 && kv.second.h == 318)
+                if (kv.second.f == crs::TexFormat::R8 && kv.second.w == width && kv.second.h == height)
                     return kv.second.px;
         return {};
     };
@@ -729,7 +729,7 @@ static void hud_turn_card()
            !unzoomed.empty() && !zoomed.empty() && unzoomed != zoomed);
     feeds.set_hud_view(0, 75);
     pump(500, &f1);
-    const auto zoomed_out = map_pixels();
+    const auto zoomed_out = map_pixels(360, 234);
     c = cards();
     ok("zoom below 100 shrinks the map about its center without moving the turn card or lanes",
        at(hud_map(), 220, 161, 360, 156) && feeds.status("decode").hud_map_zoom == 75 &&
