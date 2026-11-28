@@ -670,9 +670,9 @@ async function main() {
         const mapZoom = byName.wocHudMapZoom;
         mapZoom.turn(-1);
         await until('map zoom can go below 100 percent', () => patch.map.hud_map_zoom === 95 && mapZoom.text === 'Map zoom: 95 %');
-        mapZoom.turn(-9);
+        await mapZoom.setStepValue(0);
         await until('map zoom reaches 50 percent', () => patch.map.hud_map_zoom === 50 && mapZoom.text === 'Map zoom: 50 %');
-        mapZoom.turn(11);
+        await mapZoom.setStepValue(11);
         await until('map zoom can still enlarge the picture', () => patch.map.hud_map_zoom === 105 && mapZoom.text === 'Map zoom: 105 %');
         byName.wocHudLanesSize.turn(1);
         await until('lane size moved separately', () => patch.map.hud_lanes_pct === 110 && byName.wocHudLanesSize.text === 'Lane guidance size: 110 %');
