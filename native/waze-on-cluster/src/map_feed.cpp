@@ -373,8 +373,11 @@ crk::QuadRect MapFeed::quad(uint32_t tw, uint32_t th, MapRect *source) const
     const uint32_t visible_w = std::min(w, picture_w), visible_h = std::min(h, picture_h);
     const uint32_t sw = visible_w & ~3u, sh = visible_h & ~3u;
     if (source && sw >= 64 && sh >= 32) {
-        const uint32_t crop_w = std::max(sw, (uint32_t)((uint64_t)sw * cfg_.video.w / picture_w) & ~1u);
-        const uint32_t crop_h = std::max(sh, (uint32_t)((uint64_t)sh * cfg_.video.h / picture_h) & ~1u);
+        // Texture alignment must not discard the edges of a fully visible picture.
+        const uint32_t crop_w = visible_w == picture_w ? cfg_.video.w & ~1u
+            : std::max(sw, (uint32_t)((uint64_t)sw * cfg_.video.w / picture_w) & ~1u);
+        const uint32_t crop_h = visible_h == picture_h ? cfg_.video.h & ~1u
+            : std::max(sh, (uint32_t)((uint64_t)sh * cfg_.video.h / picture_h) & ~1u);
         *source = {((cfg_.video.w - crop_w) / 2) & ~1u, ((cfg_.video.h - crop_h) / 2) & ~1u, crop_w, crop_h};
     }
     return {x + (w - visible_w) / 2, y + (h - visible_h) / 2, visible_w, visible_h};
