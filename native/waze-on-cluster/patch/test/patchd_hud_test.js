@@ -184,10 +184,11 @@ function ok(name, cond) {
         /^hud_road_y = 30$/m.test(fs.readFileSync(STATE, 'utf8')) && /^hud_maneuver_x = 50$/m.test(fs.readFileSync(STATE, 'utf8')) &&
         /^hud_map_crop = -40$/m.test(fs.readFileSync(STATE, 'utf8')) && /^hud_lanes_pct = 120$/m.test(fs.readFileSync(STATE, 'utf8')));
     r = await ask({ cmd: 'hud-card', on: 1 });
-    ok('toggling the turn card preserves the independent map height', r.ok && /^hud_map_crop = 15$/m.test(fs.readFileSync(STATE, 'utf8')));
+    ok('toggling the turn card preserves the extended map height', r.ok && /^hud_map_crop = -40$/m.test(fs.readFileSync(STATE, 'utf8')));
     state = fs.readFileSync(STATE, 'utf8');
     var refused = true;
-    var bad = [{ cmd: 'hud-layout', hud_map_zoom: 181 }, { cmd: 'hud-layout', hud_lanes_x: '10' }, { cmd: 'hud-layout', hud_maneuver_x: 801 }, { cmd: 'hud-card', on: '1' }, { cmd: 'hud-card', on: 2 }, { cmd: 'hud-card-size', hud_card_pct: 40 },
+    var bad = [{ cmd: 'hud-layout', hud_map_zoom: 181 },
+        { cmd: 'hud-layout', hud_map_crop: -81 }, { cmd: 'hud-layout', hud_map_crop: -1 }, { cmd: 'hud-layout', hud_lanes_x: '10' }, { cmd: 'hud-layout', hud_maneuver_x: 801 }, { cmd: 'hud-card', on: '1' }, { cmd: 'hud-card', on: 2 }, { cmd: 'hud-card-size', hud_card_pct: 40 },
         { cmd: 'hud-card-size', hud_card_pct: 151 }, { cmd: 'hud-card-size', hud_card_pct: 99.5 },
         { cmd: 'hud-card-size', hud_card_pct: '100' }, { cmd: 'hud-card-size' }, { cmd: 'hud-card-pos', hud_card_x: 801, hud_card_y: 0 },
         { cmd: 'hud-card-pos', hud_card_x: 0, hud_card_y: -801 }, { cmd: 'hud-card-pos', hud_card_x: 1.5, hud_card_y: 0 },
