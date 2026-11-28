@@ -578,7 +578,7 @@ static void hud_turn_card()
     };
     const auto row = [](const Turn &t, float scale, unsigned w, unsigned h) {
         CardImage m;
-        draw_card_row(t, scale, w, h, &m);
+        draw_card_row(t, scale, w, h, &m, CardRowPart::Both, true);
         return m;
     };
     const auto lanes = [](const std::string &l, float scale, unsigned w, unsigned h) {
@@ -605,7 +605,7 @@ static void hud_turn_card()
     for (const crs::Layer *x : b.svc->compositor().layers())
         if (x->target() == 2)
             map = x;
-    ok("card: the HUD's map first, 480x212 at 160,134", map && at(map, 160, 134, 480, 212) && feeds.status("decode").hud_state == "showing");
+    ok("card: the HUD's map first, 452x200 at 173,140", map && at(map, 173, 140, 452, 200) && feeds.status("decode").hud_state == "showing");
     feeds.set_turn(right, b.now);
     pump(500, &f1);
     FeedStatus st = feeds.status("decode");
@@ -698,17 +698,17 @@ static void hud_turn_card()
     feeds.set_card(cropped);
     pump(1500, &f1);
     c = cards();
-    ok("crop 20 %: the map as wide, 168 high around the same centre (480x168 at 160,156), the status says so",
-       hud_map() && at(hud_map(), 160, 156, 480, 168) && feeds.status("decode").hud_map_crop == 20 &&
+    ok("crop 20 %: the map as wide, 160 high around the same centre, the status says so",
+       hud_map() && at(hud_map(), 173, 160, 452, 160) && feeds.status("decode").hud_map_crop == 20 &&
            feeds.status("decode").hud_state == "showing");
     ok("crop 20 % leaves both guidance layers in place", c.size() == 2 && at(c[0], 173, 104, 453, 44) && at(c[1], 408, 334, 218, 36));
     CardConfig off = cropped;
     off.on = false;
     feeds.set_card(off);
     pump(1500, &f1);
-    ok("turning off the card preserves the map height", hud_map() && at(hud_map(), 160, 156, 480, 168) && cards().empty());
+    ok("turning off the card preserves the map height", hud_map() && at(hud_map(), 173, 160, 452, 160) && cards().empty());
     feeds.set_card(card(true, 100, 0, 0));
-    const auto map_pixels = [&](unsigned width = 480, unsigned height = 318) -> std::vector<uint8_t> {
+    const auto map_pixels = [&](unsigned width = 480, unsigned height = 300) -> std::vector<uint8_t> {
         crs::FakeGraph *g = b.gpu.graph("hud");
         if (g)
             for (const auto &kv : g->shown.buffers)
@@ -716,7 +716,7 @@ static void hud_turn_card()
                     return kv.second.px;
         return {};
     };
-    feeds.set_hud_view(0, 100);
+    feeds.set_hud_view(0, 110);
     pump(500, &f1);
     const auto unzoomed = map_pixels();
     feeds.set_hud_view(0, 130);
@@ -724,15 +724,15 @@ static void hud_turn_card()
     c = cards();
     const auto zoomed = map_pixels();
     ok("zoom changes the map content without moving or resizing its viewport or either guidance layer",
-       hud_map() && at(hud_map(), 160, 134, 480, 212) && feeds.status("decode").hud_map_zoom == 130 &&
+       hud_map() && at(hud_map(), 160, 140, 480, 200) && feeds.status("decode").hud_map_zoom == 130 &&
            c.size() == 2 && at(c[0], 173, 104, 453, 44) && at(c[1], 408, 334, 218, 36) &&
            !unzoomed.empty() && !zoomed.empty() && unzoomed != zoomed);
     feeds.set_hud_view(0, 75);
     pump(500, &f1);
-    const auto zoomed_out = map_pixels(360, 234);
+    const auto zoomed_out = map_pixels(336, 222);
     c = cards();
     ok("zoom below 100 shrinks the map about its center without moving the turn card or lanes",
-       at(hud_map(), 220, 161, 360, 156) && feeds.status("decode").hud_map_zoom == 75 &&
+       at(hud_map(), 231, 166, 336, 148) && feeds.status("decode").hud_map_zoom == 75 &&
            c.size() == 2 && at(c[0], 173, 104, 453, 44) && at(c[1], 408, 334, 218, 36) &&
            zoomed_out.size() < unzoomed.size() && !zoomed_out.empty());
     feeds.set_hud_view(0, 130);
@@ -745,7 +745,7 @@ static void hud_turn_card()
     pump(500, &f1);
     c = cards();
     ok("the lane controls resize and move only the lane layer",
-       hud_map() && at(hud_map(), 160, 134, 480, 212) && c.size() == 2 && at(c[0], 173, 104, 453, 44) &&
+       hud_map() && at(hud_map(), 160, 140, 480, 200) && c.size() == 2 && at(c[0], 173, 104, 453, 44) &&
            at(c[1], 329, 321, 327, 54) && drawn(lanes("s*,s*,r", 1.5f, 327, 54)));
     lane_only.road_dx = -75;
     lane_only.road_dy = 30;
@@ -759,7 +759,7 @@ static void hud_turn_card()
     };
     const auto split_status = feeds.status("decode");
     ok("road name and maneuver move independently of the map and lanes",
-       hud_map() && at(hud_map(), 160, 134, 480, 212) && c.size() == 3 &&
+       hud_map() && at(hud_map(), 160, 140, 480, 200) && c.size() == 3 &&
            has_card_at(98, 134, 702, 44) && has_card_at(546, 54, 160, 44) && has_card_at(329, 321, 327, 54) &&
            split_status.hud_road_x == -75 && split_status.hud_road_y == 30 &&
            split_status.hud_maneuver_x == 80 && split_status.hud_maneuver_y == -50);
@@ -773,7 +773,7 @@ static void hud_turn_card()
     feeds.set_card(card(true, 100, 0, 0));
     feeds.set_hud_view(0, 100);
     pump(500, &f1);
-    ok("crop 0: the map at its full height", hud_map() && at(hud_map(), 160, 134, 480, 212));
+    ok("crop 0: the map at its full height", hud_map() && at(hud_map(), 173, 140, 452, 200));
 
     /* ---- it shows with the map ---- */
     feeds.set_hud_keep_shown(true);
@@ -920,8 +920,8 @@ static void hud_card_hosted()
     feeds.set_stream(true, false, Picture::Shown);
     feeds.set_turn(right, b.now);
     pump(2500, &f1);
-    ok("hosted card: on its own HUD first, the map cut to 480x168 and the card beside it",
-       at(map_on(2), 160, 156, 480, 168) && count_on(2, true) == 2);
+    ok("hosted card: on its own HUD first, the map cut to 452x160 and the card beside it",
+       at(map_on(2), 173, 160, 452, 160) && count_on(2, true) == 2);
 
     cr::SceneOptions so;
     so.target = "panel";
@@ -944,7 +944,7 @@ static void hud_card_hosted()
     feeds.set_turn(right, b.now);
     pump(2500, &f1);
     ok("hosted card: the host gone, the map cut on the HUD again and the card back",
-       at(map_on(2), 160, 156, 480, 168) && count_on(2, true) == 2);
+       at(map_on(2), 173, 160, 452, 160) && count_on(2, true) == 2);
     const int removed = std::system(("rm -rf " + root).c_str());
     (void)removed;
 }
@@ -1951,21 +1951,38 @@ int main()
     feeds.set_hud_width(100);
     bpump(300, &f2);
     hl = layer_on(2);
-    ok("100 %: the full HUD width (800x352), the picture's shape kept, centred",
-       hl && hl->params.rect.w == 800 && hl->params.rect.h == 352 && hl->params.rect.x == 0 && hl->params.rect.y == 63 &&
+    ok("100 % window width keeps the picture the same size at standard zoom",
+       hl && hl->params.rect.w == default_w && hl->params.rect.h == 200 && hl->params.rect.y == 140 &&
            feeds.status("decode").hud_width_pct == 100);
+    feeds.set_hud_view(0, 180);
+    bpump(300, &f2);
+    hl = layer_on(2);
+    ok("180 % zoom can fill the full HUD width without changing window height",
+       hl && hl->params.rect.w == 800 && hl->params.rect.h == 200 && hl->params.rect.x == 0 && hl->params.rect.y == 140);
     feeds.set_hud_width(40);
     bpump(300, &f2);
     hl = layer_on(2);
-    ok("40 %: resized live, centred", hl && hl->params.rect.w == 320 && hl->params.rect.h == 140 &&
-                                      hl->params.rect.x == 240 && hl->params.rect.y == 169);
-    /* the frame goes at the size it is shown: 320x140, 67,200 B instead of 783,360 */
+    ok("40 % width crops only the horizontal axis", hl && hl->params.rect.w == 320 && hl->params.rect.h == 200 &&
+                                                     hl->params.rect.x == 240 && hl->params.rect.y == 140);
+    feeds.set_hud_view(-80, 180);
+    bpump(300, &f2);
+    hl = layer_on(2);
+    ok("180 % height extends only the vertical axis", hl && hl->params.rect.w == 320 && hl->params.rect.h == 360 &&
+                                                     hl->params.rect.x == 240 && hl->params.rect.y == 60);
+    feeds.set_hud_view(20, 180);
+    bpump(300, &f2);
+    hl = layer_on(2);
+    ok("80 % height crops only the vertical axis", hl && hl->params.rect.w == 320 && hl->params.rect.h == 160 &&
+                                                  hl->params.rect.x == 240 && hl->params.rect.y == 160);
+    feeds.set_hud_view(0, 100);
+    bpump(300, &f2);
+    /* the frame goes at the size it is shown: 320x200, 96,000 B instead of 783,360 */
     crs::FakeGraph *g40 = b.gpu.graph("hud");
     bool small = false;
     if (g40)
         for (const auto &kv : g40->shown.buffers)
-            small = small || (kv.second.f == crs::TexFormat::R8 && kv.second.px.size() == 320u * 210);
-    ok("40 %: the HUD's texture is the scaled frame, 320x140 (67,200 B)", small);
+            small = small || (kv.second.f == crs::TexFormat::R8 && kv.second.px.size() == 320u * 300);
+    ok("40 %: the HUD's texture is the scaled frame, 320x200 (96,000 B)", small);
     ok("the size leaves the cluster's map alone", layer_on(0) && layer_on(0)->params.rect.w == 1088);
     feeds.set_hud(false);
     bpump(2500, &f2);
@@ -1985,8 +2002,8 @@ int main()
     feeds.set_hud_offset(100, -50);
     bpump(300, &f2);
     hl = layer_on(2);
-    ok("moved: 100 right, 50 up from the centre (240,169 -> 340,119)", hl && hl->params.rect.x == 340 && hl->params.rect.y == 119 &&
-                                                                          hl->params.rect.w == 320 && hl->params.rect.h == 140);
+    ok("moved: 100 right, 50 up from the centre (240,140 -> 340,90)", hl && hl->params.rect.x == 340 && hl->params.rect.y == 90 &&
+                                                                          hl->params.rect.w == 320 && hl->params.rect.h == 200);
     ok("moved: the same layer, only its place changed (no new texture)", hl && hl->id() == ref40);
     ok("moved: the status carries the offset", feeds.status("decode").hud_offset_x == 100 && feeds.status("decode").hud_offset_y == -50);
     feeds.set_hud_offset(800, 800);
@@ -1994,8 +2011,8 @@ int main()
     hl = layer_on(2);
     ok("moved too far: held inside the HUD (its bottom right corner)",
        hl && hl->params.rect.x + hl->params.rect.w == 800 && hl->params.rect.y + hl->params.rect.h >= 479 && hl->params.rect.y + hl->params.rect.h <= 480);
-    ok("moved too far: the offset reported as far as it goes (240,170 for 320x140)",
-       feeds.status("decode").hud_offset_x == 240 && feeds.status("decode").hud_offset_y == 170);
+    ok("moved too far: the offset reported as far as it goes (240,140 for 320x200)",
+       feeds.status("decode").hud_offset_x == 240 && feeds.status("decode").hud_offset_y == 140);
     feeds.set_hud_offset(-800, -800);
     bpump(300, &f2);
     hl = layer_on(2);
@@ -2004,8 +2021,8 @@ int main()
     feeds.set_hud_width(60);
     bpump(300, &f2);
     hl = layer_on(2);
-    ok("resized while moved: the new size, still moved (60 %: 480x211 centred at 160,134, so 130,154)",
-       hl && hl->params.rect.w == 480 && hl->params.rect.x == 130 && hl->params.rect.y == 154);
+    ok("resized while moved: the new size, still moved (60 % window: the standard picture centered inside it, moved left and down)",
+       hl && hl->params.rect.w == 452 && hl->params.rect.x == 143 && hl->params.rect.y == 160);
     feeds.set_hud_offset(200, 0);
     feeds.set_hud_width(85);
     bpump(300, &f2);

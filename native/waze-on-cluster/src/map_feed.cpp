@@ -130,7 +130,8 @@ void MapFeed::make_layer()
     }
     /* The map area: all of the map slot's scene, the centred 1088x480 of a
      * whole-panel one, a fitted centre on the HUD. */
-    crk::QuadRect q = quad(tw, th);
+    MapRect hud_source;
+    crk::QuadRect q = quad(tw, th, &hud_source);
     if (cfg_.rect.set() && cfg_.rect.fits(tw, th))
         q = crk::QuadRect{cfg_.rect.x, cfg_.rect.y, cfg_.rect.w, cfg_.rect.h};
     else if (cfg_.rect.set())
@@ -195,18 +196,10 @@ void MapFeed::make_layer()
         shape_.h = cfg_.video.h;
         shape_.dw = sw;
         shape_.dh = sh;
-        /* Zoom about the centre at a single magnification for both axes.
-         * At wide output sizes, stop before the source would require upscaling. */
-        const uint32_t cut = crop_rows();
-        const uint32_t picture_h = cfg_.video.h - 2 * cut;
-        const unsigned zoom = std::min({std::max(cfg_.hud_map_zoom, kHudZoomDefault),
-                                        cfg_.video.w * 100 / sw, picture_h * 100 / sh});
-        if (cut || zoom > kHudZoomDefault) {
-            shape_.crop_w = std::max(sw, (cfg_.video.w * 100 / zoom) & ~1U);
-            shape_.crop_h = std::max(sh, (picture_h * 100 / zoom) & ~1U);
-            shape_.crop_x = ((cfg_.video.w - shape_.crop_w) / 2) & ~1U;
-            shape_.crop_y = ((cfg_.video.h - shape_.crop_h) / 2) & ~1U;
-        }
+        shape_.crop_x = hud_source.x;
+        shape_.crop_y = hud_source.y;
+        shape_.crop_w = hud_source.w;
+        shape_.crop_h = hud_source.h;
         shape_.level_bits = cfg_.scaled_level_bits;
         shape_.radius = cfg_.hud_round_corners ? (sh / 12 > 6 ? sh / 12 : 6) : 0;
         shape_.black = cfg_.hud_black_background;
@@ -293,13 +286,13 @@ void MapFeed::set_card(const CardConfig &c)
     make_layer();
 }
 
-void MapFeed::set_hud_view(unsigned crop, unsigned zoom)
+void MapFeed::set_hud_view(int crop, unsigned zoom)
 {
     if (crop == cfg_.hud_crop() && zoom == cfg_.hud_map_zoom) {
-        cfg_.hud_map_crop = (int)crop;
+        cfg_.hud_map_crop = crop;
         return;
     }
-    cfg_.hud_map_crop = (int)crop;
+    cfg_.hud_map_crop = crop;
     cfg_.hud_map_zoom = zoom;
     if (cfg_.target != "hud" || !layer_ || hosted())
         return;
@@ -317,7 +310,7 @@ uint32_t MapFeed::crop_rows() const
 {
     if (cfg_.target != "hud" || hosted() || !cfg_.scale_down || !cfg_.video.h)
         return 0;
-    return card_crop_rows(cfg_.video.h, cfg_.hud_crop());
+    return card_crop_rows(cfg_.video.h, (unsigned)std::max(0, cfg_.hud_crop()));
 }
 
 void MapFeed::set_host(const cr::Host &h)
@@ -342,51 +335,49 @@ void MapFeed::set_host(const cr::Host &h)
         sync_card();
 }
 
-/* Where the map goes on a target of tw x th: the kit's fitted rect, or on
- * the HUD with a size set, that width (the picture's shape kept, at most the
- * HUD's height), centred; on the HUD then moved by the offset, held inside
- * the scene. */
-crk::QuadRect MapFeed::quad(uint32_t tw, uint32_t th) const
+/* Clip a uniformly scaled picture to the HUD window. The standard fitted
+ * map is the reference scale at 100%, regardless of the window dimensions. */
+crk::QuadRect MapFeed::quad(uint32_t tw, uint32_t th, MapRect *source) const
 {
-    if (cfg_.target != "hud" || !cfg_.video.w || !cfg_.video.h)
-        return crk::map_quad(tw, th, cfg_.video.w, cfg_.video.h);
-    crk::QuadRect q;
-    const unsigned pct = cfg_.hud_width_pct;
-    if (!pct) {
-        q = crk::map_quad(tw, th, cfg_.video.w, cfg_.video.h);
-    } else {
-        uint64_t w = (uint64_t)tw * (pct > kHudMaxPct ? kHudMaxPct : pct) / 100;
-        uint64_t h = (w * cfg_.video.h + cfg_.video.w / 2) / cfg_.video.w;
+    const auto ref = crk::map_quad(tw, th, cfg_.video.w, cfg_.video.h);
+    if (cfg_.target != "hud" || !ref.w || !ref.h || !cfg_.video.w || !cfg_.video.h)
+        return ref;
+    if (cfg_.rect.set() && cfg_.rect.fits(tw, th))
+        return {cfg_.rect.x, cfg_.rect.y, cfg_.rect.w, cfg_.rect.h};
+
+    const bool clip_to_window = cfg_.scale_down && !hosted();
+    uint32_t w = cfg_.hud_width_pct ? tw * std::min(cfg_.hud_width_pct, kHudMaxPct) / 100 : ref.w;
+    const uint32_t cut = crop_rows();
+    uint32_t h = (uint32_t)(((uint64_t)ref.h * (cfg_.video.h - 2 * cut) + cfg_.video.h / 2) / cfg_.video.h);
+    if (clip_to_window && cfg_.hud_crop() < 0)
+        h = std::min(th, (uint32_t)((uint64_t)ref.h * (100 - cfg_.hud_crop()) / 100));
+    else if (!clip_to_window && cfg_.hud_width_pct) {
+        h = (uint32_t)(((uint64_t)w * cfg_.video.h + cfg_.video.w / 2) / cfg_.video.w);
         if (h > th) {
             h = th;
-            w = (h * cfg_.video.w + cfg_.video.h / 2) / cfg_.video.h;
+            w = (uint32_t)(((uint64_t)h * cfg_.video.w + cfg_.video.h / 2) / cfg_.video.h);
         }
-        q = crk::QuadRect{(uint32_t)((tw - w) / 2), (uint32_t)((th - h) / 2), (uint32_t)w, (uint32_t)h};
     }
-    /* shorter while the turn card is on: as many of its rows as the frame's cut, around the same centre */
-    const uint32_t cut = crop_rows();
-    if (cut) {
-        const uint32_t h = (uint32_t)(((uint64_t)q.h * (cfg_.video.h - 2 * cut) + cfg_.video.h / 2) / cfg_.video.h);
-        q.y += (q.h - h) / 2;
-        q.h = h;
+    const int cx = (int)((tw - w) / 2), cy = (int)((th - h) / 2);
+    const uint32_t x = (uint32_t)std::max(0, std::min(cx + cfg_.hud_offset_x, (int)(tw - w)));
+    const uint32_t y = (uint32_t)std::max(0, std::min(cy + cfg_.hud_offset_y, (int)(th - h)));
+    placed_x_ = (int)x - cx;
+    placed_y_ = (int)y - cy;
+    if (!clip_to_window)
+        return {x, y, w, h};
+
+    // Cap against the source resolution, independently of the chosen window.
+    const unsigned zoom = std::min({cfg_.hud_map_zoom, cfg_.video.w * 100 / ref.w, cfg_.video.h * 100 / ref.h});
+    const uint32_t picture_w = std::max(1u, ref.w * zoom / 100);
+    const uint32_t picture_h = std::max(1u, ref.h * zoom / 100);
+    const uint32_t visible_w = std::min(w, picture_w), visible_h = std::min(h, picture_h);
+    const uint32_t sw = visible_w & ~3u, sh = visible_h & ~3u;
+    if (source && sw >= 64 && sh >= 32) {
+        const uint32_t crop_w = std::max(sw, (uint32_t)((uint64_t)sw * cfg_.video.w / picture_w) & ~1u);
+        const uint32_t crop_h = std::max(sh, (uint32_t)((uint64_t)sh * cfg_.video.h / picture_h) & ~1u);
+        *source = {((cfg_.video.w - crop_w) / 2) & ~1u, ((cfg_.video.h - crop_h) / 2) & ~1u, crop_w, crop_h};
     }
-    const long x = (long)q.x + cfg_.hud_offset_x, y = (long)q.y + cfg_.hud_offset_y;
-    const long xmax = (long)tw - (long)q.w, ymax = (long)th - (long)q.h;
-    const uint32_t cx = q.x, cy = q.y;
-    q.x = (uint32_t)(x < 0 ? 0 : x > xmax ? xmax : x);
-    q.y = (uint32_t)(y < 0 ? 0 : y > ymax ? ymax : y);
-    placed_x_ = (int)q.x - (int)cx;
-    placed_y_ = (int)q.y - (int)cy;
-    if (!hosted() && cfg_.hud_map_zoom < kHudZoomDefault) {
-        // Below 1x, fit the whole available picture into a smaller, centered rectangle.
-        const unsigned w = std::max(1u, (unsigned)((uint64_t)q.w * cfg_.hud_map_zoom / kHudZoomDefault));
-        const unsigned h = std::max(1u, (unsigned)((uint64_t)q.h * cfg_.hud_map_zoom / kHudZoomDefault));
-        q.x += (q.w - w) / 2;
-        q.y += (q.h - h) / 2;
-        q.w = w;
-        q.h = h;
-    }
-    return q;
+    return {x + (w - visible_w) / 2, y + (h - visible_h) / 2, visible_w, visible_h};
 }
 
 void MapFeed::set_hud_offset(int dx, int dy)
@@ -400,7 +391,7 @@ void MapFeed::set_hud_offset(int dx, int dy)
     if (cfg_.target != "hud" || !layer_ || hosted() || !target_size(client_.targets, "hud", &tw, &th))
         return;
     const crk::QuadRect q = quad(tw, th);
-    const bool inset = scaling_ && cfg_.hud_map_zoom < kHudZoomDefault && q.w >= lo_.w && q.h >= lo_.h;
+    const bool inset = scaling_ && q.w >= lo_.w && q.h >= lo_.h;
     lo_.x = (int)(q.x + (inset ? (q.w - lo_.w) / 2 : 0));
     lo_.y = (int)(q.y + (inset ? (q.h - lo_.h) / 2 : 0));
     client_.set(layer_, lo_);

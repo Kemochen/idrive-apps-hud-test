@@ -69,7 +69,7 @@ const fs = require('fs');
 const net = require('net');
 const path = require('path');
 const { FakeRender, FakePatch, FakeLogs, RENDER_PAGE, RENDER_FPS } = require('./fakes.js');
-const { RENDER_PATH, PATCH_PATH, PENDING_PATH, SIZE, SAFE, HUD_SIZE_STEPS, CARD_SIZE_STEPS, CARD_CROP_STEPS } = require('../src/waze_cluster_control.js');
+const { RENDER_PATH, PATCH_PATH, PENDING_PATH, SIZE, SAFE, HUD_SIZE_STEPS, CARD_SIZE_STEPS } = require('../src/waze_cluster_control.js');
 const { LOGS_PATH } = require('../src/logs_control.js');
 
 const MANIFEST = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'mgu-app.json'), 'utf8'));
@@ -373,7 +373,7 @@ async function main() {
     assert.deepStrictEqual(['MinValue', 'MaxValue', 'NumberOfSteps'].map((k) => components['66'].rows[0][k].value), [0, CARD_SIZE_STEPS, CARD_SIZE_STEPS],
         'its slider: one step for each 10 %');
     assert.strictEqual(widgets.wocHudCardCrop, 'LT_Slider_LeftJustified_Fill_Steps', 'the map\'s height with the card: a slider');
-    assert.deepStrictEqual(['MinValue', 'MaxValue', 'NumberOfSteps'].map((k) => components['73'].rows[0][k].value), [0, CARD_CROP_STEPS, CARD_CROP_STEPS],
+    assert.deepStrictEqual(['MinValue', 'MaxValue', 'NumberOfSteps'].map((k) => components['73'].rows[0][k].value), [0, 24, 24],
         'its slider: one step for each 5 %');
     /* every info row reads "Name: Value" */
     assert(main.filter(([, type, name]) => type === 'label' && !/^wocHead|^(wocHudPreviewImage|wocRestartStatus|wocWifi|wocWifiHint)$/.test(name))
@@ -667,6 +667,10 @@ async function main() {
         cardCrop.turn(1);
         await until('the map taller', () => cardCrop.text === 'Map height: 85 %' && render.hudLayout.hud_map_crop === 15 && cardCrop.cells['0:Value'] === 5);
         await until('its height saved', () => patch.map.hud_map_crop === 15);
+        await cardCrop.setStepValue(24);
+        await until('can extend the window to 180 percent', () => patch.map.hud_map_crop === -80 && cardCrop.text === 'Map height: 180 %');
+        await cardCrop.setStepValue(5);
+        await until('height restored', () => patch.map.hud_map_crop === 15);
         const mapZoom = byName.wocHudMapZoom;
         mapZoom.turn(-1);
         await until('map zoom can go below 100 percent', () => patch.map.hud_map_zoom === 95 && mapZoom.text === 'Map zoom: 95 %');

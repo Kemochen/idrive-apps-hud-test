@@ -45,9 +45,11 @@ bool valid(const std::string &key, const std::string &value)
         key == "hud_lanes_x" || key == "hud_lanes_y")
         return v >= -800 && v <= 800;
     if (key == "hud_card_pct" || key == "hud_lanes_pct")
-        return v >= 50 && v <= 150;
-    if (key == "hud_card_crop" || key == "hud_map_crop")
+        return v >= 50 && v <= 180;
+    if (key == "hud_card_crop")
         return v >= 0 && v <= 40;
+    if (key == "hud_map_crop")
+        return v >= -80 && v <= 40 && v != -1;
     if (key == "hud_map_zoom")
         return v >= 50 && v <= 150;
     return v == 0 || v == 1;

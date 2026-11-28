@@ -73,15 +73,15 @@ int main()
     std::ofstream(path) << "hud = 1\ncluster = 0\nhud_width_pct = 85\nhud_offset_x = -40\nhud_offset_y = 800\n"
                            "hud_keep_shown = 1\nhud_hide_sport = 1\nhud_card = 1\nhud_card_pct = 150\nhud_card_x = -30\n"
                            "hud_card_y = 800\nhud_card_crop = 40\nadaptive_hud = 1\n"
-                           "hud_map_crop = 15\nhud_map_zoom = 70\nhud_lanes_pct = 130\nhud_lanes_x = -50\nhud_lanes_y = 30\n"
+                           "hud_map_crop = -40\nhud_map_zoom = 70\nhud_lanes_pct = 130\nhud_lanes_x = -50\nhud_lanes_y = 30\n"
                            "hud_road_x = -75\nhud_road_y = 30\nhud_maneuver_x = 80\nhud_maneuver_y = -50\n";
     c = conf();
     load_map_state(&c, path);
-    ok("the state file's, over the configuration's", settings(c) == "0 1 85 -40 800 1 1 1 150 -30 800 40 1 15 70 130 -50 30 -75 30 80 -50");
+    ok("the state file's, over the configuration's", settings(c) == "0 1 85 -40 800 1 1 1 150 -30 800 40 1 -40 70 130 -50 30 -75 30 80 -50");
     std::ofstream(path) << "cluster = 2\nhud = 1\nhud_width_pct = 10\n\nhud_offset_x = 900\nhud_offset_y = -20\n"
                            "hud_fps = 30\ntarget = panel\ngarbage\nhud = yes\nhud_keep_shown = 2\nhud_hide_sport = 2\n"
                            "hud_card = 2\nhud_card_pct = 40\nhud_card_x = 801\nhud_card_y = -7\nhud_card_crop = 45\nadaptive_hud = 2\n"
-                           "hud_map_crop = 41\nhud_map_zoom = 151\nhud_lanes_pct = 49\nhud_lanes_x = -801\nhud_lanes_y = 10\n";
+                           "hud_map_crop = 41\nhud_map_zoom = 181\nhud_lanes_pct = 49\nhud_lanes_x = -801\nhud_lanes_y = 10\n";
     c = conf();
     c.define("hud_fps", "10");
     c.define("target", "map");

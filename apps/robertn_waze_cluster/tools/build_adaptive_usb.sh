@@ -19,8 +19,8 @@ git -c advice.detachedHead=false checkout -q --detach "$source"
 node - <<'JS'
 const fs = require('fs');
 const app = 'apps/robertn_waze_cluster/';
-const appVersion = '0.6.26112702';
-const toolVersion = '0.14.26112702';
+const appVersion = '0.6.26112703';
+const toolVersion = '0.14.26112703';
 function edit(file, change) {
     const json = JSON.parse(fs.readFileSync(file, 'utf8'));
     change(json);

@@ -20,6 +20,7 @@ struct Colour {
     uint8_t r, g, b;
 };
 const Colour kWhite{255, 255, 255};
+const Colour kCardBackground{12, 19, 27};
 const Colour kRoadGrey{141, 147, 153};   /* a road not taken, a roundabout's ring */
 const Colour kLaneGrey{107, 112, 117};   /* an arrow not to take in a lane, the lines between lanes */
 
@@ -265,10 +266,32 @@ std::vector<uint32_t> fitted_name(const std::string &road, float &px, float room
     return {};
 }
 
-void paint_road_name(Canvas *c, const std::string &road, float px, float room, float mid)
+void paint_panel(Canvas *c, float left, float right, float scale)
 {
-    const auto name = fitted_name(road, px, room);
-    paint_text(c, kCardText, name, 0, centred_baseline(mid, px), px, kWhite);
+    left = std::max(0.0f, left);
+    right = std::min((float)c->w(), right);
+    const float top = std::round(3 * scale), bottom = c->h() - top;
+    const float radius = std::min({7 * scale, (right - left) / 2, (bottom - top) / 2});
+    if (radius <= 0)
+        return;
+    for (int y = (int)top; y < (int)bottom; y++) {
+        const float dy = std::max(0.0f, std::max(top + radius - y - 0.5f, y + 0.5f - (bottom - radius)));
+        for (int x = (int)std::floor(left); x < (int)std::ceil(right); x++) {
+            const float dx = std::max(0.0f, std::max(left + radius - x - 0.5f, x + 0.5f - (right - radius)));
+            c->paint(x, y, 0.82f * clamp01(radius - std::hypot(dx, dy) + 0.5f), kCardBackground);
+        }
+    }
+}
+
+void paint_road_name(Canvas *c, const std::string &road, float px, float room, float mid, float scale, bool backdrop)
+{
+    const float pad = backdrop ? 6 * scale : 0;
+    const auto name = fitted_name(road, px, room - 2 * pad);
+    if (name.empty())
+        return;
+    if (backdrop)
+        paint_panel(c, 0, std::min(room, 2 * pad + text_width(kCardText, name, px)), scale);
+    paint_text(c, kCardText, name, pad, centred_baseline(mid, px), px, kWhite);
 }
 
 /* The distance as its number and its unit ("450", "m"); both empty when
@@ -286,16 +309,18 @@ void distance_parts(const std::string &dist, std::vector<uint32_t> *number, std:
 
 }  // namespace
 
-void draw_card_row(const Turn &turn, float scale, unsigned w, unsigned h, CardImage *out, CardRowPart part)
+void draw_card_row(const Turn &turn, float scale, unsigned w, unsigned h, CardImage *out, CardRowPart part, bool backdrop)
 {
     Canvas c(w, h, out);
     if (turn.empty() || !w || !h)
         return;
-    const float arrow = std::min({kArrowPx * scale, (float)h, (float)w});
+    const float pad = backdrop ? std::min(6 * scale, w / 8.0f) : 0;
+    const float room = w - 2 * pad;
+    const float arrow = std::min({kArrowPx * scale, (float)h, room});
     const float text_px = kTextPx * scale, digit_px = kDigitPx * scale, mid = h / 2.0f;
 
     if (part == CardRowPart::Road) {
-        paint_road_name(&c, turn.road, text_px, w, mid);
+        paint_road_name(&c, turn.road, text_px, w, mid, scale, backdrop);
         return;
     }
     std::vector<uint32_t> number, unit;
@@ -303,10 +328,12 @@ void draw_card_row(const Turn &turn, float scale, unsigned w, unsigned h, CardIm
     const float number_w = number.empty() ? 0 : text_width(kCardDigits, number, digit_px);
     const float unit_w = unit.empty() ? 0 : kUnitGap * scale + text_width(kCardText, unit, text_px);
     float dist_w = number.empty() ? 0 : kArrowGap * scale + number_w + unit_w;
-    if (arrow + dist_w > w)
+    if (arrow + dist_w > room)
         dist_w = 0;   /* no room: the arrow only */
     /* whole pixels, so the arrow is the same picture wherever it is */
-    const float group = std::floor(w - arrow - dist_w), top = std::floor((h - arrow) / 2);
+    const float group = std::floor(w - pad - arrow - dist_w), top = std::floor((h - arrow) / 2);
+    if (backdrop)
+        paint_panel(&c, group - pad, w, scale);
 
     const card::Pick icon = card::turn_icon(turn);
     if (icon.icon) {
@@ -321,7 +348,7 @@ void draw_card_row(const Turn &turn, float scale, unsigned w, unsigned h, CardIm
         paint_text(&c, kCardText, unit, x + number_w + kUnitGap * scale, baseline, text_px, kWhite);
     }
     if (part == CardRowPart::Both)
-        paint_road_name(&c, turn.road, text_px, group - card_detail::kNameGap * scale, mid);
+        paint_road_name(&c, turn.road, text_px, group - card_detail::kNameGap * scale, mid, scale, backdrop);
 }
 
 void draw_card_lanes(const std::string &lanes, float scale, unsigned w, unsigned h, CardImage *out)

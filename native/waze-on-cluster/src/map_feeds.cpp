@@ -186,9 +186,9 @@ void MapFeeds::set_hud_offset(int dx, int dy)
     hud_->set_hud_offset(dx, dy);
 }
 
-void MapFeeds::set_hud_view(unsigned crop, unsigned zoom)
+void MapFeeds::set_hud_view(int crop, unsigned zoom)
 {
-    base_.hud_map_crop = (int)crop;
+    base_.hud_map_crop = crop;
     base_.hud_map_zoom = zoom;
     if (hud_)
         hud_->set_hud_view(crop, zoom);

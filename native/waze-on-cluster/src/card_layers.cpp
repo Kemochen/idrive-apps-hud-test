@@ -113,17 +113,17 @@ void CardLayers::update()
     const float scale = layout_.scale;
     if (stale(&row_, picture_key(layout_.top, scale, {turn_.arrow, turn_.exit, turn_.angle, turn_.side, turn_.dist, turn_.road}))) {
         CardImage m;
-        draw_card_row(turn_, scale, layout_.top.w, layout_.top.h, &m);
+        draw_card_row(turn_, scale, layout_.top.w, layout_.top.h, &m, CardRowPart::Both, true);
         show(&row_, std::move(m));
     }
     if (stale(&road_, picture_key(layout_.road, scale, {turn_.empty() ? std::string() : turn_.road}))) {
         CardImage m;
-        draw_card_row(turn_, scale, layout_.road.w, layout_.road.h, &m, CardRowPart::Road);
+        draw_card_row(turn_, scale, layout_.road.w, layout_.road.h, &m, CardRowPart::Road, true);
         show(&road_, std::move(m));
     }
     if (stale(&maneuver_, picture_key(layout_.maneuver, scale, {turn_.arrow, turn_.exit, turn_.angle, turn_.side, turn_.dist}))) {
         CardImage m;
-        draw_card_row(turn_, scale, layout_.maneuver.w, layout_.maneuver.h, &m, CardRowPart::Maneuver);
+        draw_card_row(turn_, scale, layout_.maneuver.w, layout_.maneuver.h, &m, CardRowPart::Maneuver, true);
         show(&maneuver_, std::move(m));
     }
     if (stale(&lanes_, picture_key(layout_.lanes, layout_.lanes_scale, {lanes}))) {

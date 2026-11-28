@@ -308,7 +308,7 @@ private:
         long map_crop = feeds_->hud_map_crop(), zoom = feeds_->hud_map_zoom();
         if (!number("hud_card", 0, 1, &on) || !number("hud_card_pct", kCardMinPct, kCardMaxPct, &pct) ||
             !number("hud_card_x", -kCardMoveMax, kCardMoveMax, &x) || !number("hud_card_y", -kCardMoveMax, kCardMoveMax, &y) ||
-            !number("hud_card_crop", 0, kCardCropMax, &crop) || !number("hud_map_crop", 0, kCardCropMax, &map_crop) ||
+            !number("hud_card_crop", 0, kCardCropMax, &crop) || !number("hud_map_crop", kHudCropMin, kCardCropMax, &map_crop) || map_crop == -1 ||
             !number("hud_map_zoom", kHudZoomMin, kHudZoomMax, &zoom) || !number("hud_lanes_pct", kCardMinPct, kCardMaxPct, &lanes_pct) ||
             !number("hud_road_x", -kCardMoveMax, kCardMoveMax, &road_x) ||
             !number("hud_road_y", -kCardMoveMax, kCardMoveMax, &road_y) ||
@@ -329,7 +329,7 @@ private:
         c.lanes_dx = (int)lanes_x;
         c.lanes_dy = (int)lanes_y;
         if (msg.count("hud_map_crop") || msg.count("hud_map_zoom"))
-            feeds_->set_hud_view((unsigned)map_crop, (unsigned)zoom);
+            feeds_->set_hud_view((int)map_crop, (unsigned)zoom);
         else if (msg.count("hud_card_crop"))
             feeds_->set_hud_view(c.crop, (unsigned)zoom);
         if (card)
@@ -385,7 +385,7 @@ int serve(Config cfg)
         {"hud_card", 0, 1},         {"hud_card_pct", 50, 150},        {"nav_diagnostics", 0, 1},
         {"adaptive_hud", 0, 1},
         {"hud_card_x", -800, 800},  {"hud_card_y", -800, 800},  {"hud_card_crop", 0, 40},
-        {"hud_map_crop", -1, 40},    {"hud_map_zoom", kHudZoomMin, kHudZoomMax},
+        {"hud_map_crop", kHudCropMin, kCardCropMax},    {"hud_map_zoom", kHudZoomMin, kHudZoomMax},
         {"hud_road_x", -800, 800}, {"hud_road_y", -800, 800},
         {"hud_maneuver_x", -800, 800}, {"hud_maneuver_y", -800, 800},
         {"hud_lanes_pct", 50, 150},   {"hud_lanes_x", -800, 800}, {"hud_lanes_y", -800, 800},

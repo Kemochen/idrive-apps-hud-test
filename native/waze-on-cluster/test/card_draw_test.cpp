@@ -335,6 +335,19 @@ static void the_lanes()
     expect(half.x0 >= 109 - 38 && half.x0 <= 109 - 36 && half.x1 >= 107, "at half size two lanes are 18 wide each");
 }
 
+static void the_background()
+{
+    CardImage m;
+    draw_card_row(turn("right", "450 m", "Example Street"), 1, 480, 44, &m, CardRowPart::Both, true);
+    expect(alpha(m, 30, 4) > 170 && alpha(m, 30, 4) < 240 &&
+               alpha(m, 450, 4) > 170 && alpha(m, 450, 4) < 240,
+           "the road name and maneuver each have translucent backing");
+    expect(px(m, 30, 4)[0] < 24 && alpha(m, 240, 22) == 0 && alpha(m, 0, 0) == 0,
+           "dark panels leave the center gap and corners clear");
+    draw_card_row(Turn(), 1, 480, 44, &m, CardRowPart::Both, true);
+    expect(!ink(m, 0, 0, 479, 43), "no panel when guidance clears");
+}
+
 int main()
 {
     the_row();
@@ -342,6 +355,7 @@ int main()
     the_street();
     its_size();
     the_lanes();
+    the_background();
     if (failures)
         return 1;
     printf("card_draw_test: ok\n");

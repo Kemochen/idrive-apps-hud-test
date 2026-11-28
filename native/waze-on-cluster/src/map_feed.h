@@ -80,7 +80,8 @@ namespace woc {
 /* The HUD map's widest size, % of the HUD's width: wider is cut off at its
  * edges. A larger hud_width_pct is held to it. */
 const unsigned kHudMaxPct = 100;
-const unsigned kHudZoomMin = 50, kHudZoomDefault = 100, kHudZoomMax = 150;
+const int kHudCropMin = -80;
+const unsigned kHudZoomMin = 50, kHudZoomDefault = 100, kHudZoomMax = 180;
 
 struct FeedConfig {
     std::string socket = "/dev/shm/cluster-render/render.sock";
@@ -123,7 +124,7 @@ struct FeedConfig {
     bool always_packed = false;
     /* On the HUD: the turn card beside the map (turn_card.h). */
     CardConfig card;
-    unsigned hud_crop() const { return hud_map_crop >= 0 ? (unsigned)hud_map_crop : card.on ? card.crop : 0; }
+    int hud_crop() const { return hud_map_crop == -1 ? (card.on ? (int)card.crop : 0) : hud_map_crop; }
 };
 
 /* The status the app shows (its render socket's "status" event), with
@@ -153,7 +154,8 @@ struct FeedStatus {
     int hud_maneuver_x = 0, hud_maneuver_y = 0;
     int hud_card_x = 0, hud_card_y = 0;        /* and where it is moved to from its place by the map */
     unsigned hud_card_crop = 0;                /* % of the HUD map's height cut while it is on */
-    unsigned hud_map_crop = 0, hud_map_zoom = kHudZoomDefault;
+    int hud_map_crop = 0;
+    unsigned hud_map_zoom = kHudZoomDefault;
     unsigned hud_lanes_pct = kCardDefaultPct;
     int hud_lanes_x = 0, hud_lanes_y = 0;
 };
@@ -197,7 +199,7 @@ public:
     /* The HUD map's size (FeedConfig::hud_width_pct), applied at once to a
      * map on the HUD. */
     void set_hud_width(unsigned pct);
-    void set_hud_view(unsigned crop, unsigned zoom);
+    void set_hud_view(int crop, unsigned zoom);
     void set_lanes_only(bool lanes_only);
     bool lanes_only() const { return cfg_.lanes_only; }
     /* The HUD map moved (FeedConfig::hud_offset_x/y), at once: the layer
@@ -293,7 +295,7 @@ private:
      * picture. */
     void keep_newest();
     /* On the HUD also notes the offset it places the map at. */
-    crk::QuadRect quad(uint32_t tw, uint32_t th) const;
+    crk::QuadRect quad(uint32_t tw, uint32_t th, MapRect *source = nullptr) const;
     void count_second(int64_t now_ms);
     /* The layer is visible or about to be, on a connection. */
     bool sending() const;

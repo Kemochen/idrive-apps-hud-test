@@ -78,8 +78,8 @@ public:
     /* The HUD map's size and place as asked, kept for a HUD feed made
      * later; the status has the place as far as the HUD's feed puts it. */
     void set_hud_width(unsigned pct);
-    void set_hud_view(unsigned crop, unsigned zoom);
-    unsigned hud_map_crop() const { return base_.hud_crop(); }
+    void set_hud_view(int crop, unsigned zoom);
+    int hud_map_crop() const { return base_.hud_crop(); }
     unsigned hud_map_zoom() const { return base_.hud_map_zoom; }
     void set_hud_offset(int dx, int dy);
     /* The HUD map kept shown over the stock HMI's pop-ups or not, kept for a
