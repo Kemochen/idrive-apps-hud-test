@@ -243,13 +243,11 @@ std::vector<uint32_t> fitted_name(const std::string &road, float &px, float room
         return {};
     while (!name.empty() && name.back() == ' ')
         name.pop_back();
-    if (name.empty() || room <= 0)
+    if (name.empty() || room < 2 * px)
         return {};
     const float full = text_width(kCardText, name, px);
     if (full > room)
         px = std::max(px * 0.8f, px * room / full);
-    if (room < 2 * px)
-        return {};
     if (text_width(kCardText, name, px) <= room + 0.01f)
         return name;
     const uint32_t ellipsis = 0x2026;
