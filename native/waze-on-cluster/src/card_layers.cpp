@@ -100,7 +100,8 @@ void CardLayers::update()
     if (lanes_only_ || split) drop(&row_);
     else place(&row_, layout_.top);
     if (!lanes_only_ && split) {
-        place(&road_, layout_.road);
+        if (layout_.road.w) place(&road_, layout_.road);
+        else drop(&road_);
         place(&maneuver_, layout_.maneuver);
     } else {
         drop(&road_);

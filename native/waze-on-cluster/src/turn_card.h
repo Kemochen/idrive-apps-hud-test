@@ -96,7 +96,8 @@ namespace card_detail {
 /* The design's measures at 100 %: the row's height and its gap to the map,
  * a lane's width, the lanes' height and their gap to the map. The arrow
  * and each lane's icon are the same 36 px square. */
-const int kRowH = 44, kRowGap = 12, kManeuverW = 160, kLaneW = 36, kLanesH = 36, kLanesGap = 14;
+const int kRowH = 44, kRowGap = 12, kManeuverW = 160, kRoadMinW = 80, kNameGap = 16;
+const int kLaneW = 36, kLanesH = 36, kLanesGap = 14;
 
 inline int scaled(int v, float s) { return (int)(v * s + 0.5f); }
 inline int held(int v, int lo, int hi) { return v < lo ? lo : v > hi ? hi : v; }
@@ -131,10 +132,17 @@ inline CardLayout card_layout(unsigned tw, unsigned th, const CardRect &anchor, 
         return rect;
     };
     const unsigned maneuver_w = (unsigned)held(scaled(kManeuverW, l.scale), 1, (int)l.top.w);
-    const unsigned road_w = (unsigned)held((int)l.top.w - (int)maneuver_w, 1, (int)l.top.w);
-    l.road = move({l.top.x, l.top.y, road_w, l.top.h}, c.road_dx, c.road_dy, l.road_dx, l.road_dy);
     l.maneuver = move({l.top.x + (int)(l.top.w - maneuver_w), l.top.y, maneuver_w, l.top.h},
                       c.maneuver_dx, c.maneuver_dy, l.maneuver_dx, l.maneuver_dy);
+    const unsigned road_min = (unsigned)held(scaled(kRoadMinW, l.scale), 1, w);
+    l.road = move({l.top.x, l.top.y, road_min, l.top.h}, c.road_dx, c.road_dy, l.road_dx, l.road_dy);
+    // Let a road name moved left use the space it gained. Reserve room for
+    // the maneuver only when it shares the road's row and is ahead of the text.
+    const bool shares_row = l.road.y + (int)l.road.h > l.maneuver.y &&
+                            l.maneuver.y + (int)l.maneuver.h > l.road.y;
+    const int right = shares_row && l.road.x < l.maneuver.x + (int)l.maneuver.w
+                          ? l.maneuver.x - scaled(kNameGap, l.scale) : w;
+    l.road.w = (unsigned)held(right - l.road.x, 0, w);
 
     l.lanes.w = (unsigned)held(scaled(kLaneW * (int)kCardLanes + 2, l.lanes_scale), 1, w);
     l.lanes.h = (unsigned)held(scaled(kLanesH, l.lanes_scale), 1, h);

@@ -304,7 +304,7 @@ function mapValueOk(k, v) {
     return /^-?\d+$/.test(v) && (k === 'hud_width_pct' ? n === 0 || (n >= 20 && n <= 100)
         : k === 'hud_card_pct' || k === 'hud_lanes_pct' ? n >= CARD_MIN_PCT && n <= CARD_MAX_PCT
         : k === 'hud_card_crop' || k === 'hud_map_crop' ? n >= 0 && n <= CARD_CROP_MAX
-        : k === 'hud_map_zoom' ? n >= 100 && n <= 150
+        : k === 'hud_map_zoom' ? n >= 50 && n <= 150
         : /^hud_offset_|^hud_(card|lanes|road|maneuver)_[xy]$/.test(k) ? n >= -800 && n <= 800 : n === 0 || n === 1);
 }
 

@@ -727,6 +727,15 @@ static void hud_turn_card()
        hud_map() && at(hud_map(), 160, 134, 480, 212) && feeds.status("decode").hud_map_zoom == 130 &&
            c.size() == 2 && at(c[0], 173, 104, 453, 44) && at(c[1], 408, 334, 218, 36) &&
            !unzoomed.empty() && !zoomed.empty() && unzoomed != zoomed);
+    feeds.set_hud_view(0, 75);
+    pump(500, &f1);
+    const auto zoomed_out = map_pixels();
+    c = cards();
+    ok("zoom below 100 shrinks the map about its center without moving the turn card or lanes",
+       at(hud_map(), 220, 161, 360, 156) && feeds.status("decode").hud_map_zoom == 75 &&
+           c.size() == 2 && at(c[0], 173, 104, 453, 44) && at(c[1], 408, 334, 218, 36) &&
+           zoomed_out.size() < unzoomed.size() && !zoomed_out.empty());
+    feeds.set_hud_view(0, 130);
     CardConfig lane_only = card(true, 100, 0, 0);
     lane_only.lanes_pct = 150;
     lane_only.lanes_dx = 30;
@@ -751,9 +760,16 @@ static void hud_turn_card()
     const auto split_status = feeds.status("decode");
     ok("road name and maneuver move independently of the map and lanes",
        hud_map() && at(hud_map(), 160, 134, 480, 212) && c.size() == 3 &&
-           has_card_at(98, 134, 293, 44) && has_card_at(546, 54, 160, 44) && has_card_at(329, 321, 327, 54) &&
+           has_card_at(98, 134, 702, 44) && has_card_at(546, 54, 160, 44) && has_card_at(329, 321, 327, 54) &&
            split_status.hud_road_x == -75 && split_status.hud_road_y == 30 &&
            split_status.hud_maneuver_x == 80 && split_status.hud_maneuver_y == -50);
+    lane_only.road_dy = 0;
+    lane_only.maneuver_dy = 0;
+    feeds.set_card(lane_only);
+    pump(500, &f1);
+    c = cards();
+    ok("a road name moved left has more room without covering the maneuver",
+       has_card_at(98, 104, 432, 44) && has_card_at(546, 104, 160, 44));
     feeds.set_card(card(true, 100, 0, 0));
     feeds.set_hud_view(0, 100);
     pump(500, &f1);

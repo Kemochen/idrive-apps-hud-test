@@ -385,7 +385,7 @@ int serve(Config cfg)
         {"hud_card", 0, 1},         {"hud_card_pct", 50, 150},        {"nav_diagnostics", 0, 1},
         {"adaptive_hud", 0, 1},
         {"hud_card_x", -800, 800},  {"hud_card_y", -800, 800},  {"hud_card_crop", 0, 40},
-        {"hud_map_crop", -1, 40},    {"hud_map_zoom", 100, 150},
+        {"hud_map_crop", -1, 40},    {"hud_map_zoom", kHudZoomMin, kHudZoomMax},
         {"hud_road_x", -800, 800}, {"hud_road_y", -800, 800},
         {"hud_maneuver_x", -800, 800}, {"hud_maneuver_y", -800, 800},
         {"hud_lanes_pct", 50, 150},   {"hud_lanes_x", -800, 800}, {"hud_lanes_y", -800, 800},

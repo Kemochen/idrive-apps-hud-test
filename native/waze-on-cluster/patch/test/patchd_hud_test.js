@@ -178,9 +178,9 @@ function ok(name, cond) {
         /^hud_map_crop = 0$/m.test(fs.readFileSync(STATE, 'utf8')) &&
         fs.readFileSync(STATE, 'utf8').split('hud_card = ').length === 2);
     state = fs.readFileSync(STATE, 'utf8');
-    r = await ask({ cmd: 'hud-layout', hud_map_zoom: 130, hud_map_crop: 15, hud_lanes_pct: 120, hud_lanes_x: -40, hud_lanes_y: 20,
+    r = await ask({ cmd: 'hud-layout', hud_map_zoom: 70, hud_map_crop: 15, hud_lanes_pct: 120, hud_lanes_x: -40, hud_lanes_y: 20,
         hud_road_x: -70, hud_road_y: 30, hud_maneuver_x: 50, hud_maneuver_y: -60 });
-    ok('independent HUD layout saved', r.ok && r.hud_map_zoom === 130 && r.hud_lanes_x === -40 && r.hud_road_x === -70 && r.hud_maneuver_y === -60 &&
+    ok('independent HUD layout saved', r.ok && r.hud_map_zoom === 70 && r.hud_lanes_x === -40 && r.hud_road_x === -70 && r.hud_maneuver_y === -60 &&
         /^hud_road_y = 30$/m.test(fs.readFileSync(STATE, 'utf8')) && /^hud_maneuver_x = 50$/m.test(fs.readFileSync(STATE, 'utf8')) &&
         /^hud_map_crop = 15$/m.test(fs.readFileSync(STATE, 'utf8')) && /^hud_lanes_pct = 120$/m.test(fs.readFileSync(STATE, 'utf8')));
     r = await ask({ cmd: 'hud-card', on: 1 });

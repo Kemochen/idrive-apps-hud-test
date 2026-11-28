@@ -199,8 +199,9 @@ void MapFeed::make_layer()
          * At wide output sizes, stop before the source would require upscaling. */
         const uint32_t cut = crop_rows();
         const uint32_t picture_h = cfg_.video.h - 2 * cut;
-        const unsigned zoom = std::min({cfg_.hud_map_zoom, cfg_.video.w * 100 / sw, picture_h * 100 / sh});
-        if (cut || zoom != kHudZoomMin) {
+        const unsigned zoom = std::min({std::max(cfg_.hud_map_zoom, kHudZoomDefault),
+                                        cfg_.video.w * 100 / sw, picture_h * 100 / sh});
+        if (cut || zoom > kHudZoomDefault) {
             shape_.crop_w = std::max(sw, (cfg_.video.w * 100 / zoom) & ~1U);
             shape_.crop_h = std::max(sh, (picture_h * 100 / zoom) & ~1U);
             shape_.crop_x = ((cfg_.video.w - shape_.crop_w) / 2) & ~1U;
@@ -376,6 +377,15 @@ crk::QuadRect MapFeed::quad(uint32_t tw, uint32_t th) const
     q.y = (uint32_t)(y < 0 ? 0 : y > ymax ? ymax : y);
     placed_x_ = (int)q.x - (int)cx;
     placed_y_ = (int)q.y - (int)cy;
+    if (!hosted() && cfg_.hud_map_zoom < kHudZoomDefault) {
+        // Below 1x, fit the whole available picture into a smaller, centered rectangle.
+        const unsigned w = std::max(1u, (unsigned)((uint64_t)q.w * cfg_.hud_map_zoom / kHudZoomDefault));
+        const unsigned h = std::max(1u, (unsigned)((uint64_t)q.h * cfg_.hud_map_zoom / kHudZoomDefault));
+        q.x += (q.w - w) / 2;
+        q.y += (q.h - h) / 2;
+        q.w = w;
+        q.h = h;
+    }
     return q;
 }
 
@@ -390,8 +400,9 @@ void MapFeed::set_hud_offset(int dx, int dy)
     if (cfg_.target != "hud" || !layer_ || hosted() || !target_size(client_.targets, "hud", &tw, &th))
         return;
     const crk::QuadRect q = quad(tw, th);
-    lo_.x = (int)q.x;
-    lo_.y = (int)q.y;
+    const bool inset = scaling_ && cfg_.hud_map_zoom < kHudZoomDefault && q.w >= lo_.w && q.h >= lo_.h;
+    lo_.x = (int)(q.x + (inset ? (q.w - lo_.w) / 2 : 0));
+    lo_.y = (int)(q.y + (inset ? (q.h - lo_.h) / 2 : 0));
     client_.set(layer_, lo_);
     log_info("render: HUD map moved to %u,%u (offset %+d,%+d)", q.x, q.y, placed_x_, placed_y_);
     sync_card();

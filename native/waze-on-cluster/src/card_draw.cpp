@@ -24,7 +24,7 @@ const Colour kRoadGrey{141, 147, 153};   /* a road not taken, a roundabout's rin
 const Colour kLaneGrey{107, 112, 117};   /* an arrow not to take in a lane, the lines between lanes */
 
 /* The design's measures at 100 %, in pixels. */
-const float kTextPx = 26, kDigitPx = 28, kArrowPx = 36, kArrowGap = 10, kUnitGap = 8, kNameGap = 16;
+const float kTextPx = 26, kDigitPx = 28, kArrowPx = 36, kArrowGap = 10, kUnitGap = 8;
 /* Noto Sans's capital height, of its size: lettering is centred by it. */
 const float kCapHeight = 0.714f;
 const float kLaneLine = 2, kLaneLineTop = 2, kLaneLineBottom = 34, kDash = 8, kDashGap = 6;
@@ -236,16 +236,21 @@ float centred_baseline(float y, float px) { return y + kCapHeight * px / 2; }
 
 /* The street's name to fit `room` pixels: whole, cut with an ellipsis, or
  * none (no room, no name, or a letter the lettering lacks). */
-std::vector<uint32_t> fitted_name(const std::string &road, float px, float room)
+std::vector<uint32_t> fitted_name(const std::string &road, float &px, float room)
 {
     std::vector<uint32_t> name;
     if (!characters(road, &name) || !lettered(kCardText, name))
         return {};
     while (!name.empty() && name.back() == ' ')
         name.pop_back();
-    if (name.empty() || room < 2 * px)
+    if (name.empty() || room <= 0)
         return {};
-    if (text_width(kCardText, name, px) <= room)
+    const float full = text_width(kCardText, name, px);
+    if (full > room)
+        px = std::max(px * 0.8f, px * room / full);
+    if (room < 2 * px)
+        return {};
+    if (text_width(kCardText, name, px) <= room + 0.01f)
         return name;
     const uint32_t ellipsis = 0x2026;
     if (!card_glyph(kCardText, ellipsis))
@@ -260,6 +265,12 @@ std::vector<uint32_t> fitted_name(const std::string &road, float px, float room)
         name.pop_back();
     } while (!name.empty());
     return {};
+}
+
+void paint_road_name(Canvas *c, const std::string &road, float px, float room, float mid)
+{
+    const auto name = fitted_name(road, px, room);
+    paint_text(c, kCardText, name, 0, centred_baseline(mid, px), px, kWhite);
 }
 
 /* The distance as its number and its unit ("450", "m"); both empty when
@@ -286,7 +297,7 @@ void draw_card_row(const Turn &turn, float scale, unsigned w, unsigned h, CardIm
     const float text_px = kTextPx * scale, digit_px = kDigitPx * scale, mid = h / 2.0f;
 
     if (part == CardRowPart::Road) {
-        paint_text(&c, kCardText, fitted_name(turn.road, text_px, w), 0, centred_baseline(mid, text_px), text_px, kWhite);
+        paint_road_name(&c, turn.road, text_px, w, mid);
         return;
     }
     std::vector<uint32_t> number, unit;
@@ -312,8 +323,7 @@ void draw_card_row(const Turn &turn, float scale, unsigned w, unsigned h, CardIm
         paint_text(&c, kCardText, unit, x + number_w + kUnitGap * scale, baseline, text_px, kWhite);
     }
     if (part == CardRowPart::Both)
-        paint_text(&c, kCardText, fitted_name(turn.road, text_px, group - kNameGap * scale), 0,
-                   centred_baseline(mid, text_px), text_px, kWhite);
+        paint_road_name(&c, turn.road, text_px, group - card_detail::kNameGap * scale, mid);
 }
 
 void draw_card_lanes(const std::string &lanes, float scale, unsigned w, unsigned h, CardImage *out)

@@ -667,8 +667,13 @@ async function main() {
         cardCrop.turn(1);
         await until('the map taller', () => cardCrop.text === 'Map height: 85 %' && render.hudLayout.hud_map_crop === 15 && cardCrop.cells['0:Value'] === 5);
         await until('its height saved', () => patch.map.hud_map_crop === 15);
-        byName.wocHudMapZoom.turn(1);
-        await until('map zoom moved separately', () => patch.map.hud_map_zoom === 105 && byName.wocHudMapZoom.text === 'Map zoom: 105 %');
+        const mapZoom = byName.wocHudMapZoom;
+        mapZoom.turn(-1);
+        await until('map zoom can go below 100 percent', () => patch.map.hud_map_zoom === 95 && mapZoom.text === 'Map zoom: 95 %');
+        mapZoom.turn(-9);
+        await until('map zoom reaches 50 percent', () => patch.map.hud_map_zoom === 50 && mapZoom.text === 'Map zoom: 50 %');
+        mapZoom.turn(11);
+        await until('map zoom can still enlarge the picture', () => patch.map.hud_map_zoom === 105 && mapZoom.text === 'Map zoom: 105 %');
         byName.wocHudLanesSize.turn(1);
         await until('lane size moved separately', () => patch.map.hud_lanes_pct === 110 && byName.wocHudLanesSize.text === 'Lane guidance size: 110 %');
         byName.wocHudLanesDown.emit('action');

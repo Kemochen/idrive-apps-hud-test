@@ -512,11 +512,11 @@
                 "type": "SInt"
               },
               "MaxValue": {
-                "value": 10,
+                "value": 20,
                 "type": "SInt"
               },
               "NumberOfSteps": {
-                "value": 10,
+                "value": 20,
                 "type": "SInt"
               }
             }

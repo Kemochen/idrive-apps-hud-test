@@ -130,7 +130,7 @@ const CARD_CROP_MAX = 40, CARD_CROP_STEP = 5;
 const CARD_CROP_STEPS = CARD_CROP_MAX / CARD_CROP_STEP;
 const HUD_LAYOUT_SLIDERS = {
     mapHeight: {key: 'hud_map_crop', start: CARD_CROP_MAX, step: -CARD_CROP_STEP, steps: CARD_CROP_STEPS},
-    mapZoom: {key: 'hud_map_zoom', start: 100, step: 5, steps: 10},
+    mapZoom: {key: 'hud_map_zoom', start: 50, step: 5, steps: 20},
     lanesSize: {key: 'hud_lanes_pct', start: CARD_MIN_PCT, step: CARD_STEP_PCT, steps: CARD_SIZE_STEPS}
 };
 

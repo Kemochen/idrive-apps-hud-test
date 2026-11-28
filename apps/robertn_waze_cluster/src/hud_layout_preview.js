@@ -23,17 +23,24 @@ function layoutRects(s) {
     const originalH = Math.round(w * 480 / 1088);
     const cut = Math.floor((s.crop || 0) * 480 / 400) * 2;
     const h = Math.round(originalH * (480 - 2 * cut) / 480);
-    const mapW = w & ~3, mapH = h & ~3;
+    const view = place(w, h, Math.floor((HUD_W - w) / 2) + at(s.mapOffset, 0),
+        Math.floor((HUD_H - originalH) / 2) + Math.floor((originalH - h) / 2) + at(s.mapOffset, 1));
+    const shrink = Math.min(1, (s.zoom || 100) / 100);
+    const viewW = Math.floor(w * shrink), viewH = Math.floor(h * shrink);
+    const mapW = viewW & ~3, mapH = viewH & ~3;
     const rowScale = (s.turnSize || 100) / 100, lanesScale = (s.lanesSize || 100) / 100;
     const rowH = Math.round(44 * rowScale), lanesH = Math.round(36 * lanesScale);
     const lanesW = Math.round(218 * lanesScale);
     const turn = place(REF.w, rowH, REF.x + at(s.turnOffset, 0), REF.y - Math.round(12 * rowScale) - rowH + at(s.turnOffset, 1));
-    const maneuverW = Math.round(160 * rowScale), roadW = REF.w - maneuverW;
-    const roadName = place(roadW, rowH, turn.x + at(s.roadOffset, 0), turn.y + at(s.roadOffset, 1));
-    const maneuver = place(maneuverW, rowH, turn.x + roadW + at(s.maneuverOffset, 0), turn.y + at(s.maneuverOffset, 1));
+    const maneuverW = Math.round(160 * rowScale);
+    const maneuver = place(maneuverW, rowH, turn.x + REF.w - maneuverW + at(s.maneuverOffset, 0), turn.y + at(s.maneuverOffset, 1));
+    const roadName = place(Math.round(80 * rowScale), rowH, turn.x + at(s.roadOffset, 0), turn.y + at(s.roadOffset, 1));
+    const sharesRow = Math.abs(roadName.y - maneuver.y) < rowH;
+    const roadRight = sharesRow && roadName.x < maneuver.x + maneuver.w ? maneuver.x - Math.round(16 * rowScale) : HUD_W;
+    roadName.w = Math.max(0, roadRight - roadName.x);
     return {
-        map: place(mapW, mapH, Math.floor((HUD_W - w) / 2) + Math.floor((w - mapW) / 2) + at(s.mapOffset, 0),
-            Math.floor((HUD_H - originalH) / 2) + Math.floor((originalH - h) / 2) + Math.floor((h - mapH) / 2) + at(s.mapOffset, 1)),
+        map: place(mapW, mapH, view.x + Math.floor((w - viewW) / 2) + Math.floor((viewW - mapW) / 2),
+            view.y + Math.floor((h - viewH) / 2) + Math.floor((viewH - mapH) / 2)),
         turn, roadName, maneuver,
         lanes: place(lanesW, lanesH, REF.x + REF.w - lanesW + at(s.lanesOffset, 0),
             REF.y + REF.h + Math.round(14 * lanesScale) + at(s.lanesOffset, 1))
@@ -95,7 +102,7 @@ function layoutPreviewPng(settings, wide) {
     paint(WIDTH - 1, 0, 1, HEIGHT, [66,86,108]);
     paint(m.x, m.y, m.w, m.h, [25,46,54]);
     const sourceHeight = 480 - 4 * Math.floor((settings.crop || 0) * 480 / 400);
-    const zoom = Math.min((settings.zoom || 100) / 100, 1088 / map.w, sourceHeight / map.h);
+    const zoom = Math.min(Math.max(1, (settings.zoom || 100) / 100), 1088 / map.w, sourceHeight / map.h);
     const road = (points, color, size) => line(points.map(([x,y]) => [m.x + m.w * (0.5 + x * zoom), m.y + m.h * (0.5 + y * zoom)]), color, size, m);
     road([[-0.7,0.22],[-0.2,0.05],[0.18,-0.01],[0.68,-0.17]], muted, 2);
     road([[-0.7,-0.44],[-0.16,-0.25],[0.22,-0.23],[0.69,-0.35]], muted, 1);
@@ -104,9 +111,11 @@ function layoutPreviewPng(settings, wide) {
     road([[-0.08,0.34],[-0.08,0.34]], white, 5);
     paint(t.x, t.y, t.w, t.h, [36,52,68]);
     if (split) paint(r.x, r.y, r.w, r.h, [36,52,68]);
-    const textSize = Math.max(1, Math.round(r.h / 20));
-    text(wide ? 'WEST GEORGIA STREET' : 'OAK ST', r.x + 7, r.y + Math.round((r.h - 7 * textSize) / 2), textSize, white,
-        split ? r : Object.assign({}, r, {w: Math.max(0, r.w - 45)}));
+    const name = wide ? 'WEST GEORGIA STREET' : 'OAK ST';
+    const nameBox = split ? r : Object.assign({}, r, {w: Math.max(0, r.w - 45)});
+    const baseTextSize = Math.max(1, Math.round(r.h / 20));
+    const textSize = Math.max(baseTextSize * 0.8, Math.min(baseTextSize, (nameBox.w - 7) / (name.length * 6)));
+    text(name, r.x + 7, r.y + Math.round((r.h - 7 * textSize) / 2), textSize, white, nameBox);
     text(wide ? '240 M' : '420 M', t.x + t.w - 45, t.y + Math.round((t.h - 7) / 2), 1, muted, t);
     arrow(t.x + t.w - t.h / 2, t.y + t.h / 2, t.h * 0.65, wide ? -1 : 1, white, t);
     const count = wide ? 6 : 3, icon = l.w / 6;

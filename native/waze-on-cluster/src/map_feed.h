@@ -80,7 +80,7 @@ namespace woc {
 /* The HUD map's widest size, % of the HUD's width: wider is cut off at its
  * edges. A larger hud_width_pct is held to it. */
 const unsigned kHudMaxPct = 100;
-const unsigned kHudZoomMin = 100, kHudZoomMax = 150;
+const unsigned kHudZoomMin = 50, kHudZoomDefault = 100, kHudZoomMax = 150;
 
 struct FeedConfig {
     std::string socket = "/dev/shm/cluster-render/render.sock";
@@ -93,7 +93,7 @@ struct FeedConfig {
      * box (about 57 %). */
     unsigned hud_width_pct = 0;
     int hud_map_crop = -1;
-    unsigned hud_map_zoom = kHudZoomMin;
+    unsigned hud_map_zoom = kHudZoomDefault;
     /* On the HUD: the map moved from its centred place, in the HUD scene's
      * pixels (+x right, +y down), held inside the HUD's scene. */
     int hud_offset_x = 0, hud_offset_y = 0;
@@ -153,7 +153,7 @@ struct FeedStatus {
     int hud_maneuver_x = 0, hud_maneuver_y = 0;
     int hud_card_x = 0, hud_card_y = 0;        /* and where it is moved to from its place by the map */
     unsigned hud_card_crop = 0;                /* % of the HUD map's height cut while it is on */
-    unsigned hud_map_crop = 0, hud_map_zoom = kHudZoomMin;
+    unsigned hud_map_crop = 0, hud_map_zoom = kHudZoomDefault;
     unsigned hud_lanes_pct = kCardDefaultPct;
     int hud_lanes_x = 0, hud_lanes_y = 0;
 };

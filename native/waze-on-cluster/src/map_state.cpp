@@ -49,7 +49,7 @@ bool valid(const std::string &key, const std::string &value)
     if (key == "hud_card_crop" || key == "hud_map_crop")
         return v >= 0 && v <= 40;
     if (key == "hud_map_zoom")
-        return v >= 100 && v <= 150;
+        return v >= 50 && v <= 150;
     return v == 0 || v == 1;
 }
 
